@@ -17,8 +17,13 @@ import org.junit.Test
  * dicocokkan adalah atribut XML, bukan pola kode Kotlin. Kalau nanti guard ini
  * diperluas ke berkas .kt, penghapus komentar WAJIB memakai pemindaian state
  * machine yang menghormati literal string — penghapus regex naif pernah
- * melahap kode asli karena `text/*` di dalam komentar terbaca sebagai pembuka
- * komentar blok (insiden ZCODE 2026-08-13).
+ * melahap kode asli karena urutan garis-miring diikuti bintang di dalam
+ * komentar terbaca sebagai pembuka komentar blok (insiden ZCODE 2026-08-13).
+ *
+ * Kotlin mendukung komentar blok BERSARANG, jadi pembuka kedua di dalam
+ * komentar menutupi penutup pertama: komentar luar tidak pernah selesai dan
+ * build gagal dengan "Unclosed comment". Jangan menuliskan urutan pembuka
+ * komentar di dalam komentar, sekalipun niatnya hanya sebagai contoh.
  */
 class MusicChromeGuardTest {
 
