@@ -89,18 +89,14 @@
             android:paddingTop="10dp"
             android:paddingBottom="8dp">
 
-            <TextView
+            <ImageButton
                 android:id="@+id/music_previous"
                 android:layout_width="52dp"
                 android:layout_height="44dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-        android:text="‹"
-        android:textColor="?attr/colorPrimary"
-        android:textSize="30sp"
-        android:textStyle="bold" />
+                android:contentDescription="@string/cd_music_previous"
+                android:src="@drawable/ic_music_prev"
+                android:tint="?attr/colorPrimary" />
 
             <ImageButton
                 android:id="@+id/music_play_pause"
@@ -113,18 +109,14 @@
                 android:src="@drawable/ic_music_play"
                 android:tint="?attr/colorOnSurface" />
 
-            <TextView
+            <ImageButton
                 android:id="@+id/music_next"
                 android:layout_width="52dp"
                 android:layout_height="44dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-        android:text="›"
-        android:textColor="?attr/colorPrimary"
-        android:textSize="30sp"
-        android:textStyle="bold" />
+                android:contentDescription="@string/cd_music_next"
+                android:src="@drawable/ic_music_next"
+                android:tint="?attr/colorPrimary" />
         </LinearLayout>
 
         <LinearLayout
@@ -187,12 +179,14 @@
             android:textSize="12sp" />
 
         <TextView
+            android:id="@+id/music_library_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:paddingTop="8dp"
             android:paddingBottom="4dp"
+            android:accessibilityHeading="true"
             android:text="Koleksi musik"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"

@@ -12,7 +12,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -42,14 +41,15 @@ class MusicDrawerController(
     private val submenu: View = root.findViewById(R.id.music_submenu)
     private val nowTitle: TextView = root.findViewById(R.id.music_now_title)
     private val nowArtist: TextView = root.findViewById(R.id.music_now_artist)
-    private val previous: TextView = root.findViewById(R.id.music_previous)
+    private val previous: ImageButton = root.findViewById(R.id.music_previous)
     private val playPause: ImageButton = root.findViewById(R.id.music_play_pause)
-    private val next: TextView = root.findViewById(R.id.music_next)
+    private val next: ImageButton = root.findViewById(R.id.music_next)
     private val mode: ImageButton = root.findViewById(R.id.music_mode)
     private val modeLabel: TextView = root.findViewById(R.id.music_mode_label)
     private val addMusic: TextView = root.findViewById(R.id.music_add)
     private val empty: TextView = root.findViewById(R.id.music_empty)
     private val libraryList: LinearLayout = root.findViewById(R.id.music_library_list)
+    private val libraryLabel: TextView = root.findViewById(R.id.music_library_label)
 
     private val tick = object : Runnable {
         override fun run() {
@@ -65,8 +65,6 @@ class MusicDrawerController(
         header.setTypeface(header.typeface, android.graphics.Typeface.BOLD)
         submenu.background = UiStyle.roundedBackground(activity, fillAlpha = 44, strokeAlpha = 52, radiusDp = 16f)
         modeLabel.setTextColor(UiStyle.primary(activity))
-        previous.setTextColor(UiStyle.primary(activity))
-        next.setTextColor(UiStyle.primary(activity))
         header.setOnClickListener {
             expanded = !expanded
             submenu.visibility = if (expanded) View.VISIBLE else View.GONE
@@ -159,27 +157,30 @@ class MusicDrawerController(
         updateUi()
     }
 
+    /**
+     * Next/prev selalu berarti "pindah lagu secara manual", apa pun mode-nya.
+     * REPEAT_MODE_ONE hanya mengulang otomatis lagu yang sama saat habis,
+     * tombol tetap boleh berpindah (issue #23).
+     */
     private fun playPrevious() {
         val c = controller ?: return toastNotReady()
         if (snapshot.tracks.isEmpty()) return
-        if (snapshot.playbackMode == MusicPlaybackMode.ONCE) {
-            val prev = wrapIndex(currentTrackIndex() - 1)
-            playTrack(prev)
-            return
+        if (c.hasPreviousMediaItem()) {
+            c.seekToPreviousMediaItem()
+        } else {
+            c.seekTo(snapshot.tracks.lastIndex, 0L)
         }
-        if (c.hasPreviousMediaItem()) c.seekToPreviousMediaItem() else playTrack(snapshot.tracks.lastIndex)
         c.play()
     }
 
     private fun playNext() {
         val c = controller ?: return toastNotReady()
         if (snapshot.tracks.isEmpty()) return
-        if (snapshot.playbackMode == MusicPlaybackMode.ONCE) {
-            val next = wrapIndex(currentTrackIndex() + 1)
-            playTrack(next)
-            return
+        if (c.hasNextMediaItem()) {
+            c.seekToNextMediaItem()
+        } else {
+            c.seekTo(0, 0L)
         }
-        if (c.hasNextMediaItem()) c.seekToNextMediaItem() else playTrack(0)
         c.play()
     }
 
@@ -212,23 +213,9 @@ class MusicDrawerController(
         }
         val currentId = snapshot.currentTrackId ?: tracks.first().id
         val index = tracks.indexOfFirst { it.id == currentId }.takeIf { it >= 0 } ?: 0
-        when (snapshot.playbackMode) {
-            MusicPlaybackMode.ONCE -> {
-                c.shuffleModeEnabled = false
-                c.repeatMode = Player.REPEAT_MODE_OFF
-                c.setMediaItems(listOf(tracks[index].toMediaItem()), 0, 0L)
-            }
-            MusicPlaybackMode.LOOP_ALL -> {
-                c.shuffleModeEnabled = false
-                c.repeatMode = Player.REPEAT_MODE_ALL
-                c.setMediaItems(tracks.map { it.toMediaItem() }, index, C.TIME_UNSET)
-            }
-            MusicPlaybackMode.SHUFFLE -> {
-                c.repeatMode = Player.REPEAT_MODE_ALL
-                c.shuffleModeEnabled = true
-                c.setMediaItems(tracks.map { it.toMediaItem() }, index, C.TIME_UNSET)
-            }
-        }
+        // Perilaku mode dimiliki MusicPlaybackMode, bukan controller: satu
+        // sumber kebenaran untuk label, ikon, dan penerapan ke player.
+        snapshot.playbackMode.applyTo(c, tracks.map { it.toMediaItem() }, index)
         c.prepare()
         if (keepPlaying) c.play()
     }
@@ -237,7 +224,7 @@ class MusicDrawerController(
         libraryList.removeAllViews()
         for ((index, track) in snapshot.tracks.withIndex()) {
             val item = TextView(activity).apply {
-                text = if (track.artist.isBlank()) track.title else "${track.title} - ${track.artist}"
+                text = MusicPresentation.trackLine(track.title, track.artist)
                 setTextColor(resolveColor(android.R.attr.textColorPrimary))
                 textSize = 13f
                 maxLines = 2
@@ -260,25 +247,27 @@ class MusicDrawerController(
 
     private fun updateUi() {
         val currentTrack = currentTrack()
-        subtitle.text = currentTrack?.let {
-            if (it.artist.isBlank()) it.title else "${it.title} - ${it.artist}"
-        } ?: if (expanded) "Audio lokal • tetap offline" else ""
-        subtitle.visibility = if (subtitle.text.isNullOrBlank()) View.GONE else View.VISIBLE
+        // Subtitle hanya ringkasan saat panel tertutup. Saat panel terbuka,
+        // judul sudah tampil di now-playing (issue #20).
+        subtitle.text = if (expanded) {
+            ""
+        } else {
+            currentTrack?.let { MusicPresentation.trackLine(it.title, it.artist) }.orEmpty()
+        }
+        subtitle.visibility = if (subtitle.text.isEmpty()) View.GONE else View.VISIBLE
         nowTitle.text = currentTrack?.title ?: "Belum ada musik lokal"
-        nowArtist.text = currentTrack?.artist?.takeIf { it.isNotBlank() } ?: currentTrack?.displayName.orEmpty()
+        nowArtist.text = currentTrack?.let {
+            MusicPresentation.artistLine(it.artist, it.displayName)
+        }.orEmpty()
         val isPlaying = controller?.isPlaying == true
         playPause.setImageResource(if (isPlaying) R.drawable.ic_music_pause else R.drawable.ic_music_play)
         playPause.contentDescription = if (isPlaying) "Jeda musik" else "Putar musik"
-        mode.setImageResource(
-            when (snapshot.playbackMode) {
-                MusicPlaybackMode.LOOP_ALL -> R.drawable.ic_music_loop_all
-                MusicPlaybackMode.ONCE -> R.drawable.ic_music_once
-                MusicPlaybackMode.SHUFFLE -> R.drawable.ic_music_shuffle
-            }
-        )
-        mode.contentDescription = "Mode ${snapshot.playbackMode.label()}"
+        mode.setImageResource(MusicPresentation.iconOf(snapshot.playbackMode))
+        mode.contentDescription =
+            activity.getString(MusicPresentation.contentDescriptionResOf(snapshot.playbackMode))
         modeLabel.text = snapshot.playbackMode.label()
         empty.isVisible = snapshot.tracks.isEmpty()
+        libraryLabel.isVisible = snapshot.tracks.isNotEmpty()
     }
 
     private fun postUpdate() {
