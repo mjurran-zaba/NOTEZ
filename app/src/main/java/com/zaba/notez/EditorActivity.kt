@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -23,6 +24,9 @@ import com.zaba.notez.markdown.MarkdownPreviewRenderer
 import com.zaba.notez.diagnostics.PerfTracker
 import android.os.SystemClock
 import com.zaba.notez.music.MusicDrawerController
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -39,6 +43,18 @@ import kotlinx.coroutines.withContext
  *   judul & isi jadi EditText biasa berisi teks Markdown mentah.
  */
 class EditorActivity : AppCompatActivity() {
+
+    private companion object {
+        /**
+         * Batas keras impor file. Dibatasi agar catatan raksasa tidak
+         * menghabiskan RAM perangkat saat dibaca ke String sekaligus.
+         */
+        const val MAX_IMPORT_BYTES = 5 * 1024 * 1024
+
+        /** Identitas catatan aktif; harus bertahan saat layar diputar. */
+        const val KEY_NOTE_ID = "state_note_id"
+        const val KEY_EDITING = "state_editing"
+    }
 
     private lateinit var dao: NoteDao
     private lateinit var drawer: DrawerLayout
@@ -85,6 +101,11 @@ class EditorActivity : AppCompatActivity() {
         writeToExternalUri(uri)
     }
 
+    private val openFileLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            if (uri != null) importFromUri(uri)
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val openTime = intent.getLongExtra("open_started_at", SystemClock.uptimeMillis())
         noteId = intent.getLongExtra("note_id", -1)
@@ -103,6 +124,10 @@ class EditorActivity : AppCompatActivity() {
             onAddMusicRequested = { openMusic.launch(arrayOf("audio/*")) }
         )
 
+        findViewById<View>(R.id.menu_file_open)?.setOnClickListener {
+            drawer.closeDrawer(GravityCompat.START)
+            handleOpenFile()
+        }
         findViewById<View>(R.id.menu_file_save)?.setOnClickListener {
             drawer.closeDrawer(GravityCompat.START)
             handleSaveFile()
@@ -113,6 +138,12 @@ class EditorActivity : AppCompatActivity() {
         }
         noteId = intent.getLongExtra("note_id", -1)
         isEditing = intent.getBooleanExtra("is_new", false)
+        // Setelah impor "Buka file", noteId bukan lagi milik intent: tanpa
+        // restore ini, rotasi layar mengembalikan editor ke catatan lama.
+        savedInstanceState?.let { state ->
+            noteId = state.getLong(KEY_NOTE_ID, noteId)
+            isEditing = state.getBoolean(KEY_EDITING, isEditing)
+        }
 
         titleEdit = findViewById(R.id.edit_title)
         titleView = findViewById(R.id.view_title)
@@ -287,6 +318,130 @@ class EditorActivity : AppCompatActivity() {
         saveAsLauncher.launch(suggestedName)
     }
 
+    /** Hasil bacaan satu file yang akan diimpor menjadi catatan baru. */
+    private sealed interface ImportResult {
+        data class Success(val title: String, val content: String) : ImportResult
+        object TooLarge : ImportResult
+        object Failed : ImportResult
+    }
+
+    private fun handleOpenFile() {
+        // "text/*" menangkap .md/.txt dari SAF; octet-stream menangkap provider
+        // yang tidak memberi MIME jelas (mis. beberapa penyimpanan awan).
+        openFileLauncher.launch(arrayOf("text/*", "application/octet-stream"))
+    }
+
+    /**
+     * Baca file eksternal menjadi catatan baru, lalu ikat catatan itu ke URI
+     * sumbernya sehingga "Simpan file" menulis balik ke file yang sama.
+     */
+    private fun importFromUri(uri: Uri) {
+        // Jangan buang edit yang belum tersimpan di catatan yang sedang terbuka:
+        // noteId akan berganti, jadi simpan sekarang sebelum konteks berpindah.
+        saveTask?.let(handler::removeCallbacks)
+        saveTask = null
+        saveBlocking(currentTitle, currentContent)
+
+        val fallbackTitle = getString(R.string.untitled_note)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val result = runCatching { readMarkdown(uri, fallbackTitle) }
+                .getOrDefault(ImportResult.Failed)
+            when (result) {
+                is ImportResult.Success -> {
+                    runCatching {
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        )
+                    }
+                    val newId = runCatching {
+                        dao.upsert(
+                            Note(
+                                title = result.title,
+                                content = result.content,
+                                updatedAt = System.currentTimeMillis()
+                            )
+                        )
+                    }.getOrElse {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                this@EditorActivity,
+                                R.string.open_file_failed,
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        return@launch
+                    }
+                    NoteFileTargetStore.setTargetUri(this@EditorActivity, newId, uri)
+                    withContext(Dispatchers.Main) { bindImportedNote(newId, result) }
+                }
+
+                ImportResult.TooLarge -> withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@EditorActivity,
+                        R.string.open_file_too_large,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+                ImportResult.Failed -> withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@EditorActivity,
+                        R.string.open_file_failed,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    /** Baca byte file lalu ubah jadi teks. Ukuran dibatasi [MAX_IMPORT_BYTES]. */
+    private fun readMarkdown(uri: Uri, fallbackTitle: String): ImportResult {
+        val displayName = contentResolver
+            .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+            .orEmpty()
+
+        val bytes = contentResolver.openInputStream(uri)?.use { stream ->
+            val out = ByteArrayOutputStream()
+            val chunk = ByteArray(8 * 1024)
+            while (true) {
+                val read = stream.read(chunk)
+                if (read <= 0) break
+                if (out.size() + read > MAX_IMPORT_BYTES) return ImportResult.TooLarge
+                out.write(chunk, 0, read)
+            }
+            out.toByteArray()
+        } ?: return ImportResult.Failed
+
+        val title = displayName.substringBeforeLast('.').trim().ifBlank { fallbackTitle }
+        return ImportResult.Success(title, decodeText(bytes))
+    }
+
+    /** UTF-8 ketat; file lama yang bukan UTF-8 tetap ditampilkan, bukan gagal total. */
+    private fun decodeText(bytes: ByteArray): String = try {
+        Charsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes)).toString()
+    } catch (_: CharacterCodingException) {
+        String(bytes, Charsets.ISO_8859_1)
+    }
+
+    /** Pasang catatan hasil impor ke UI. Catatan tetap bisa diedit seperti biasa. */
+    private fun bindImportedNote(newId: Long, imported: ImportResult.Success) {
+        noteId = newId
+        isEditing = false
+        currentTitle = imported.title
+        currentContent = imported.content
+        suppressAutosave = true
+        titleEdit.setText(imported.title)
+        bodyEdit.setText(imported.content)
+        suppressAutosave = false
+        updateCounter(imported.content.length, "")
+        loaded = true
+        applyMode(false)
+        Toast.makeText(this, R.string.open_file_done, Toast.LENGTH_SHORT).show()
+    }
+
     private fun writeToExternalUri(uri: Uri) {
         val title = if (isEditing) titleEdit.text.toString() else currentTitle
         val body = if (isEditing) bodyEdit.text.toString() else currentContent
@@ -323,6 +478,12 @@ class EditorActivity : AppCompatActivity() {
         currentContent = body
         saveBlocking(title, body)
         super.onPause()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putLong(KEY_NOTE_ID, noteId)
+        outState.putBoolean(KEY_EDITING, isEditing)
     }
 
     override fun onDestroy() {

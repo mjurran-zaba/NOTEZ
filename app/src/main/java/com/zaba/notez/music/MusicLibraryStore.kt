@@ -5,6 +5,9 @@ import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -23,21 +26,63 @@ data class MusicTrack(
     val lastPlayedAt: Long = 0L
 )
 
+/**
+ * Mode playback beserta label dan penerapannya ke [Player].
+ *
+ * Label dan perilaku sengaja hidup di kelas yang sama supaya tidak bisa
+ * berbeda arti: dulu ikon/label dipetakan di controller dan perilaku di
+ * tempat lain, sehingga mode ketiga tampil sebagai "Sekali" padahal tombol
+ * next/prev masih berpindah lagu (issue #22 dan #23).
+ */
 enum class MusicPlaybackMode {
-    LOOP_ALL,
-    ONCE,
+    REPEAT_ALL,
+    REPEAT_ONE,
     SHUFFLE;
 
     fun next(): MusicPlaybackMode = when (this) {
-        LOOP_ALL -> ONCE
-        ONCE -> SHUFFLE
-        SHUFFLE -> LOOP_ALL
+        REPEAT_ALL -> REPEAT_ONE
+        REPEAT_ONE -> SHUFFLE
+        SHUFFLE -> REPEAT_ALL
     }
 
     fun label(): String = when (this) {
-        LOOP_ALL -> "Ulangi semua"
-        ONCE -> "Sekali"
+        REPEAT_ALL -> "Ulangi semua"
+        REPEAT_ONE -> "Ulangi satu"
         SHUFFLE -> "Acak"
+    }
+
+    /** Terapkan mode ke player lalu pasang seluruh playlist dari [startIndex]. */
+    fun applyTo(player: Player, items: List<MediaItem>, startIndex: Int) {
+        when (this) {
+            REPEAT_ALL -> {
+                player.shuffleModeEnabled = false
+                player.repeatMode = Player.REPEAT_MODE_ALL
+            }
+            REPEAT_ONE -> {
+                player.shuffleModeEnabled = false
+                player.repeatMode = Player.REPEAT_MODE_ONE
+            }
+            SHUFFLE -> {
+                player.repeatMode = Player.REPEAT_MODE_ALL
+                player.shuffleModeEnabled = true
+            }
+        }
+        player.setMediaItems(items, startIndex, C.TIME_UNSET)
+    }
+
+    companion object {
+        /**
+         * Nama mode tersimpan di music_library.json. Versi 0.1.6 menulis
+         * LOOP_ALL/ONCE/SHUFFLE; enum berganti nama menjadi REPEAT_ALL /
+         * REPEAT_ONE, jadi dua nama lama tetap harus dibaca benar. Tanpa
+         * pemetaan ini library pengguna lama jatuh ke mode default.
+         */
+        fun fromPersisted(raw: String?): MusicPlaybackMode = when (raw) {
+            "LOOP_ALL", "REPEAT_ALL" -> REPEAT_ALL
+            "ONCE", "REPEAT_ONE" -> REPEAT_ONE
+            "SHUFFLE" -> SHUFFLE
+            else -> REPEAT_ALL
+        }
     }
 }
 
@@ -100,12 +145,10 @@ object MusicLibraryStore {
 
     private fun read(context: Context): MusicLibrarySnapshot {
         val f = file(context)
-        if (!f.exists()) return MusicLibrarySnapshot(emptyList(), MusicPlaybackMode.LOOP_ALL, null)
+        if (!f.exists()) return MusicLibrarySnapshot(emptyList(), MusicPlaybackMode.REPEAT_ALL, null)
         return try {
             val root = JSONObject(f.readText())
-            val mode = runCatching {
-                MusicPlaybackMode.valueOf(root.optString("playbackMode", MusicPlaybackMode.LOOP_ALL.name))
-            }.getOrDefault(MusicPlaybackMode.LOOP_ALL)
+            val mode = MusicPlaybackMode.fromPersisted(root.optString("playbackMode", null))
             val currentTrackId = root.optString("currentTrackId", "").takeIf { it.isNotBlank() }
             val arr = root.optJSONArray("tracks") ?: JSONArray()
             val tracks = buildList {
@@ -132,7 +175,7 @@ object MusicLibraryStore {
             MusicLibrarySnapshot(tracks, mode, currentTrackId)
         } catch (_: Exception) {
             // Music library corruption must not affect notes.
-            MusicLibrarySnapshot(emptyList(), MusicPlaybackMode.LOOP_ALL, null)
+            MusicLibrarySnapshot(emptyList(), MusicPlaybackMode.REPEAT_ALL, null)
         }
     }
 

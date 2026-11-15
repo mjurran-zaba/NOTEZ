@@ -1,8 +1,13 @@
 name: Build NOTEZ
 
+# Model branching NOTEZ:
+#   - main          = release (releasable, tidak ada debug-only change)
+#   - ZAQIxNOTEZ     = integrasi (semua PR dan merge masuk sini)
+#   - fix/*, feat/*  = pekerjaan per isu, PR ke ZAQIxNOTEZ
+# Push ke ZAQIxNOTEZ juga memicu build agar integrasi terus teruji.
 on:
   push:
-    branches: [main]
+    branches: [main, ZAQIxNOTEZ]
   pull_request:
 
 jobs:
@@ -34,12 +39,19 @@ jobs:
         with:
           gradle-version: 8.5
 
-      - name: Build debug APK
-        run: gradle assembleDebug --console=plain
+      # Unit test dijalankan SEBELUM build: guard yang tidak dieksekusi CI
+      # bukan guard, dan build hijau tidak membuktikan test di folder
+      # app/src/test pernah berjalan.
+      - name: Run unit tests + build debug APK
+        run: gradle testDebugUnitTest assembleDebug --console=plain
 
+      # APK debug diunggah dari SEMUA build (main, ZAQIxNOTEZ, PR) supaya hasil
+      # integrasi bisa langsung dipasang dan diuji di perangkat. Ini artefak
+      # verifikasi, BUKAN rilis: rilis signed hanya dari release.yml.
       - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: notez-debug
+          # ref_name untuk PR berbentuk "123/merge", jadi PR diberi nama eksplisit.
+          name: notez-debug-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}
           path: app/build/outputs/apk/debug/app-debug.apk
 
