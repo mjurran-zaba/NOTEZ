@@ -9,6 +9,7 @@
 **Artifact:** `notez-v0.1.7-release`, 2.317.187 bytes.
 **SHA-256 APK:** `17ee200439a6cca954ca031c2188606a519e54ac1894d9be1ad155b4c3345066`.
 **Signer:** `CN=ZABA, OU=NOTEZ, O=ZABA` (sesuai sertifikat rilis repo).
+**GitHub Release:** <https://github.com/muzape28-blip/NOTEZ/releases/tag/v0.1.7> — aset `notez-v0.1.7.apk` (3.261.459 bytes, SHA-256 sama dengan artifact CI).
 
 ---
 
@@ -60,7 +61,7 @@
 | LOCALLY VERIFIED | ya | XML well-formed, brace/paren seimbang, guard leksikal disimulasikan, mutation test guard (TextView + chevron → merah, dipulihkan → hijau), pemindai komentar bersarang atas 29 berkas Kotlin. |
 | CI VERIFIED | ya | `Build NOTEZ` di `main`/`bfa2619` success (`testDebugUnitTest` + `assembleDebug`), dan `release.yml` success dengan langkah `Run unit tests (guard)` → `Build signed release APK` → `Verify signature + badging` → `Shred keystore` semuanya hijau. |
 | DEVICE VERIFIED | sebagian | APK debug dipasang di perangkat oleh pemilik repo dan dinyatakan sesuai. Skenario UAT terperinci belum dicatat per butir. |
-| RELEASED | ya | Signed APK `notez-v0.1.7-release` terunggah dari run 43719866287; tag `v0.1.7` menunjuk commit `bfa2619`. Distribusi ke pengguna akhir (Play Store / unduhan) belum dilakukan. |
+| RELEASED | ya | Signed APK `notez-v0.1.7-release` terunggah dari run 43719866287 dan diterbitkan sebagai aset GitHub Release `v0.1.7`; tag menunjuk commit `bfa2619`. Distribusi lewat Play Store belum dilakukan. |
 
 ## Not included / sisa
 
