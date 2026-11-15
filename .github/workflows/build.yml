@@ -45,12 +45,13 @@ jobs:
       - name: Run unit tests + build debug APK
         run: gradle testDebugUnitTest assembleDebug --console=plain
 
-      # Artifact debug hanya diproduksi dari main (release-intended).
-      # Integrasi/PR cukup bukti compile + test.
+      # APK debug diunggah dari SEMUA build (main, ZAQIxNOTEZ, PR) supaya hasil
+      # integrasi bisa langsung dipasang dan diuji di perangkat. Ini artefak
+      # verifikasi, BUKAN rilis: rilis signed hanya dari release.yml.
       - name: Upload APK
-        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: notez-debug
+          # ref_name untuk PR berbentuk "123/merge", jadi PR diberi nama eksplisit.
+          name: notez-debug-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}
           path: app/build/outputs/apk/debug/app-debug.apk
 

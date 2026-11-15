@@ -40,9 +40,11 @@ Rilis bukan sifat branch, tapi sifat build. "Main dalam keadaan release" berarti
 6. Tag `vx.y.z` dibuat di commit yang dirilis.
 7. PR `ZAQIxNOTEZ → main` dibuka, CI hijau, lalu merge.
 
-`main` tidak pernah membangun APK debug yang diunggah: workflow `Build NOTEZ`
-hanya mengunggah artifact `notez-debug` ketika `github.ref == refs/heads/main`,
-dan bahkan itu pun hanya untuk verifikasi, bukan rilis.
+`Build NOTEZ` mengunggah APK **debug** dari semua build (`main`, `ZAQIxNOTEZ`,
+dan PR) dengan nama artifact `notez-debug-<ref>`. Itu artefak verifikasi supaya
+hasil integrasi bisa langsung dipasang di perangkat, **bukan** artefak rilis.
+Satu-satunya artefak rilis adalah `notez-vx.y.z-release` dari `release.yml`
+(signed, sudah diverifikasi `apksigner`).
 
 ## Realignment (satu kali, 2026-11-15)
 
