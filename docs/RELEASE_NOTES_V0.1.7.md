@@ -1,9 +1,14 @@
 # NOTEZ v0.1.7
 
-**Status:** disiapkan untuk rilis; signed APK dibangun lewat `release.yml`.
+**Status:** Production release, published.
 **Version:** `versionName 0.1.7`, `versionCode 8`.
-**Basis:** merge `ZAQIxNOTEZ` ke `main` (commit `9a50dfc`).
-**Tag:** `v0.1.7` (dibuat setelah APK signed terverifikasi).
+**Published:** 2026-11-15T13:40:43Z.
+**Tag:** `v0.1.7` → commit `bfa2619`.
+**Signed APK built from:** commit `bfa2619` (merge `ZAQIxNOTEZ` di `9a50dfc`).
+**CI run:** [43719866287](https://github.com/muzape28-blip/NOTEZ/actions/runs/43719866287) — `release`, success.
+**Artifact:** `notez-v0.1.7-release`, 2.317.187 bytes.
+**SHA-256 APK:** `17ee200439a6cca954ca031c2188606a519e54ac1894d9be1ad155b4c3345066`.
+**Signer:** `CN=ZABA, OU=NOTEZ, O=ZABA` (sesuai sertifikat rilis repo).
 
 ---
 
@@ -53,9 +58,9 @@
 |---|---|---|
 | IMPLEMENTED | ya | Semua perubahan di atas ada di `main`. |
 | LOCALLY VERIFIED | ya | XML well-formed, brace/paren seimbang, guard leksikal disimulasikan, mutation test guard (TextView + chevron → merah, dipulihkan → hijau), pemindai komentar bersarang atas 29 berkas Kotlin. |
-| CI VERIFIED | ya (untuk build & unit test) | `Build NOTEZ` menyelesaikan `testDebugUnitTest` + `assembleDebug`; kegagalan pertama (komentar blok bersarang) sudah diperbaiki. |
+| CI VERIFIED | ya | `Build NOTEZ` di `main`/`bfa2619` success (`testDebugUnitTest` + `assembleDebug`), dan `release.yml` success dengan langkah `Run unit tests (guard)` → `Build signed release APK` → `Verify signature + badging` → `Shred keystore` semuanya hijau. |
 | DEVICE VERIFIED | sebagian | APK debug dipasang di perangkat oleh pemilik repo dan dinyatakan sesuai. Skenario UAT terperinci belum dicatat per butir. |
-| RELEASED | belum | Menunggu dispatch `release.yml` dengan `BUILD-v0.1.7`. |
+| RELEASED | ya | Signed APK `notez-v0.1.7-release` terunggah dari run 43719866287; tag `v0.1.7` menunjuk commit `bfa2619`. Distribusi ke pengguna akhir (Play Store / unduhan) belum dilakukan. |
 
 ## Not included / sisa
 
