@@ -73,4 +73,7 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
 
+    // Guard unit test JVM murni (tanpa Robolectric). Dipilih JUnit 4 karena
+    // tidak butuh Android runtime maupun konfigurasi tambahan.
+    testImplementation("junit:junit:4.13.2")
 }

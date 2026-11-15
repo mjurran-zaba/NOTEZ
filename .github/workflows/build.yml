@@ -34,8 +34,11 @@ jobs:
         with:
           gradle-version: 8.5
 
-      - name: Build debug APK
-        run: gradle assembleDebug --console=plain
+      # Unit test dijalankan SEBELUM build: guard yang tidak dieksekusi CI
+      # bukan guard, dan build hijau tidak membuktikan test di folder
+      # app/src/test pernah berjalan.
+      - name: Run unit tests + build debug APK
+        run: gradle testDebugUnitTest assembleDebug --console=plain
 
       - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
