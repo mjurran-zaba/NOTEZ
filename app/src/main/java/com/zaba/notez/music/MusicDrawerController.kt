@@ -11,6 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -63,6 +64,9 @@ class MusicDrawerController(
         header.setTextColor(UiStyle.primary(activity))
         header.textSize = 16f
         header.setTypeface(header.typeface, android.graphics.Typeface.BOLD)
+        // Heading aksesibilitas: ViewCompat agar berlaku juga di API 26/27.
+        ViewCompat.setAccessibilityHeading(header, true)
+        ViewCompat.setAccessibilityHeading(libraryLabel, true)
         submenu.background = UiStyle.roundedBackground(activity, fillAlpha = 44, strokeAlpha = 52, radiusDp = 16f)
         modeLabel.setTextColor(UiStyle.primary(activity))
         header.setOnClickListener {
@@ -231,7 +235,8 @@ class MusicDrawerController(
                 minHeight = dp(44)
                 gravity = android.view.Gravity.CENTER_VERTICAL
                 background = UiStyle.roundedBackground(activity, fillAlpha = 54, strokeAlpha = 42, radiusDp = 12f)
-                setPadding(dp(14), dp(8), dp(12), dp(8))
+                // 10dp padding kontainer + 8dp di sini = 18dp, sejajar heading.
+                setPadding(dp(8), dp(8), dp(8), dp(8))
                 setOnClickListener { playTrack(index) }
             }
             libraryList.addView(
