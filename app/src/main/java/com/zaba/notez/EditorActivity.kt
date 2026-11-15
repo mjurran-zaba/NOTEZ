@@ -50,6 +50,10 @@ class EditorActivity : AppCompatActivity() {
          * menghabiskan RAM perangkat saat dibaca ke String sekaligus.
          */
         const val MAX_IMPORT_BYTES = 5 * 1024 * 1024
+
+        /** Identitas catatan aktif; harus bertahan saat layar diputar. */
+        const val KEY_NOTE_ID = "state_note_id"
+        const val KEY_EDITING = "state_editing"
     }
 
     private lateinit var dao: NoteDao
@@ -134,6 +138,12 @@ class EditorActivity : AppCompatActivity() {
         }
         noteId = intent.getLongExtra("note_id", -1)
         isEditing = intent.getBooleanExtra("is_new", false)
+        // Setelah impor "Buka file", noteId bukan lagi milik intent: tanpa
+        // restore ini, rotasi layar mengembalikan editor ke catatan lama.
+        savedInstanceState?.let { state ->
+            noteId = state.getLong(KEY_NOTE_ID, noteId)
+            isEditing = state.getBoolean(KEY_EDITING, isEditing)
+        }
 
         titleEdit = findViewById(R.id.edit_title)
         titleView = findViewById(R.id.view_title)
@@ -468,6 +478,12 @@ class EditorActivity : AppCompatActivity() {
         currentContent = body
         saveBlocking(title, body)
         super.onPause()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putLong(KEY_NOTE_ID, noteId)
+        outState.putBoolean(KEY_EDITING, isEditing)
     }
 
     override fun onDestroy() {
