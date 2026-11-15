@@ -1,6 +1,6 @@
 # RFC — Perbaikan Issue Terbuka NOTEZ (#19–#26)
 
-**Status:** `APPROVED (keputusan §9, 2026-11-15) — EKSEKUSI MENUNGGU PERINTAH "GASS", BELUM ADA KODE PRODUKSI YANG DIUBAH`
+**Status:** `IMPLEMENTED (batch A–F, 2026-11-15) — BELUM CI VERIFIED: perlu push agar workflow menjalankan testDebugUnitTest`
 **Tanggal:** 2026-11-15
 **Branch kerja:** `freebuff/f3a36116d74294a9536e1919`
 **Base commit:** `e57c146` (*Change greeting from 'Hello World' to 'Goodbye World'*)
@@ -531,7 +531,12 @@ Rekomendasi gw: **tetap drawer**, tapi perbaiki ownership tick (berhenti saat dr
 
 - [x] Tujuh pertanyaan §9 dijawab (2026-11-15).
 - [x] RFC ini diubah statusnya jadi `APPROVED`.
-- [ ] Perintah **GASS** dari Zaqi diterima.
+- [x] Perintah **GASS** dari Zaqi diterima.
+- [x] Batch A (#19), B (#22/#23), C (#20), D (#24), F (#26) diimplementasikan dan di-commit per batch.
+- [x] Mutation test guard leksikal dijalankan: TextView+chevron → merah, dipulihkan → hijau.
+- [ ] Push ke GitHub agar CI menjalankan `testDebugUnitTest` dan kompilasi.
+- [ ] UAT perangkat untuk skenario runtime (lihat §11).
+- [ ] #21 ditutup setelah verifikasi perangkat.
 - [ ] `git status` bersih, branch dipastikan benar.
 - [ ] `.github/workflows/build.yml` dibaca (untuk Batch F).
 - [ ] Tidak ada secret yang masuk repo selama pengerjaan.
