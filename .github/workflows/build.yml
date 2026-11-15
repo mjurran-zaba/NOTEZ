@@ -1,8 +1,13 @@
 name: Build NOTEZ
 
+# Model branching NOTEZ:
+#   - main          = release (releasable, tidak ada debug-only change)
+#   - ZAQIxNOTEZ     = integrasi (semua PR dan merge masuk sini)
+#   - fix/*, feat/*  = pekerjaan per isu, PR ke ZAQIxNOTEZ
+# Push ke ZAQIxNOTEZ juga memicu build agar integrasi terus teruji.
 on:
   push:
-    branches: [main]
+    branches: [main, ZAQIxNOTEZ]
   pull_request:
 
 jobs:
@@ -40,7 +45,10 @@ jobs:
       - name: Run unit tests + build debug APK
         run: gradle testDebugUnitTest assembleDebug --console=plain
 
+      # Artifact debug hanya diproduksi dari main (release-intended).
+      # Integrasi/PR cukup bukti compile + test.
       - name: Upload APK
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: notez-debug

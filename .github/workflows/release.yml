@@ -41,6 +41,9 @@ jobs:
           echo "${{ secrets.NOTEZ_KEYSTORE_B64 }}" | base64 -d > /tmp/notez-release.keystore
           echo "keystore siap (sementara, di-shred setelah build)"
 
+      - name: Run unit tests (guard)
+        run: gradle testDebugUnitTest --console=plain
+
       - name: Build signed release APK
         env:
           NOTEZ_KEYSTORE: /tmp/notez-release.keystore
