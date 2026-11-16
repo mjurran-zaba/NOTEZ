@@ -163,7 +163,7 @@ class EditorActivity : AppCompatActivity() {
                 currentContent = it.content
                 perfTracker?.mark("DB_QUERY_DONE")
                 titleEdit.setText(it.title)
-                bodyEdit.setText(it.content)
+                // Batch 1: tunda setText body saat mode view; hanya diisi saat edit.
                 perfTracker?.mark("EDITOR_TEXT_SET")
                 updateCounter(it.content.length, "")
                 perfTracker?.mark("COUNTER_DONE")
@@ -437,7 +437,7 @@ class EditorActivity : AppCompatActivity() {
         currentContent = imported.content
         suppressAutosave = true
         titleEdit.setText(imported.title)
-        bodyEdit.setText(imported.content)
+        // Batch 1: body diisi saat pindah ke edit (switchToEdit).
         suppressAutosave = false
         updateCounter(imported.content.length, "")
         loaded = true
