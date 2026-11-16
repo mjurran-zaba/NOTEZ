@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 private const val GRID_SPACING_DP = 8
+private const val SEARCH_SLIDE_MS = 180L
 
 class MainActivity : AppCompatActivity() {
 
@@ -73,8 +74,6 @@ class MainActivity : AppCompatActivity() {
         dao = AppDatabase.get(this).noteDao()
         drawer = findViewById(R.id.drawer)
         UiStyle.applyDrawerGlass(findViewById(R.id.drawer_panel))
-        findViewById<View>(R.id.home_toolbar).background =
-            UiStyle.roundedBackground(this, fillAlpha = 88, strokeAlpha = 56, radiusDp = 18f)
         setupDrawer()
         musicDrawer = MusicDrawerController(
             activity = this,
@@ -304,9 +303,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Kolom search tidak menempati ruang saat tertutup; ia slide masuk dari kiri. */
     private fun openSearch(toggle: ImageButton, input: EditText) {
         searchOpen = true
+        findViewById<View>(R.id.home_toolbar).background =
+            UiStyle.roundedBackground(this, fillAlpha = 88, strokeAlpha = 56, radiusDp = 18f)
+        input.animate().cancel()
         input.visibility = View.VISIBLE
+        val start = -input.width.coerceAtLeast(UiStyle.dp(this, 120f)).toFloat()
+        input.translationX = start
+        input.alpha = 0f
+        input.animate()
+            .translationX(0f)
+            .alpha(1f)
+            .setDuration(SEARCH_SLIDE_MS)
+            .start()
         toggle.setImageResource(R.drawable.ic_eye)
         toggle.contentDescription = getString(R.string.cd_close_search)
         input.requestFocus()
@@ -317,7 +328,20 @@ class MainActivity : AppCompatActivity() {
     private fun closeSearch(toggle: ImageButton, input: EditText) {
         searchOpen = false
         input.setText("")
-        input.visibility = View.INVISIBLE
+        input.animate().cancel()
+        input.animate()
+            .translationX(-input.width.coerceAtLeast(UiStyle.dp(this, 120f)).toFloat())
+            .alpha(0f)
+            .setDuration(SEARCH_SLIDE_MS)
+            .withEndAction {
+                if (!searchOpen) {
+                    input.visibility = View.GONE
+                    input.alpha = 1f
+                    input.translationX = 0f
+                    findViewById<View>(R.id.home_toolbar).background = null
+                }
+            }
+            .start()
         toggle.setImageResource(R.drawable.ic_eye)
         toggle.contentDescription = getString(R.string.cd_open_search)
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -344,6 +368,7 @@ class MainActivity : AppCompatActivity() {
     private fun renderSearchChrome(toggle: ImageButton, input: EditText) {
         val show = HomeSearchPolicy.toolbarVisible(totalNotes)
         if (!show && searchOpen) closeSearch(toggle, input)
+        if (show && !searchOpen) findViewById<View>(R.id.home_toolbar).background = null
         findViewById<View>(R.id.home_toolbar).visibility = if (show) View.VISIBLE else View.GONE
         toggle.visibility = if (show) View.VISIBLE else View.GONE
     }

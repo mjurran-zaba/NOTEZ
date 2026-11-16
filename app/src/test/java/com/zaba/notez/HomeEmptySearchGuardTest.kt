@@ -14,8 +14,8 @@ import org.junit.Test
  *
  * 1. `home_toolbar` memulai layout dengan visibility="gone" agar tidak ada
  *    kapsul yang sempat tampil sebelum observer pertama.
- * 2. `search_input` tetap "invisible" (bukan "gone"), supaya search masih bisa
- *    dibuka mata ketika catatan tersedia.
+ * 2. `search_input` memakai "gone" saat tertutup, supaya tidak menyisakan
+ *    kapsul yang mengambil ruang; mata sendiri rata kanan di toolbar.
  * 3. Sumber activity memutuskan chrome search dari total catatan, bukan dari
  *    jumlah hasil filter (`itemCount`), dan tidak lagi memakai jalur lama.
  */
@@ -37,12 +37,21 @@ class HomeEmptySearchGuardTest {
     }
 
     @Test
-    fun searchInputStaysInvisibleSoSearchCanBeReopened() {
+    fun searchInputTakesNoSpaceWhenCollapsed() {
         val tag = openingTag("search_input")
         assertTrue("search_input tidak ditemukan", tag.isNotEmpty())
         assertTrue(
-            "search_input harus tetap invisible agar search bisa dibuka kembali",
-            tag.contains("android:visibility=\"invisible\"")
+            "search_input harus gone saat tertutup agar tidak menyisakan kapsul kosong",
+            tag.contains("android:visibility=\"gone\"")
+        )
+    }
+
+    @Test
+    fun toolbarAlignsCollapsedEyeToTheEnd() {
+        val tag = openingTag("home_toolbar")
+        assertTrue(
+            "mata harus rata kanan saat kolom search tersembunyi",
+            tag.contains("android:gravity=\"end\"")
         )
     }
 
