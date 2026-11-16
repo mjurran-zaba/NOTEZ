@@ -821,7 +821,7 @@ yang sedang berlaku. Jangan menyalin perintah pindah branch dari panduan histori
 | DESIGNED | Ya — rancangan dan rencana ini |
 | IMPLEMENTED | Ya untuk A1-B3 (search chrome, model/preference mode, Grid, hardening). Belum untuk C1/C2/C3 |
 | LOCALLY VERIFIED | Tidak — sandbox tanpa JDK/Gradle/Android SDK; hanya pemeriksaan statis + `git diff --check` |
-| CI VERIFIED | Belum ada; menunggu push + PR |
+| CI VERIFIED | Ya untuk A1-B3 — PR #1, run `43873002914`: `compileDebugKotlin`, `testDebugUnitTest`, dan `assembleDebug` hijau |
 | PLATFORM/DEVICE VERIFIED | Tidak ada klaim perangkat baru |
 | RELEASED | Tidak; baseline rilis lama bukan bukti fitur baru |
 
@@ -848,9 +848,10 @@ sebagai efek samping pembuatan dokumen ini.
 
 ### 13.4 Catatan implementasi 2026-11-16
 
-Batch A1-B3 sudah di-commit lokal di branch `fix/home-empty-search`
-(`75a09a8`, `d833906`, `548e7dd`, `76198c6`); belum di-push, belum ada CI,
-belum ada UAT. Audit tahap C0 ada di
+Batch A1-B3 sudah di-commit di branch `fix/home-empty-search`
+(`75a09a8`, `d833906`, `548e7dd`, `76198c6`, `56de905`) dan CI hijau di
+PR #1. Belum ada UAT perangkat; artefak verifikasi `notez-debug-pr-1`
+tersedia dari run tersebut. Audit tahap C0 ada di
 `docs/AUDIT_MARKDOWN_CAPABILITIES_2026_11_16.md` dan belum mengubah renderer.
 Kandidat C1 menunggu keputusan sebelum dikerjakan.
 
