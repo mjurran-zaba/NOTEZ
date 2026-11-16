@@ -15,6 +15,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebChromeClient
 import android.webkit.ConsoleMessage
+import android.webkit.RenderProcessGoneDetail
 import com.zaba.notez.diagnostics.PerfTracker
 import android.widget.Toast
 import com.zaba.notez.R
@@ -127,6 +128,13 @@ class MarkdownPreviewRenderer(
                     perfTracker?.mark("FULL_RENDER")
                     perfTracker?.finishSession()
                 }
+            }
+
+            override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                // Batch 2 (parsial): jangan ikut crash; tandai & pulihkan shell.
+                perfTracker?.mark("RENDER_PROCESS_GONE")
+                view?.loadUrl("about:blank")
+                return true
             }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url ?: return true
