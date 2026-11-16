@@ -59,8 +59,8 @@ class MarkdownPreviewRenderer(
     fun render(markdown: String, tracker: PerfTracker? = null) {
         if (tracker != null) perfTracker = tracker
         currentMarkdown = markdown
-        perfTracker?.mark("MARKDOWN_PARSED")
         val html = buildHtml(markdown)
+        perfTracker?.mark("HTML_BUILD_DONE")
         perfTracker?.mark("HTML_READY")
         webView.loadDataWithBaseURL(
             NOTEZ_BASE_URL,
@@ -106,9 +106,10 @@ class MarkdownPreviewRenderer(
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                if (consoleMessage.message() == "NOTEZ_FIRST_PAINT") {
-                    perfTracker?.mark("FIRST_PAINT")
-                    return true
+                when (consoleMessage.message()) {
+                    "NOTEZ_RENDER_JS_START" -> { perfTracker?.mark("RENDER_JS_START"); return true }
+                    "NOTEZ_RENDER_JS_END" -> { perfTracker?.mark("RENDER_JS_END"); return true }
+                    "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); return true }
                 }
                 return super.onConsoleMessage(consoleMessage)
             }
@@ -927,6 +928,7 @@ class MarkdownPreviewRenderer(
                     footnoteNumbers: Object.create(null),
                     footnoteRefCounts: Object.create(null)
                   };
+                  console.log("NOTEZ_RENDER_JS_START");
                   setSafePreviewHtml(md.render(preparedSource, renderEnv));
                   addHeadingAnchors();
                   wrapTables();
@@ -937,6 +939,7 @@ class MarkdownPreviewRenderer(
                   appendFootnotes(renderEnv);
                   hardenLinks();
                   addImagePlaceholderHandlers();
+                  console.log("NOTEZ_RENDER_JS_END");
                   console.log("NOTEZ_FIRST_PAINT");
 
                   function slugifyHeading(text) {

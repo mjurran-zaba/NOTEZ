@@ -161,9 +161,12 @@ class EditorActivity : AppCompatActivity() {
             dao.getById(noteId)?.let {
                 currentTitle = it.title
                 currentContent = it.content
+                perfTracker?.mark("DB_QUERY_DONE")
                 titleEdit.setText(it.title)
                 bodyEdit.setText(it.content)
+                perfTracker?.mark("EDITOR_TEXT_SET")
                 updateCounter(it.content.length, "")
+                perfTracker?.mark("COUNTER_DONE")
             }
             perfTracker?.mark("NOTE_LOADED")
             loaded = true
