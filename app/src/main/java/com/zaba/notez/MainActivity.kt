@@ -389,11 +389,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun gridSpanCount(): Int = HomeDisplayPolicy.spanCount(
-        availableWidthPx = listView.width - listView.paddingStart - listView.paddingEnd,
-        minCardWidthPx = UiStyle.dp(this, HomeDisplayPolicy.MIN_CARD_WIDTH_DP.toFloat()),
-        spacingPx = UiStyle.dp(this, GRID_SPACING_DP.toFloat())
-    )
+    private fun gridSpanCount(): Int {
+        // Sebelum layout pertama listView.width masih 0; pakai lebar layar sebagai
+        // perkiraan awal supaya Grid tidak sempat tampil satu kolom lalu reflow.
+        val measured = listView.width - listView.paddingStart - listView.paddingEnd
+        val available = if (measured > 0) {
+            measured
+        } else {
+            resources.displayMetrics.widthPixels - listView.paddingStart - listView.paddingEnd
+        }
+        return HomeDisplayPolicy.spanCount(
+            availableWidthPx = available,
+            minCardWidthPx = UiStyle.dp(this, HomeDisplayPolicy.MIN_CARD_WIDTH_DP.toFloat()),
+            spacingPx = UiStyle.dp(this, GRID_SPACING_DP.toFloat())
+        )
+    }
 
     private fun updateGridSpanCount() {
         val manager = listView.layoutManager as? GridLayoutManager ?: return
