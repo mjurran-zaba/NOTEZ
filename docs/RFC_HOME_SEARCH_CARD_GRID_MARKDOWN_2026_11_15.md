@@ -852,8 +852,10 @@ Batch A1-B3 sudah di-commit di branch `fix/home-empty-search`
 (`75a09a8`, `d833906`, `548e7dd`, `76198c6`, `56de905`) dan CI hijau di
 PR #1. Belum ada UAT perangkat; artefak verifikasi `notez-debug-pr-1`
 tersedia dari run tersebut. Audit tahap C0 ada di
-`docs/AUDIT_MARKDOWN_CAPABILITIES_2026_11_16.md` dan belum mengubah renderer.
-Kandidat C1 menunggu keputusan sebelum dikerjakan.
+`docs/AUDIT_MARKDOWN_CAPABILITIES_2026_11_16.md`. Kandidat C1-A (deflist inline)
+diimplementasikan di source (commit berikutnya): `escapeHtml(definition)` →
+`md.renderInline(definition, env)` di `preprocessDefinitionLists`. Fixture red→green
+belum dijalankan (sandbox tanpa WebView/JDK); UAT perangkat wajib.
 
 ---
 

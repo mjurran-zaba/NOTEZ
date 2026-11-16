@@ -772,7 +772,8 @@ class MarkdownPreviewRenderer(
                     return true;
                   }
 
-                  function preprocessDefinitionLists(markdown) {
+                  function preprocessDefinitionLists(markdown, footnotes) {
+                    footnotes = footnotes || Object.create(null);
                     var lines = String(markdown || '').split(/\r?\n/);
                     var output = [];
                     var fence = '';
@@ -806,7 +807,7 @@ class MarkdownPreviewRenderer(
                           output.push('<dt>' + escapeHtml(term) + '</dt>');
                         });
                         definitions.forEach(function (definition) {
-                          output.push('<dd>' + escapeHtml(definition) + '</dd>');
+                          output.push('<dd>' + md.renderInline(definition, { footnotes: footnotes, footnoteOrder: [], footnoteNumbers: Object.create(null), footnoteRefCounts: Object.create(null) }) + '</dd>');
                         });
                         output.push('</dl>');
                         output.push('');
@@ -919,7 +920,7 @@ class MarkdownPreviewRenderer(
 
                   var preview = document.getElementById('preview');
                   var footnoteExtraction = extractFootnotes(source);
-                  var preparedSource = preprocessDefinitionLists(footnoteExtraction.markdown);
+                  var preparedSource = preprocessDefinitionLists(footnoteExtraction.markdown, footnoteExtraction.definitions);
                   var renderEnv = {
                     footnotes: footnoteExtraction.definitions,
                     footnoteOrder: [],

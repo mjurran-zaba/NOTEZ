@@ -49,7 +49,7 @@
 | MD-CALLOUT-001 | Callout `[!NOTE]` dll. | GitHub-style, 5 jenis | `:1194-1200` | supported (source) | Multiline & nested quote belum diuji |
 | MD-SUPSUB-001 | Highlight `==x==`, sup `^x^`, sub `~x~` | extension NOTEZ | `:838-861` | partial (source) | Escape delimiter, whitespace, benturan strikethrough belum diuji |
 | MD-FOOT-001 | Footnote `[^1]` | extension NOTEZ | `:731-770`, `:863-884` | partial (source) | Multiline, ref berulang, backlink, fenced literal belum diuji |
-| MD-DEFLIST-001 | Definition list | extension NOTEZ | `:772-822` | partial (source) | **Isi definisi di-`escapeHtml`**, jadi inline markdown di dalamnya tampil literal (lihat F1) |
+| MD-DEFLIST-001 | Definition list | extension NOTEZ | `:772-822` | implemented (source) — C1-A | Isi definisi kini dirender via `md.renderInline` di dalam `<dd>`; sanitizer/URL policy tetap berlaku. Verifikasi runtime (fixture/UAT) belum dilakukan |
 | MD-HTML-001 | Raw HTML aman | allowlist NOTEZ | `:182-281`, `:552-670` | supported (source) | Dua lapis sanitasi (raw + DOM); nested/malformed/comment belum diuji |
 | MD-IMG-001 | Gambar remote | placeholder + konfirmasi + cache | `:886-916`, `:178-181` | supported (source) | MIME/size/error/cancel/offline cache belum diuji |
 | MD-IMG-002 | Gambar lokal (`file://`, `content://`) | — | tidak ada di source | missing (by design) | Butuh RFC attachment terpisah |
@@ -100,7 +100,7 @@ URL cache palsu dari catatan tidak bisa dipakai.
 
 | Kandidat | Isi | Kenapa belum dikerjakan |
 |---|---|---|
-| C1-A | Render inline markdown di `<dd>` definition list (perbaiki F1) | Menyentuh jalur render + sanitasi; butuh fixture red→green dan UAT, tidak bisa dibuktikan di sandbox ini |
+| C1-A | Render inline markdown di `<dd>` definition list (perbaiki F1) | IMPLEMENTED (source) 2026-11-16 — `escapeHtml(definition)` diganti `md.renderInline(definition, env)` di `preprocessDefinitionLists`; sanitizer tetap dua lapis. Fixture red→green dan UAT belum dijalankan |
 | C1-B | Pastikan fallback bahasa asing pada code card tetap aman dan literal | Perilaku `codeRules` untuk bahasa tak dikenal belum dipetakan |
 
 Keduanya menunggu keputusan. Tidak ada perubahan renderer yang dilakukan pada
