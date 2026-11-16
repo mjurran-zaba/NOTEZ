@@ -1,6 +1,5 @@
 package com.zaba.notez
 
-import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,17 +18,12 @@ import org.junit.Test
  *    dibuka mata ketika catatan tersedia.
  * 3. Sumber activity memutuskan chrome search dari total catatan, bukan dari
  *    jumlah hasil filter (`itemCount`), dan tidak lagi memakai jalur lama.
- *
- * Catatan implementasi: berkas Kotlin diperiksa setelah komentar dan literal
- * string dihapus. Penghapusnya state machine sederhana yang menghormati raw
- * string dan blok komentar bersarang; pencocokan pola mentah pernah menelan
- * kode asli karena urutan garis-miring diikuti bintang di dalam komentar
- * terbaca sebagai pembuka komentar blok.
  */
 class HomeEmptySearchGuardTest {
 
-    private val layout: String = read("layout/activity_main.xml", "res")
-    private val activitySource: String = read("java/com/zaba/notez/MainActivity.kt", "main")
+    private val layout: String = SourceScan.readRes("layout/activity_main.xml")
+    private val activityCode: String =
+        SourceScan.codeOnly(SourceScan.readMainFile("java/com/zaba/notez/MainActivity.kt"))
 
     @Test
     fun toolbarStartsGoneInLayout() {
@@ -64,23 +58,45 @@ class HomeEmptySearchGuardTest {
 
     @Test
     fun activityDecidesChromeFromTotalNotesNotFilteredCount() {
-        val code = codeOnly(activitySource)
+        // itemCount boleh dipakai untuk hal lain (mis. clamp posisi scroll),
+        // jadi yang diperiksa hanya badan keputusan chrome search.
+        val body = functionBody("private fun renderSearchChrome(")
+        assertTrue("renderSearchChrome tidak ditemukan", body.isNotEmpty())
         assertFalse(
             "chrome search tidak boleh diputuskan dari jumlah hasil filter (itemCount)",
-            code.contains("itemCount")
+            body.contains("itemCount")
+        )
+        assertTrue(
+            "chrome search harus memakai HomeSearchPolicy.toolbarVisible",
+            body.contains("HomeSearchPolicy.toolbarVisible")
         )
         assertFalse(
             "jalur lama updateSearchAvailability harus sudah digantikan",
-            code.contains("updateSearchAvailability")
-        )
-        assertTrue(
-            "activity harus memakai HomeSearchPolicy.toolbarVisible",
-            code.contains("HomeSearchPolicy.toolbarVisible")
+            activityCode.contains("updateSearchAvailability")
         )
         assertTrue(
             "activity harus menyimpan total catatan dari observer presence",
-            code.contains("totalNotes =")
+            activityCode.contains("totalNotes =")
         )
+    }
+
+    /** Badan satu fungsi berdasarkan awal signature-nya (komentar/string sudah dibuang). */
+    private fun functionBody(signature: String): String {
+        val start = activityCode.indexOf(signature)
+        if (start < 0) return ""
+        val open = activityCode.indexOf('{', start)
+        if (open < 0) return ""
+        var depth = 0
+        for (i in open until activityCode.length) {
+            when (activityCode[i]) {
+                '{' -> depth++
+                '}' -> {
+                    depth--
+                    if (depth == 0) return activityCode.substring(open, i + 1)
+                }
+            }
+        }
+        return activityCode.substring(open)
     }
 
     /** Tag pembuka satu elemen berdasarkan android:id-nya. */
@@ -92,116 +108,5 @@ class HomeEmptySearchGuardTest {
         val end = layout.indexOf('>', markerIndex)
         if (start < 0 || end < 0) return ""
         return layout.substring(start, end + 1)
-    }
-
-    /**
-     * Hapus komentar dan literal string agar pencocokan hanya mengenai kode.
-     * Panjang keluaran dijaga sama supaya posisi baris tidak bergeser.
-     */
-    private fun codeOnly(source: String): String {
-        val out = StringBuilder(source.length)
-        var i = 0
-        while (i < source.length) {
-            val c = source[i]
-            when {
-                c == '/' && i + 1 < source.length && source[i + 1] == '/' -> {
-                    while (i < source.length && source[i] != '\n') {
-                        out.append(' ')
-                        i++
-                    }
-                }
-                c == '/' && i + 1 < source.length && source[i + 1] == '*' -> {
-                    var depth = 0
-                    while (i < source.length) {
-                        when {
-                            source[i] == '/' && i + 1 < source.length && source[i + 1] == '*' -> {
-                                depth++
-                                out.append("  ")
-                                i += 2
-                            }
-                            source[i] == '*' && i + 1 < source.length && source[i + 1] == '/' -> {
-                                depth--
-                                out.append("  ")
-                                i += 2
-                                if (depth == 0) break
-                            }
-                            else -> {
-                                out.append(if (source[i] == '\n') '\n' else ' ')
-                                i++
-                            }
-                        }
-                    }
-                }
-                c == '"' && source.startsWith("\"\"\"", i) -> {
-                    out.append("\"\"\"")
-                    i += 3
-                    while (i < source.length && !source.startsWith("\"\"\"", i)) {
-                        out.append(if (source[i] == '\n') '\n' else ' ')
-                        i++
-                    }
-                    if (i < source.length) {
-                        out.append("\"\"\"")
-                        i += 3
-                    }
-                }
-                c == '"' -> {
-                    out.append('"')
-                    i++
-                    while (i < source.length && source[i] != '"' && source[i] != '\n') {
-                        if (source[i] == '\\' && i + 1 < source.length) {
-                            out.append("  ")
-                            i += 2
-                        } else {
-                            out.append(if (source[i] == '\n') '\n' else ' ')
-                            i++
-                        }
-                    }
-                    if (i < source.length && source[i] == '"') {
-                        out.append('"')
-                        i++
-                    }
-                }
-                c == '\'' -> {
-                    out.append('\'')
-                    i++
-                    while (i < source.length && source[i] != '\'' && source[i] != '\n') {
-                        if (source[i] == '\\' && i + 1 < source.length) {
-                            out.append("  ")
-                            i += 2
-                        } else {
-                            out.append(if (source[i] == '\n') '\n' else ' ')
-                            i++
-                        }
-                    }
-                    if (i < source.length && source[i] == '\'') {
-                        out.append('\'')
-                        i++
-                    }
-                }
-                else -> {
-                    out.append(c)
-                    i++
-                }
-            }
-        }
-        return out.toString()
-    }
-
-    /**
-     * Berkas sumber modul app. Gradle menjalankan unit test dari direktori
-     * modul, tapi jalur alternatif disediakan supaya guard tidak lolos
-     * diam-diam kalau working directory berubah.
-     */
-    private fun read(relativePath: String, kind: String): String {
-        val candidates = if (kind == "res") {
-            listOf(File("src/main/res/$relativePath"), File("app/src/main/res/$relativePath"))
-        } else {
-            listOf(File("src/main/$relativePath"), File("app/src/main/$relativePath"))
-        }
-        val file = candidates.firstOrNull { it.isFile }
-            ?: error(
-                "Berkas $relativePath tidak ditemukan dari workingDir=${File(".").absolutePath}."
-            )
-        return file.readText()
     }
 }

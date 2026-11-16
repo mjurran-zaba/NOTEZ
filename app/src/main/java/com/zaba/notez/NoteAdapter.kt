@@ -12,6 +12,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Adapter daftar catatan Home.
+ *
+ * Satu dataset dan satu adapter untuk dua presentasi (List/Grid): yang berubah
+ * hanya view type dan layout, bukan urutan, note ID, source body, atau
+ * timestamp. `submit()` tetap `notifyDataSetChanged()` seperti baseline;
+ * menggantinya ke DiffUtil bukan bagian batch ini.
+ */
 class NoteAdapter(
     private val onOpen: (Note) -> Unit,
     private val onDelete: (Note) -> Unit
@@ -20,14 +28,35 @@ class NoteAdapter(
     private var items: List<Note> = emptyList()
     private val fmt = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
 
+    var mode: NoteDisplayMode = NoteDisplayMode.LIST
+        private set
+
     fun submit(list: List<Note>) {
         items = list
         notifyDataSetChanged()
     }
 
+    /** Ganti presentasi tanpa menyentuh dataset. */
+    fun setMode(newMode: NoteDisplayMode) {
+        if (mode == newMode) return
+        mode = newMode
+        notifyDataSetChanged()
+    }
+
+    fun noteAt(position: Int): Note? = items.getOrNull(position)
+
+    fun indexOfNote(noteId: Long): Int = items.indexOfFirst { it.id == noteId }
+
+    override fun getItemViewType(position: Int): Int =
+        if (mode == NoteDisplayMode.GRID) VIEW_TYPE_GRID else VIEW_TYPE_LIST
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-        val v = LayoutInflater.from(parent.context).inflate(R.layout.item_note, parent, false)
-        return Holder(v)
+        val layout = if (viewType == VIEW_TYPE_GRID) {
+            R.layout.item_note_grid
+        } else {
+            R.layout.item_note
+        }
+        return Holder(LayoutInflater.from(parent.context).inflate(layout, parent, false))
     }
 
     override fun onBindViewHolder(h: Holder, position: Int) {
@@ -52,5 +81,10 @@ class NoteAdapter(
         val preview: TextView = v.findViewById(R.id.item_preview)
         val meta: TextView = v.findViewById(R.id.item_meta)
         val delete: ImageButton = v.findViewById(R.id.item_delete)
+    }
+
+    private companion object {
+        const val VIEW_TYPE_LIST = 0
+        const val VIEW_TYPE_GRID = 1
     }
 }

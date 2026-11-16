@@ -15,6 +15,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +23,7 @@ import androidx.core.view.GravityCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -32,6 +34,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+
+private const val GRID_SPACING_DP = 8
 
 class MainActivity : AppCompatActivity() {
 
@@ -45,6 +49,9 @@ class MainActivity : AppCompatActivity() {
     private var pendingDrawerAction: (() -> Unit)? = null
     private var searchOpen = false
     private var totalNotes: Int? = null
+    private var displayMode = NoteDisplayMode.LIST
+    private var spacingDecoration: GridSpacingItemDecoration? = null
+    private lateinit var listView: RecyclerView
     private var appliedTheme = ThemePref.GITHUB_DARK
     private var startupSplashAnimator: AnimatorSet? = null
     private var startupSplashStatusBarColor: Int? = null
@@ -78,9 +85,15 @@ class MainActivity : AppCompatActivity() {
             onOpen = { note -> openEditor(note.id) },
             onDelete = { note -> deleteWithUndo(note) }
         )
-        findViewById<RecyclerView>(R.id.list).apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = this@MainActivity.adapter
+        displayMode = HomeDisplayPref.get(this)
+        listView = findViewById(R.id.list)
+        applyDisplayMode(displayMode, restoreScroll = false)
+        listView.adapter = adapter
+        setupDisplayModeDrawer()
+        listView.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (displayMode == NoteDisplayMode.GRID && right - left != oldRight - oldLeft) {
+                updateGridSpanCount()
+            }
         }
         findViewById<TextView>(R.id.empty_about_link).setOnClickListener {
             startActivity(Intent(this, AboutNotezActivity::class.java))
@@ -332,6 +345,78 @@ class MainActivity : AppCompatActivity() {
         if (!show && searchOpen) closeSearch(toggle, input)
         findViewById<View>(R.id.home_toolbar).visibility = if (show) View.VISIBLE else View.GONE
         toggle.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun setupDisplayModeDrawer() {
+        val group = findViewById<RadioGroup>(R.id.drawer_display_group)
+        group.check(
+            if (displayMode == NoteDisplayMode.GRID) R.id.drawer_display_grid
+            else R.id.drawer_display_list
+        )
+        group.setOnCheckedChangeListener { _, checkedId ->
+            val selected = if (checkedId == R.id.drawer_display_grid) {
+                NoteDisplayMode.GRID
+            } else {
+                NoteDisplayMode.LIST
+            }
+            // Tap mode yang sama tidak boleh rebuild adapter/layout.
+            if (selected == displayMode) return@setOnCheckedChangeListener
+            HomeDisplayPref.set(this, selected)
+            applyDisplayMode(selected, restoreScroll = true)
+        }
+    }
+
+    /** Ganti presentasi saja: dataset, query, urutan, dan timestamp tidak disentuh. */
+    private fun applyDisplayMode(mode: NoteDisplayMode, restoreScroll: Boolean) {
+        val anchor = if (restoreScroll) captureScrollAnchor() else null
+        displayMode = mode
+        adapter.setMode(mode)
+        spacingDecoration?.let { listView.removeItemDecoration(it) }
+        spacingDecoration = null
+        if (mode == NoteDisplayMode.GRID) {
+            listView.layoutManager = GridLayoutManager(this, gridSpanCount())
+            val decoration = GridSpacingItemDecoration(UiStyle.dp(this, GRID_SPACING_DP.toFloat()))
+            spacingDecoration = decoration
+            listView.addItemDecoration(decoration)
+        } else {
+            listView.layoutManager = LinearLayoutManager(this)
+        }
+        if (anchor != null) restoreScrollAnchor(anchor)
+    }
+
+    private fun gridSpanCount(): Int = HomeDisplayPolicy.spanCount(
+        availableWidthPx = listView.width - listView.paddingStart - listView.paddingEnd,
+        minCardWidthPx = UiStyle.dp(this, HomeDisplayPolicy.MIN_CARD_WIDTH_DP.toFloat()),
+        spacingPx = UiStyle.dp(this, GRID_SPACING_DP.toFloat())
+    )
+
+    private fun updateGridSpanCount() {
+        val manager = listView.layoutManager as? GridLayoutManager ?: return
+        val span = gridSpanCount()
+        if (span != manager.spanCount) manager.spanCount = span
+    }
+
+    private data class ScrollAnchor(val noteId: Long, val position: Int, val offset: Int)
+
+    private fun captureScrollAnchor(): ScrollAnchor? {
+        val manager = listView.layoutManager as? LinearLayoutManager ?: return null
+        val position = manager.findFirstVisibleItemPosition()
+        if (position == RecyclerView.NO_POSITION) return null
+        val note = adapter.noteAt(position) ?: return null
+        val view = manager.findViewByPosition(position) ?: return null
+        return ScrollAnchor(note.id, position, view.top - listView.paddingTop)
+    }
+
+    /** Best effort: jangkar berdasarkan identitas note, bukan index mentah. */
+    private fun restoreScrollAnchor(anchor: ScrollAnchor) {
+        listView.post {
+            val manager = listView.layoutManager as? LinearLayoutManager ?: return@post
+            val count = adapter.itemCount
+            if (count == 0) return@post
+            val exact = adapter.indexOfNote(anchor.noteId)
+            val target = if (exact >= 0) exact else anchor.position.coerceIn(0, count - 1)
+            manager.scrollToPositionWithOffset(target, anchor.offset)
+        }
     }
 
     override fun onBackPressed() {

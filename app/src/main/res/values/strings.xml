@@ -22,4 +22,7 @@
     <string name="cd_music_mode_repeat_all">Mode Ulangi semua. Ketuk untuk mengganti.</string>
     <string name="cd_music_mode_repeat_one">Mode Ulangi satu. Ketuk untuk mengganti.</string>
     <string name="cd_music_mode_shuffle">Mode Acak. Ketuk untuk mengganti.</string>
+    <string name="drawer_display_title">Tampilan catatan</string>
+    <string name="drawer_display_list">List</string>
+    <string name="drawer_display_grid">Grid</string>
 </resources>
