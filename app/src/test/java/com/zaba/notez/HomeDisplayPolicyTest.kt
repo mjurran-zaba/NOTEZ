@@ -49,4 +49,26 @@ class HomeDisplayPolicyTest {
         assertEquals(1, HomeDisplayPolicy.spanCount(-100, minCard, gap))
         assertEquals(1, HomeDisplayPolicy.spanCount(800, 0, gap))
     }
+
+    @Test
+    fun anchorUsesExactNoteWhenStillPresent() {
+        assertEquals(4, HomeDisplayPolicy.anchorIndex(exactIndex = 4, fallbackPosition = 9, itemCount = 10))
+    }
+
+    @Test
+    fun anchorFallsBackToNearestValidPositionWhenNoteDeleted() {
+        assertEquals(3, HomeDisplayPolicy.anchorIndex(exactIndex = -1, fallbackPosition = 3, itemCount = 10))
+        assertEquals(4, HomeDisplayPolicy.anchorIndex(exactIndex = -1, fallbackPosition = 99, itemCount = 5))
+        assertEquals(0, HomeDisplayPolicy.anchorIndex(exactIndex = -1, fallbackPosition = -7, itemCount = 5))
+    }
+
+    @Test
+    fun anchorIsInvalidWhenDatasetEmpty() {
+        assertEquals(-1, HomeDisplayPolicy.anchorIndex(exactIndex = -1, fallbackPosition = 0, itemCount = 0))
+    }
+
+    @Test
+    fun staleExactIndexOutsideDatasetFallsBack() {
+        assertEquals(1, HomeDisplayPolicy.anchorIndex(exactIndex = 7, fallbackPosition = 1, itemCount = 3))
+    }
 }

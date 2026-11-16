@@ -51,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     private var totalNotes: Int? = null
     private var displayMode = NoteDisplayMode.LIST
     private var spacingDecoration: GridSpacingItemDecoration? = null
+    private var scrollRestoreToken = 0
     private lateinit var listView: RecyclerView
     private var appliedTheme = ThemePref.GITHUB_DARK
     private var startupSplashAnimator: AnimatorSet? = null
@@ -381,7 +382,11 @@ class MainActivity : AppCompatActivity() {
         } else {
             listView.layoutManager = LinearLayoutManager(this)
         }
-        if (anchor != null) restoreScrollAnchor(anchor)
+        if (anchor != null) {
+            // Token membatalkan pemulihan yang sudah basi bila mode berganti lagi
+            // sebelum layout baru selesai.
+            restoreScrollAnchor(anchor, ++scrollRestoreToken)
+        }
     }
 
     private fun gridSpanCount(): Int = HomeDisplayPolicy.spanCount(
@@ -408,13 +413,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Best effort: jangkar berdasarkan identitas note, bukan index mentah. */
-    private fun restoreScrollAnchor(anchor: ScrollAnchor) {
+    private fun restoreScrollAnchor(anchor: ScrollAnchor, token: Int) {
         listView.post {
+            if (token != scrollRestoreToken) return@post
             val manager = listView.layoutManager as? LinearLayoutManager ?: return@post
-            val count = adapter.itemCount
-            if (count == 0) return@post
-            val exact = adapter.indexOfNote(anchor.noteId)
-            val target = if (exact >= 0) exact else anchor.position.coerceIn(0, count - 1)
+            val target = HomeDisplayPolicy.anchorIndex(
+                exactIndex = adapter.indexOfNote(anchor.noteId),
+                fallbackPosition = anchor.position,
+                itemCount = adapter.itemCount
+            )
+            if (target < 0) return@post
             manager.scrollToPositionWithOffset(target, anchor.offset)
         }
     }

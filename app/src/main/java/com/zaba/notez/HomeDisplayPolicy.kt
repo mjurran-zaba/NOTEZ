@@ -40,4 +40,19 @@ internal object HomeDisplayPolicy {
         }
         return columns
     }
+
+    /**
+     * Pilih posisi scroll setelah mode berganti.
+     *
+     * @param exactIndex index note jangkar di dataset terkini, atau negatif
+     *   bila note sudah tidak ada.
+     * @param fallbackPosition posisi jangkar saat mode sebelumnya.
+     * @param itemCount jumlah item terkini.
+     * @return index valid, atau -1 bila dataset kosong.
+     */
+    fun anchorIndex(exactIndex: Int, fallbackPosition: Int, itemCount: Int): Int {
+        if (itemCount <= 0) return -1
+        if (exactIndex in 0 until itemCount) return exactIndex
+        return fallbackPosition.coerceIn(0, itemCount - 1)
+    }
 }
