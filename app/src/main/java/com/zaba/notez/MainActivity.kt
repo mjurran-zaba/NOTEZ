@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
     private var query = ""
     private var pendingDrawerAction: (() -> Unit)? = null
     private var searchOpen = false
-    private var hasAnyNotes = false
+    private var totalNotes: Int? = null
     private var appliedTheme = ThemePref.GITHUB_DARK
     private var startupSplashAnimator: AnimatorSet? = null
     private var startupSplashStatusBarColor: Int? = null
@@ -314,19 +314,24 @@ class MainActivity : AppCompatActivity() {
         notePresenceJob?.cancel()
         notePresenceJob = lifecycleScope.launch {
             dao.observeAll().collectLatest { notes ->
-                hasAnyNotes = notes.isNotEmpty()
-                updateSearchAvailability(toggle, input)
+                totalNotes = notes.size
+                renderSearchChrome(toggle, input)
             }
         }
     }
 
-    private fun updateSearchAvailability(toggle: ImageButton, input: EditText) {
-        if (hasAnyNotes) {
-            toggle.visibility = View.VISIBLE
-            return
-        }
-        if (searchOpen) closeSearch(toggle, input)
-        toggle.visibility = View.GONE
+    /**
+     * Satu-satunya tempat yang memutuskan chrome search di Home.
+     *
+     * Sumbernya total catatan (null = observer belum pernah mengirim emisi),
+     * bukan jumlah hasil filter: query tanpa hasil juga menghasilkan nol item
+     * dan tidak boleh menyembunyikan search.
+     */
+    private fun renderSearchChrome(toggle: ImageButton, input: EditText) {
+        val show = HomeSearchPolicy.toolbarVisible(totalNotes)
+        if (!show && searchOpen) closeSearch(toggle, input)
+        findViewById<View>(R.id.home_toolbar).visibility = if (show) View.VISIBLE else View.GONE
+        toggle.visibility = if (show) View.VISIBLE else View.GONE
     }
 
     override fun onBackPressed() {
