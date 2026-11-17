@@ -983,19 +983,17 @@ class MarkdownPreviewRenderer(
                   };
                   console.log("NOTEZ_RENDER_JS_START");
                   setSafePreviewHtml(md.render(preparedSource, renderEnv));
+                  addHeadingAnchors();
+                  wrapTables();
+                  enhanceTaskLists();
+                  enhanceCodeBlocks();
+                  enhanceCallouts();
+                  enhanceFootnoteRefs();
+                  appendFootnotes(renderEnv);
+                  hardenLinks();
+                  addImagePlaceholderHandlers();
+                  console.log("NOTEZ_RENDER_JS_END");
                   console.log("NOTEZ_FIRST_PAINT");
-                  setTimeout(function () {
-                    addHeadingAnchors();
-                    wrapTables();
-                    enhanceTaskLists();
-                    enhanceCodeBlocks();
-                    enhanceCallouts();
-                    enhanceFootnoteRefs();
-                    appendFootnotes(renderEnv);
-                    hardenLinks();
-                    addImagePlaceholderHandlers();
-                    console.log("NOTEZ_RENDER_JS_END");
-                  }, 0);
 
                   function slugifyHeading(text) {
                     var slug = String(text || '').toLowerCase()
