@@ -52,6 +52,11 @@ class MarkdownPreviewRenderer(
     var perfTracker: PerfTracker? = null
     @Volatile private var destroyed = false
     private var currentMarkdown: String = ""
+    private var shellLoaded = false
+    private var shellTheme: PreviewColors? = null
+    private var pendingSourceJson: String? = null
+    private var pendingBaseJson: String? = null
+    private var pendingCacheJson: String? = null
 
     init {
         configureWebView()
@@ -60,16 +65,36 @@ class MarkdownPreviewRenderer(
     fun render(markdown: String, tracker: PerfTracker? = null) {
         if (tracker != null) perfTracker = tracker
         currentMarkdown = markdown
-        val html = buildHtml(markdown)
-        perfTracker?.mark("HTML_BUILD_DONE")
-        perfTracker?.mark("HTML_READY")
-        webView.loadDataWithBaseURL(
-            NOTEZ_BASE_URL,
-            html,
-            "text/html",
-            "UTF-8",
-            null
-        )
+        val colors = PreviewColors.from(activity)
+        val markdownJson = JSONObject.quote(markdown)
+        val baseJson = JSONObject.quote(githubRawBase(markdown))
+        val cacheJson = cachedImagesJson(markdown)
+        if (!shellLoaded || shellTheme != colors) {
+            shellTheme = colors
+            shellLoaded = false
+            pendingSourceJson = markdownJson
+            pendingBaseJson = baseJson
+            pendingCacheJson = cacheJson
+            perfTracker?.mark("HTML_BUILD_DONE")
+            perfTracker?.mark("HTML_READY")
+            val shell = buildShell(colors)
+            webView.loadDataWithBaseURL(NOTEZ_BASE_URL, shell, "text/html", "UTF-8", null)
+        } else {
+            perfTracker?.mark("HTML_BUILD_DONE")
+            perfTracker?.mark("HTML_READY")
+            val js = "window.notezRender($markdownJson, $baseJson, $cacheJson);"
+            webView.evaluateJavascript(js, null)
+        }
+    }
+
+    private fun buildShell(colors: PreviewColors): String {
+        val html = buildHtml("")
+        return html
+            .replace("(function () {", "window.notezRender = function (sourceJson, githubRawBaseJson, cachedImagesJson) {")
+            .replace("var source = \"\";", "var source = sourceJson;")
+            .replace("var githubRawBase = \"\";", "var githubRawBase = githubRawBaseJson;")
+            .replace("var cachedImages = {};", "var cachedImages = cachedImagesJson;")
+            .replace("})();", "};")
     }
 
     fun destroy() {
@@ -110,7 +135,7 @@ class MarkdownPreviewRenderer(
                 when (consoleMessage.message()) {
                     "NOTEZ_RENDER_JS_START" -> { perfTracker?.mark("RENDER_JS_START"); return true }
                     "NOTEZ_RENDER_JS_END" -> { perfTracker?.mark("RENDER_JS_END"); return true }
-                    "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); return true }
+                    "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); perfTracker?.mark("FULL_RENDER"); perfTracker?.finishSession(); return true }
                 }
                 return super.onConsoleMessage(consoleMessage)
             }
@@ -124,9 +149,14 @@ class MarkdownPreviewRenderer(
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                if (url != "about:blank") {
-                    perfTracker?.mark("FULL_RENDER")
-                    perfTracker?.finishSession()
+                val pending = pendingSourceJson
+                if (pending != null) {
+                    val js = "window.notezRender($pending, ${pendingBaseJson}, ${pendingCacheJson});"
+                    view?.evaluateJavascript(js, null)
+                    pendingSourceJson = null
+                    pendingBaseJson = null
+                    pendingCacheJson = null
+                    shellLoaded = true
                 }
             }
 
