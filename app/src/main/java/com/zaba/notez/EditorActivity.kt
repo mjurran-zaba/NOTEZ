@@ -164,7 +164,8 @@ class EditorActivity : AppCompatActivity() {
                 perfTracker?.mark("DB_QUERY_DONE")
                 titleEdit.setText(it.title)
                 // Batch 1: tunda setText body saat mode view; hanya diisi saat edit.
-                perfTracker?.mark("EDITOR_TEXT_SET")
+                // Body belum di-set di sini, jadi marker ini hanya mengukur judul.
+                perfTracker?.mark("TITLE_TEXT_SET")
                 updateCounter(it.content.length, "")
                 perfTracker?.mark("COUNTER_DONE")
             }
@@ -185,6 +186,7 @@ class EditorActivity : AppCompatActivity() {
         bodyEdit.doAfterTextChanged { if (loaded && !suppressAutosave) schedule() }
 
         editToggle.setOnClickListener {
+            perfTracker?.mark("EDIT_CLICK")
             if (isEditing) switchToView() else switchToEdit()
         }
     }
@@ -209,10 +211,16 @@ class EditorActivity : AppCompatActivity() {
         bodyEdit.setText(currentContent)
         titleEdit.setSelection(titleEdit.text?.length ?: 0)
         bodyEdit.setSelection(bodyEdit.text?.length ?: 0)
+        perfTracker?.mark("EDIT_TEXT_SET")
         suppressAutosave = false
         applyMode(true)
+        perfTracker?.mark("EDIT_VISIBLE")
+        // Satu frame setelah visibility berubah, supaya yang terukur adalah
+        // layout dokumen, bukan antrean pesan main thread.
+        bodyEditContainer.post { perfTracker?.mark("EDIT_LAYOUT_DONE") }
         bodyEdit.requestFocus()
         showKeyboard(bodyEdit)
+        perfTracker?.mark("KEYBOARD_REQUESTED")
     }
 
     /** Tampilkan set view yang sesuai mode, dan render Markdown saat masuk mode view. */
@@ -235,6 +243,7 @@ class EditorActivity : AppCompatActivity() {
             // Hanya set kalau beda, supaya kursor tidak reset saat sudah sinkron.
             if (bodyEdit.text.toString() != currentContent) {
                 bodyEdit.setText(currentContent)
+                perfTracker?.mark("EDIT_TEXT_SET")
             }
         }
 

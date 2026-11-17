@@ -68,11 +68,16 @@ class MarkdownPreviewRenderer(
 
     fun render(markdown: String, tracker: PerfTracker? = null) {
         if (tracker != null) perfTracker = tracker
+        perfTracker?.beginRenderSession()
         currentMarkdown = markdown
         val colors = PreviewColors.from(activity)
         val renderHash = sha256(markdown + "|" + colors.toString() + "|v1")
         if (shellLoaded && lastRenderTheme == colors && lastRenderHash == renderHash) {
             perfTracker?.mark("CACHE_HIT")
+            // Jalur ini tidak akan pernah sampai PAINT_REAL, jadi sesi harus
+            // ditutup di sini. Tanpa ini sesi menggantung dan sesi berikutnya
+            // menumpuk di atasnya.
+            perfTracker?.finishSession()
             return
         }
         lastRenderTheme = colors
@@ -88,13 +93,22 @@ class MarkdownPreviewRenderer(
             pendingCacheJson = cacheJson
             perfTracker?.mark("HTML_BUILD_DONE")
             perfTracker?.mark("HTML_READY")
+            perfTracker?.mark("SHELL_BUILD_START")
             val shell = buildShell(colors)
+            perfTracker?.mark("SHELL_BUILD_END")
+            perfTracker?.mark("LOAD_DATA_CALLED")
             webView.loadDataWithBaseURL(NOTEZ_BASE_URL, shell, "text/html", "UTF-8", null)
+            // loadDataWithBaseURL() sinkron: selisih LOAD_DATA_CALLED vs RETURNED
+            // adalah biaya panggilan, sisanya (sampai PAGE_STARTED) adalah biaya
+            // startup renderer Chromium.
+            perfTracker?.mark("LOAD_DATA_RETURNED")
         } else {
             perfTracker?.mark("HTML_BUILD_DONE")
             perfTracker?.mark("HTML_READY")
             val js = "window.notezRender($markdownJson, $baseJson, $cacheJson);"
+            perfTracker?.mark("RENDER_JS_CALLED")
             webView.evaluateJavascript(js, null)
+            perfTracker?.mark("RENDER_JS_CALLED_RETURNED")
         }
     }
 
@@ -152,7 +166,8 @@ class MarkdownPreviewRenderer(
                 when (consoleMessage.message()) {
                     "NOTEZ_RENDER_JS_START" -> { perfTracker?.mark("RENDER_JS_START"); return true }
                     "NOTEZ_RENDER_JS_END" -> { perfTracker?.mark("RENDER_JS_END"); return true }
-                    "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); perfTracker?.mark("FULL_RENDER"); perfTracker?.finishSession(); return true }
+                    "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); perfTracker?.mark("FULL_RENDER"); return true }
+                    "NOTEZ_PAINT_REAL" -> { perfTracker?.mark("PAINT_REAL"); perfTracker?.finishSession(); return true }
                     "NOTEZ_CACHE_HIT" -> { perfTracker?.mark("CACHE_HIT"); return true }
                 }
                 return super.onConsoleMessage(consoleMessage)
@@ -162,17 +177,30 @@ class MarkdownPreviewRenderer(
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                perfTracker?.mark("PAGE_STARTED")
                 perfTracker?.mark("HTML_SENT")
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                 super.onReceivedError(view, request, error)
-                android.util.Log.e("NOTEZ_WEB", "ERROR ${error?.errorCode} ${error?.description} url=${request?.url}")
-                perfTracker?.mark("WEBVIEW_ERROR")
+                val forMainFrame = request?.isForMainFrame == true
+                android.util.Log.e(
+                    "NOTEZ_WEB",
+                    "ERROR code=${error?.errorCode} desc=${error?.description} main=$forMainFrame url=${request?.url}"
+                )
+                // Subresource yang memang diblokir (favicon, gambar remote) bukan
+                // kegagalan sesi. Hanya error main frame yang menandai WEBVIEW_ERROR,
+                // supaya sinyal "render gagal" tidak tenggelam oleh noise.
+                if (forMainFrame) {
+                    perfTracker?.mark("WEBVIEW_ERROR")
+                } else {
+                    perfTracker?.mark("WEBVIEW_SUBRESOURCE_ERROR")
+                }
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                perfTracker?.mark("PAGE_FINISHED")
                 val pending = pendingSourceJson
                 if (pending != null) {
                     val js = "window.notezRender($pending, ${pendingBaseJson}, ${pendingCacheJson});"
@@ -1021,6 +1049,14 @@ class MarkdownPreviewRenderer(
                   addImagePlaceholderHandlers();
                   console.log("NOTEZ_RENDER_JS_END");
                   console.log("NOTEZ_FIRST_PAINT");
+                  // FIRST_PAINT = akhir task JS, belum tentu sudah dilukis. Dua
+                  // requestAnimationFrame berurutan menunggu frame yang benar-benar
+                  // sudah di-commit, jadi PAINT_REAL adalah paint nyata (bukan tebakan).
+                  requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                      console.log("NOTEZ_PAINT_REAL");
+                    });
+                  });
 
                   function slugifyHeading(text) {
                     var slug = String(text || '').toLowerCase()
