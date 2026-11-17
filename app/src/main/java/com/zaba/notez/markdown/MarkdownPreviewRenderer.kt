@@ -185,9 +185,27 @@ class MarkdownPreviewRenderer(
             }
 
             override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
-                // Batch 2 (parsial): jangan ikut crash; tandai & pulihkan shell.
+                // Renderer mati: jangan ikut crash, dan reset state shell.
+                //
+                // Ini HANYA reset state, BUKAN recreate objek WebView. View yang
+                // renderer-nya sudah mati tidak bisa dipakai lagi, jadi loadUrl()
+                // ke view itu tidak berguna (dan pernah membuat render() berikutnya
+                // lolos guard CACHE_HIT lalu tidak menggambar apa pun).
+                //
+                // Limitasi runtime: recovery penuh butuh WebView baru. Arsitektur
+                // saat ini menyuntikkan WebView lewat constructor, jadi recreate
+                // belum dilakukan di sini. Setelah reset ini, render() berikutnya
+                // akan membangun ulang shell lewat loadDataWithBaseURL; pada proses
+                // renderer yang sudah mati hasilnya tetap bergantung pada perilaku
+                // WebView platform dan belum divalidasi di perangkat.
                 perfTracker?.mark("RENDER_PROCESS_GONE")
-                view?.loadUrl("about:blank")
+                shellLoaded = false
+                shellTheme = null
+                lastRenderTheme = null
+                lastRenderHash = null
+                pendingSourceJson = null
+                pendingBaseJson = null
+                pendingCacheJson = null
                 return true
             }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {

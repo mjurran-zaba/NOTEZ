@@ -228,6 +228,16 @@ class EditorActivity : AppCompatActivity() {
         editToggle.contentDescription =
             getString(if (editing) R.string.cd_done_editing else R.string.cd_edit_note)
 
+        if (editing) {
+            // Rotasi bisa memulihkan isEditing=true sementara bodyEdit masih kosong
+            // (setText body sengaja ditunda sampai mode edit). Tanpa isi ulang di
+            // sini, onPause berikutnya menyimpan string kosong dan catatan hilang.
+            // Hanya set kalau beda, supaya kursor tidak reset saat sudah sinkron.
+            if (bodyEdit.text.toString() != currentContent) {
+                bodyEdit.setText(currentContent)
+            }
+        }
+
         if (!editing) {
             titleEdit.clearFocus()
             bodyEdit.clearFocus()
