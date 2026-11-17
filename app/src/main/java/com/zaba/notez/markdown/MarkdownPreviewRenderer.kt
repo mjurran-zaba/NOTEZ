@@ -94,7 +94,7 @@ class MarkdownPreviewRenderer(
             perfTracker?.mark("HTML_BUILD_DONE")
             perfTracker?.mark("HTML_READY")
             perfTracker?.mark("SHELL_BUILD_START")
-            val shell = buildShell(colors)
+            val shell = buildHtml()
             perfTracker?.mark("SHELL_BUILD_END")
             perfTracker?.mark("LOAD_DATA_CALLED")
             webView.loadDataWithBaseURL(NOTEZ_BASE_URL, shell, "text/html", "UTF-8", null)
@@ -115,16 +115,6 @@ class MarkdownPreviewRenderer(
     private fun sha256(input: String): String {
         val md = MessageDigest.getInstance("SHA-256")
         return md.digest(input.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
-    }
-
-    private fun buildShell(colors: PreviewColors): String {
-        val html = buildHtml("")
-        return html
-            .replace("(function () {", "window.notezRender = function (sourceJson, githubRawBaseJson, cachedImagesJson) {")
-            .replace("var source = \"\";", "var source = sourceJson;")
-            .replace("var githubRawBase = \"\";", "var githubRawBase = githubRawBaseJson;")
-            .replace("var cachedImages = {};", "var cachedImages = cachedImagesJson;")
-            .replace("})();", "};")
     }
 
     fun destroy() {
@@ -261,11 +251,8 @@ class MarkdownPreviewRenderer(
         }
     }
 
-    private fun buildHtml(markdown: String): String {
+    private fun buildHtml(): String {
         val colors = PreviewColors.from(activity)
-        val markdownJson = JSONObject.quote(markdown)
-        val githubRawBaseJson = JSONObject.quote(githubRawBase(markdown))
-        val cachedImagesJson = cachedImagesJson(markdown)
         return """
             <!doctype html>
             <html>
@@ -278,12 +265,17 @@ class MarkdownPreviewRenderer(
               <main id="preview" class="markdown-body"></main>
               <script>$markdownItJs</script>
               <script>
-                (function () {
+                // Shell ini TIDAK boleh diubah lewat replace() string: pola seperti
+                // "(function () {" juga muncul di callback requestAnimationFrame,
+                // dan replace() Kotlin mengganti semua kemunculan. Itu pernah
+                // menimpa window.notezRender dengan callback paint sehingga
+                // preview kosong. Definisikan fungsinya langsung di sini.
+                window.notezRender = function (sourceJson, githubRawBaseJson, cachedImagesJson) {
                   'use strict';
 
-                  var source = $markdownJson;
-                  var githubRawBase = $githubRawBaseJson;
-                  var cachedImages = $cachedImagesJson;
+                  var source = sourceJson;
+                  var githubRawBase = githubRawBaseJson;
+                  var cachedImages = cachedImagesJson;
                   var safeExternalLink = /^(https?:|mailto:|tel:)/i;
                   var safeAnchorLink = /^#[A-Za-z0-9][A-Za-z0-9_-]*$/;
                   var safeImageLoadLink = /^notez-image:\/\/load\?src=.+/i;
@@ -1389,7 +1381,7 @@ class MarkdownPreviewRenderer(
                       });
                     });
                   }
-                })();
+                };
               </script>
             </body>
             </html>

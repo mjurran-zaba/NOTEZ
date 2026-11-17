@@ -54,6 +54,28 @@ class MarkdownPreviewRendererRecoveryGuardTest {
     }
 
     @Test
+    fun shellDoesNotRewriteScriptWithAmbiguousReplace() {
+        // Regresi issue #2: buildShell() dulu mengganti semua "(function () {"
+        // termasuk callback requestAnimationFrame, sehingga window.notezRender
+        // tertimpa callback paint dan preview kosong untuk semua catatan.
+        val raw = SourceScan.readMainFile("java/com/zaba/notez/markdown/MarkdownPreviewRenderer.kt")
+        assertFalse(
+            "shell tidak boleh diubah lewat replace() pola yang ambigu",
+            raw.contains(".replace(\"(function () {\"")
+        )
+        val signature = "window.notezRender = function (sourceJson, githubRawBaseJson, cachedImagesJson) {"
+        assertTrue("shell harus mendefinisikan window.notezRender langsung", raw.contains(signature))
+        assertTrue(
+            "window.notezRender hanya boleh didefinisikan sekali",
+            raw.split(signature).size - 1 == 1
+        )
+        assertTrue(
+            "source shell harus dari parameter, bukan hasil replace",
+            raw.contains("var source = sourceJson;")
+        )
+    }
+
+    @Test
     fun applyModePopulatesBodyFromCurrentContent() {
         val body = functionBody(editorCode, "private fun applyMode(")
         assertTrue("applyMode tidak ditemukan", body.isNotEmpty())
