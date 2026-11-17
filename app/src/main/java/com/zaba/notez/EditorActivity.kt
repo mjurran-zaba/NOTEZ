@@ -64,7 +64,6 @@ class EditorActivity : AppCompatActivity() {
 
     private lateinit var titleEdit: EditText
     private lateinit var titleView: TextView
-    private lateinit var bodyEditContainer: View
     private lateinit var bodyEdit: EditText
     private lateinit var bodyWebView: WebView
     private lateinit var bodyEmptyView: TextView
@@ -79,6 +78,16 @@ class EditorActivity : AppCompatActivity() {
     // Nilai terakhir yang tersimpan/valid, dipakai saat render mode view.
     private var currentTitle = ""
     private var currentContent = ""
+
+    /**
+     * Snapshot isi yang benar-benar sudah ditulis ke [bodyEdit].
+     *
+     * Dipakai untuk melewati setText ulang pada catatan besar: menyalin 96 KB
+     * yang isinya sama memaksa layout dokumen penuh untuk hasil yang identik.
+     * Perbandingannya referensi/isi string, bukan text.toString(), supaya tidak
+     * mengalokasikan salinan 96 KB di setiap toggle.
+     */
+    private var bodyTextSynced: String? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var saveTask: Runnable? = null
@@ -147,7 +156,6 @@ class EditorActivity : AppCompatActivity() {
 
         titleEdit = findViewById(R.id.edit_title)
         titleView = findViewById(R.id.view_title)
-        bodyEditContainer = findViewById(R.id.edit_body_scroll)
         bodyEdit = findViewById(R.id.edit_body)
         bodyWebView = findViewById(R.id.view_body_web)
         bodyEmptyView = findViewById(R.id.view_body_empty)
@@ -186,8 +194,14 @@ class EditorActivity : AppCompatActivity() {
         bodyEdit.doAfterTextChanged { if (loaded && !suppressAutosave) schedule() }
 
         editToggle.setOnClickListener {
-            perfTracker?.mark("EDIT_CLICK")
-            if (isEditing) switchToView() else switchToEdit()
+            if (isEditing) {
+                perfTracker?.mark("EDIT_CLICK")
+                switchToView()
+            } else {
+                // Sesi baru: marker EDIT_* tidak lagi hilang setelah PAINT_REAL.
+                perfTracker?.beginInteractionSession("EDIT_CLICK")
+                switchToEdit()
+            }
         }
     }
 
@@ -196,6 +210,9 @@ class EditorActivity : AppCompatActivity() {
         saveTask = null
         currentTitle = titleEdit.text.toString()
         currentContent = bodyEdit.text.toString()
+        // Teks yang sama masih ada di EditText; catat supaya switchToEdit tidak
+        // menyalin ulang isi yang identik.
+        bodyTextSynced = currentContent
         save(currentTitle, currentContent)
         isEditing = false
         titleEdit.clearFocus()
@@ -208,19 +225,45 @@ class EditorActivity : AppCompatActivity() {
         isEditing = true
         suppressAutosave = true
         titleEdit.setText(currentTitle)
-        bodyEdit.setText(currentContent)
+        // Body hanya ditulis ulang kalau isinya memang berbeda (catatan besar:
+        // setText = salinan + layout dokumen penuh).
+        syncBodyText()
         titleEdit.setSelection(titleEdit.text?.length ?: 0)
-        bodyEdit.setSelection(bodyEdit.text?.length ?: 0)
-        perfTracker?.mark("EDIT_TEXT_SET")
         suppressAutosave = false
         applyMode(true)
         perfTracker?.mark("EDIT_VISIBLE")
-        // Satu frame setelah visibility berubah, supaya yang terukur adalah
-        // layout dokumen, bukan antrean pesan main thread.
-        bodyEditContainer.post { perfTracker?.mark("EDIT_LAYOUT_DONE") }
-        bodyEdit.requestFocus()
-        showKeyboard(bodyEdit)
-        perfTracker?.mark("KEYBOARD_REQUESTED")
+        // Kursor ke akhir tulisan, fokus, dan keyboard dikerjakan setelah view
+        // terlihat. Kalau dilakukan sebelum visibility berubah, framework
+        // memaksa layout dokumen penuh dua kali: sekali untuk bringPointIntoView
+        // pada view GONE, sekali lagi saat view diukur.
+        bodyEdit.post {
+            bodyEdit.setSelection(bodyEdit.text?.length ?: 0)
+            bodyEdit.requestFocus()
+            showKeyboard(bodyEdit)
+            perfTracker?.mark("KEYBOARD_REQUESTED")
+            // Satu frame setelah keyboard diminta, supaya yang terukur adalah
+            // layout dokumen, bukan antrean pesan main thread.
+            bodyEdit.post {
+                perfTracker?.mark("EDIT_LAYOUT_DONE")
+                // Tutup sesi edit di sini; sebelumnya marker EDIT_* tidak pernah
+                // tersimpan karena sesi render sudah selesai di PAINT_REAL.
+                perfTracker?.finishSession()
+            }
+        }
+    }
+
+    /**
+     * Samakan isi [bodyEdit] dengan [currentContent] hanya bila memang berbeda.
+     *
+     * `==` pada String yang sama referensinya langsung true, dan pada isi yang
+     * berbeda hanya membandingkan karakter — tidak mengalokasikan salinan teks
+     * seperti `bodyEdit.text.toString()`.
+     */
+    private fun syncBodyText() {
+        if (bodyTextSynced == currentContent) return
+        bodyEdit.setText(currentContent)
+        bodyTextSynced = currentContent
+        perfTracker?.mark("EDIT_TEXT_SET")
     }
 
     /** Tampilkan set view yang sesuai mode, dan render Markdown saat masuk mode view. */
@@ -228,7 +271,7 @@ class EditorActivity : AppCompatActivity() {
         val hasContent = currentContent.isNotBlank()
         titleEdit.visibility = if (editing) View.VISIBLE else View.GONE
         titleView.visibility = if (editing) View.GONE else View.VISIBLE
-        bodyEditContainer.visibility = if (editing) View.VISIBLE else View.GONE
+        bodyEdit.visibility = if (editing) View.VISIBLE else View.GONE
         bodyWebView.visibility = if (!editing && hasContent) View.VISIBLE else View.GONE
         bodyEmptyView.visibility = if (!editing && !hasContent) View.VISIBLE else View.GONE
         counter.visibility = if (editing) View.VISIBLE else View.GONE
@@ -241,10 +284,7 @@ class EditorActivity : AppCompatActivity() {
             // (setText body sengaja ditunda sampai mode edit). Tanpa isi ulang di
             // sini, onPause berikutnya menyimpan string kosong dan catatan hilang.
             // Hanya set kalau beda, supaya kursor tidak reset saat sudah sinkron.
-            if (bodyEdit.text.toString() != currentContent) {
-                bodyEdit.setText(currentContent)
-                perfTracker?.mark("EDIT_TEXT_SET")
-            }
+            syncBodyText()
         }
 
         if (!editing) {

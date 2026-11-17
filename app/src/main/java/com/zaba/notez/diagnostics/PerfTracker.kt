@@ -8,6 +8,9 @@ class PerfTracker(private val noteId: Long?, initialTimeMs: Long? = null) {
     private val events = mutableListOf<PerfEvent>()
     private var finished = false
 
+    /** Jenis sesi terakhir, supaya timeline render dan timeline editor tidak tertukar. */
+    private var label: String = LABEL_RENDER
+
     init {
         mark("OPEN_T0")
     }
@@ -47,36 +50,62 @@ class PerfTracker(private val noteId: Long?, initialTimeMs: Long? = null) {
                 startedAt = SystemClock.uptimeMillis()
                 events.clear()
                 finished = false
+                label = LABEL_RENDER
             }
             mark("OPEN_T0")
         }
         mark(MARK_RENDER_CALLED)
     }
 
-    fun finishSession() {
-        // Idempotent: satu sesi hanya disimpan sekali, meskipun jalur cache dan
-        // jalur paint sama-sama memanggil finishSession().
-        val eventsInSession = snapshotAndClose() ?: return
-        val session = PerfSession(
-            id = System.currentTimeMillis().toString(),
-            startedAt = startedAt,
-            noteId = noteId,
-            events = eventsInSession
-        )
-        PerfStore.saveSession(session)
+    /**
+     * Mulai sesi interaksi (mis. masuk mode edit) dengan garis waktu sendiri.
+     *
+     * Sesi render ditutup di PAINT_REAL. Tanpa sesi baru di sini, marker
+     * EDIT_CLICK/EDIT_TEXT_SET/EDIT_VISIBLE/EDIT_LAYOUT_DONE hanya menumpuk di
+     * memori lalu dibuang saat sesi render berikutnya dimulai — itulah sebabnya
+     * diagnosa lama berhenti di PAINT_REAL dan tidak punya angka editor.
+     *
+     * Sesi render yang belum selesai (mis. user menekan pensil sebelum paint)
+     * disimpan dulu, bukan dibuang; sesi yang sudah ditutup tidak disimpan dua
+     * kali karena [finishSession] idempoten.
+     */
+    fun beginInteractionSession(name: String) {
+        val previousOpen = synchronized(events) { !finished && events.size > 1 }
+        if (previousOpen) {
+            finishSession()
+        }
+        synchronized(events) {
+            startedAt = SystemClock.uptimeMillis()
+            events.clear()
+            finished = false
+            label = LABEL_INTERACTION
+        }
+        mark(name)
     }
 
-    /** Salin event sekali saja; null kalau sesi ini sudah ditutup. */
-    private fun snapshotAndClose(): List<PerfEvent>? = synchronized(events) {
-        if (finished) {
-            null
-        } else {
-            finished = true
-            events.toList()
-        }
+    fun finishSession() {
+        // Idempotent: satu sesi hanya disimpan sekali, meskipun jalur cache,
+        // jalur paint, dan penutup sesi interaksi sama-sama memanggilnya.
+        val session = synchronized(events) {
+            if (finished) {
+                null
+            } else {
+                finished = true
+                PerfSession(
+                    id = System.currentTimeMillis().toString(),
+                    startedAt = startedAt,
+                    noteId = noteId,
+                    events = events.toList(),
+                    label = label
+                )
+            }
+        } ?: return
+        PerfStore.saveSession(session)
     }
 
     private companion object {
         const val MARK_RENDER_CALLED = "RENDER_CALLED"
+        const val LABEL_RENDER = "render"
+        const val LABEL_INTERACTION = "edit"
     }
 }

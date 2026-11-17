@@ -22,9 +22,10 @@ class MarkdownPreviewRendererRecoveryGuardTest {
         SourceScan.readMainFile("java/com/zaba/notez/markdown/MarkdownPreviewRenderer.kt")
     )
 
-    private val editorCode: String = SourceScan.codeOnly(
-        SourceScan.readMainFile("java/com/zaba/notez/EditorActivity.kt")
-    )
+    /** Sumber mentah: dipakai kalau guard harus mencocokkan literal string. */
+    private val editorRaw: String = SourceScan.readMainFile("java/com/zaba/notez/EditorActivity.kt")
+
+    private val editorCode: String = SourceScan.codeOnly(editorRaw)
 
     @Test
     fun onRenderProcessGoneResetsShellCacheState() {
@@ -81,11 +82,101 @@ class MarkdownPreviewRendererRecoveryGuardTest {
         assertTrue("applyMode tidak ditemukan", body.isNotEmpty())
         assertTrue(
             "mode edit harus mengisi bodyEdit dari currentContent",
-            body.contains("bodyEdit.setText(currentContent)")
+            body.contains("syncBodyText()")
         )
+        val sync = functionBody(editorCode, "private fun syncBodyText(")
+        assertTrue("syncBodyText tidak ditemukan", sync.isNotEmpty())
         assertTrue(
             "isi ulang hanya saat berbeda, supaya kursor tidak reset",
-            body.contains("bodyEdit.text.toString() != currentContent")
+            sync.contains("if (bodyTextSynced == currentContent) return")
+        )
+        assertTrue(
+            "isi body harus ditulis lewat syncBodyText",
+            sync.contains("bodyEdit.setText(currentContent)")
+        )
+    }
+
+    @Test
+    fun switchToEditDoesNotRewriteIdenticalBody() {
+        // Regresi delay masuk editor pada catatan 96 KB: setText selalu dipanggil
+        // ulang walau isi EditText sudah sama, dan perbandingan memakai
+        // text.toString() yang menyalin seluruh isi.
+        val body = functionBody(editorCode, "private fun switchToEdit(")
+        assertTrue("switchToEdit tidak ditemukan", body.isNotEmpty())
+        assertFalse(
+            "switchToEdit tidak boleh menyalin body tanpa cek isi",
+            body.contains("bodyEdit.setText(")
+        )
+        assertTrue("switchToEdit harus memakai syncBodyText", body.contains("syncBodyText()"))
+        assertFalse(
+            "perbandingan isi tidak boleh mengalokasikan text.toString()",
+            editorCode.contains("bodyEdit.text.toString() != currentContent")
+        )
+    }
+
+    @Test
+    fun switchToEditDefersCursorFocusAndKeyboardUntilVisible() {
+        // bringPointIntoView pada view GONE memaksa layout dokumen penuh sebelum
+        // view diukur, jadi kursor/fokus/keyboard harus dijadwalkan setelahnya.
+        val body = functionBody(editorCode, "private fun switchToEdit(")
+        assertTrue("switchToEdit tidak ditemukan", body.isNotEmpty())
+        val setSelectionAt = body.indexOf("bodyEdit.setSelection(")
+        val postAt = body.indexOf("bodyEdit.post {")
+        assertTrue("kursor harus dipasang", setSelectionAt >= 0)
+        assertTrue("kursor harus dipasang setelah view terlihat", postAt in 0 until setSelectionAt)
+        assertTrue(
+            "fokus dan keyboard juga di dalam post",
+            body.indexOf("showKeyboard(bodyEdit)") > postAt
+        )
+    }
+
+    @Test
+    fun editorInteractionSessionIsPersisted() {
+        // Sebelum perbaikan, marker EDIT_* hanya menumpuk di memori: sesi render
+        // ditutup di PAINT_REAL, dan sesi berikutnya menghapus daftar event tanpa
+        // pernah menyimpannya.
+        val tracker = SourceScan.codeOnly(
+            SourceScan.readMainFile("java/com/zaba/notez/diagnostics/PerfTracker.kt")
+        )
+        val begin = functionBody(tracker, "fun beginInteractionSession(")
+        assertTrue("beginInteractionSession tidak ditemukan", begin.isNotEmpty())
+        assertTrue("sesi baru harus membuka ulang sesi", begin.contains("finished = false"))
+        assertTrue("sesi baru harus punya garis waktu sendiri", begin.contains("events.clear()"))
+
+        val switchToEdit = functionBody(editorCode, "private fun switchToEdit(")
+        assertTrue(
+            "sesi edit harus ditutup supaya tersimpan",
+            switchToEdit.contains("perfTracker?.finishSession()")
+        )
+        // codeOnly mengosongkan literal string, jadi nama marker dicek di sumber
+        // mentah; pemanggilannya dicek di kode yang sudah dibersihkan komentar.
+        assertTrue(
+            "sesi edit harus dibuka saat pensil ditekan",
+            editorRaw.contains("beginInteractionSession(\"EDIT_CLICK\")")
+        )
+        assertTrue(
+            "pemanggilan beginInteractionSession harus ada di kode",
+            editorCode.contains("beginInteractionSession(")
+        )
+    }
+
+    @Test
+    fun editorBodyIsBoundedToViewport() {
+        // wrap_content di dalam ScrollView memaksa TextView mengukur tinggi
+        // seluruh dokumen sebelum bisa tampil.
+        val layout = SourceScan.readRes("layout/activity_editor.xml")
+        assertFalse(
+            "body editor tidak boleh dibungkus ScrollView lagi",
+            layout.contains("@+id/edit_body_scroll")
+        )
+        val start = layout.indexOf("@+id/edit_body\"")
+        assertTrue("EditText body tidak ditemukan", start >= 0)
+        val tagEnd = layout.indexOf("/>" , start)
+        assertTrue("tag EditText body tidak tertutup", tagEnd > start)
+        val tag = layout.substring(start, tagEnd)
+        assertTrue(
+            "EditText body harus setinggi viewport, bukan wrap_content",
+            tag.contains("android:layout_height=\"match_parent\"")
         )
     }
 

@@ -97,7 +97,8 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val dateStr = dateFormat.format(Date(session.startedAt))
-        sessionMeta.text = "Session: ${session.id} • $dateStr\nNote ID: ${session.noteId ?: "N/A"}"
+        sessionMeta.text =
+            "Session: ${session.id} • $dateStr\nNote ID: ${session.noteId ?: "N/A"} • ${session.label}"
 
         session.events.forEachIndexed { _, event ->
             val itemView = layoutInflater.inflate(
@@ -148,6 +149,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         sb.appendLine("Session: ${session.id}")
         sb.appendLine("Started: $dateStr")
         sb.appendLine("Note ID: ${session.noteId ?: "N/A"}")
+        sb.appendLine("Jenis: ${session.label}")
         sb.appendLine()
 
         session.events.forEach { event ->
