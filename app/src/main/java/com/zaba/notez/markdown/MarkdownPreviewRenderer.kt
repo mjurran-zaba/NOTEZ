@@ -14,6 +14,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.ConsoleMessage
 import java.security.MessageDigest
 import android.webkit.RenderProcessGoneDetail
@@ -147,10 +148,12 @@ class MarkdownPreviewRenderer(
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                android.util.Log.d("NOTEZ_WEB", "${consoleMessage.messageLevel()}: ${consoleMessage.message()} @${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}")
                 when (consoleMessage.message()) {
                     "NOTEZ_RENDER_JS_START" -> { perfTracker?.mark("RENDER_JS_START"); return true }
                     "NOTEZ_RENDER_JS_END" -> { perfTracker?.mark("RENDER_JS_END"); return true }
                     "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); perfTracker?.mark("FULL_RENDER"); perfTracker?.finishSession(); return true }
+                    "NOTEZ_CACHE_HIT" -> { perfTracker?.mark("CACHE_HIT"); return true }
                 }
                 return super.onConsoleMessage(consoleMessage)
             }
@@ -160,6 +163,12 @@ class MarkdownPreviewRenderer(
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                 super.onPageStarted(view, url, favicon)
                 perfTracker?.mark("HTML_SENT")
+            }
+
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                super.onReceivedError(view, request, error)
+                android.util.Log.e("NOTEZ_WEB", "ERROR ${error?.errorCode} ${error?.description} url=${request?.url}")
+                perfTracker?.mark("WEBVIEW_ERROR")
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
