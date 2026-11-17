@@ -15,6 +15,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebChromeClient
 import android.webkit.ConsoleMessage
+import java.security.MessageDigest
 import android.webkit.RenderProcessGoneDetail
 import com.zaba.notez.diagnostics.PerfTracker
 import android.widget.Toast
@@ -57,6 +58,8 @@ class MarkdownPreviewRenderer(
     private var pendingSourceJson: String? = null
     private var pendingBaseJson: String? = null
     private var pendingCacheJson: String? = null
+    private var lastRenderHash: String? = null
+    private var lastRenderTheme: PreviewColors? = null
 
     init {
         configureWebView()
@@ -66,6 +69,13 @@ class MarkdownPreviewRenderer(
         if (tracker != null) perfTracker = tracker
         currentMarkdown = markdown
         val colors = PreviewColors.from(activity)
+        val renderHash = sha256(markdown + "|" + colors.toString() + "|v1")
+        if (shellLoaded && lastRenderTheme == colors && lastRenderHash == renderHash) {
+            perfTracker?.mark("CACHE_HIT")
+            return
+        }
+        lastRenderTheme = colors
+        lastRenderHash = renderHash
         val markdownJson = JSONObject.quote(markdown)
         val baseJson = JSONObject.quote(githubRawBase(markdown))
         val cacheJson = cachedImagesJson(markdown)
@@ -85,6 +95,11 @@ class MarkdownPreviewRenderer(
             val js = "window.notezRender($markdownJson, $baseJson, $cacheJson);"
             webView.evaluateJavascript(js, null)
         }
+    }
+
+    private fun sha256(input: String): String {
+        val md = MessageDigest.getInstance("SHA-256")
+        return md.digest(input.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
     }
 
     private fun buildShell(colors: PreviewColors): String {
