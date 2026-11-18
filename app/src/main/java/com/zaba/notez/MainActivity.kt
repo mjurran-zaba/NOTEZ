@@ -125,6 +125,7 @@ class MainActivity : AppCompatActivity() {
             "onCreate theme=$appliedTheme rotation=${savedInstanceState != null}"
         )
         applyHomeSystemBars()
+        applyHorseThemeAccent()
         playStartupSplash(savedInstanceState)
         dao = AppDatabase.get(this).noteDao()
 
@@ -140,20 +141,12 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         applyDisplayMode(displayMode, restoreScroll = false)
         setupMiniPlayer()
-        applyHorseThemeAccent()
 
         observeNotePresence()
 
         lifecycleScope.launch(Dispatchers.IO) {
             val thirtyDaysAgo = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000L
             dao.purgeExpiredRecycle(thirtyDaysAgo)
-        }
-
-        Looper.myQueue().addIdleHandler {
-            runCatching {
-                android.webkit.WebView(applicationContext).destroy()
-            }
-            false
         }
     }
 
@@ -802,8 +795,10 @@ class MainActivity : AppCompatActivity() {
             accent.scaleX = 0.72f
             accent.scaleY = 0.72f
             accent.translationY = 14f
-            accent.pivotX = accent.width * 0.34f
-            accent.pivotY = accent.height * 0.78f
+            val w = if (accent.width > 0) accent.width.toFloat() else UiStyle.dp(this, 280f).toFloat()
+            val h = if (accent.height > 0) accent.height.toFloat() else UiStyle.dp(this, 280f).toFloat()
+            accent.pivotX = w * 0.34f
+            accent.pivotY = h * 0.78f
 
             startupSplashAnimator = AnimatorSet().apply {
                 playTogether(
