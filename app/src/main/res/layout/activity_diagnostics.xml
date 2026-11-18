@@ -29,7 +29,9 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Kembali"
-            android:src="@drawable/ic_arrow_back"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_lucide_arrow_left"
             android:tint="?attr/colorOnSurface" />
 
         <TextView
@@ -70,7 +72,7 @@
                 android:id="@+id/diagnostics_section_label"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Performance Breadcrumb"
+                android:text="Performance Timeline"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -78,6 +80,31 @@
 
             <LinearLayout
                 android:id="@+id/timeline_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/breadcrumb_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Breadcrumb Global"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/breadcrumb_meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/breadcrumb_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />

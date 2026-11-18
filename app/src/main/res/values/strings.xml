@@ -12,13 +12,15 @@
     <string name="markdown_guide_title">Panduan Markdown</string>
     <string name="about_notez_title">Tentang NOTEZ</string>
     <string name="settings_title">Pengaturan</string>
-    <string name="notez_version_name">v0.1.6</string>
+    <string name="notez_version_name">v0.1.9</string>
     <string name="menu_file_open">Buka file...</string>
     <string name="open_file_done">File dibuka sebagai catatan baru</string>
     <string name="open_file_failed">Gagal membuka file</string>
     <string name="open_file_too_large">File terlalu besar (maks 5 MB)</string>
     <string name="cd_music_previous">Lagu sebelumnya</string>
     <string name="cd_music_next">Lagu berikutnya</string>
+    <string name="cd_music_rewind_10">Mundur 10 detik</string>
+    <string name="cd_music_forward_10">Maju 10 detik</string>
     <string name="cd_music_mode_repeat_all">Mode Ulangi semua. Ketuk untuk mengganti.</string>
     <string name="cd_music_mode_repeat_one">Mode Ulangi satu. Ketuk untuk mengganti.</string>
     <string name="cd_music_mode_shuffle">Mode Acak. Ketuk untuk mengganti.</string>

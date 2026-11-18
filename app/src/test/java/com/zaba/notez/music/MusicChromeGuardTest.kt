@@ -42,7 +42,8 @@ class MusicChromeGuardTest {
             )
             assertTrue(
                 "tombol $id butuh ikon vector di res/drawable",
-                block.contains("android:src=\"@drawable/ic_music_")
+                block.contains("android:src=\"@drawable/ic_music_") ||
+                    block.contains("android:src=\"@drawable/ic_lucide_")
             )
         }
     }

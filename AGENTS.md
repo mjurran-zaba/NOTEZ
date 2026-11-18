@@ -10,9 +10,11 @@ OpenAI discovery guide: <https://developers.openai.com/codex/guides/agents-md>
 
 ---
 ## 0. About user
+- name : MUHAMMAD ZAQI PRASETYO
 - indonesian language with slank gw=aku/lu=kamu
 - like to watch anime
 - make code esier
+- core mission : "Humanize everything even at code" (anti-slop standard active)
 
 ## 1. Two rules above everything
 
@@ -507,6 +509,7 @@ Before claiming completion:
 - [ ] Verification status is named honestly.
 - [ ] Remaining limits are stated.
 - [ ] Rollback and next step are known.
+- [ ] Anti-slop gate passed: no decorative AI comments, real mobile reflow, no dead UI/fake stats.
 
 ---
 
@@ -516,3 +519,59 @@ This universal agreement does not replace project facts. In this repository,
 read the project PRD and project-specific engineering playbook before editing.
 Project constraints override generic preferences when they do not conflict with
 higher-priority user or safety instructions.
+
+---
+
+## 21. Anti-Slop & Humanize Everything Standard ("Humanize everything even at code")
+
+### 21.1 Core philosophy: The Craftsmanship Standard
+- An AI coding agent is a technical partner, filter, and disciplined executor, not a generic agreement engine or taste dictator.
+- Visual and creative direction comes from humans (`DESIGN.md` or explicit user brief). The agent never invents or beautifies without direction.
+- Humanize everything: write code, comments, UI, copy, and documentation that feel genuinely designed and written by a thoughtful human engineer, not spat out by a generic LLM.
+
+### 21.2 Code Comment Hygiene (`antislop-code`)
+- **Strictly banned slop comments:**
+  - Decorative characters and banners: `// ==================`, `/* ----- AUTH ----- */`.
+  - Restating the obvious: repeating what code already says (`let count = 0 // count variable`, `class User // user class`).
+  - Workflow narration: `// Step 1: get data`, `// Step 2: save to DB`.
+  - Empty category labels: `// Main logic`, `// Helper function`, `// Important note`.
+- **Allowed and required comments:**
+  - Documenting *why* (architectural reasoning, hardware traps like ARMv7/low-end limits, bug guard rationale, edge cases, lifecycle ownership).
+  - Code must be self-explanatory through expressive naming and clear structure; never use comments to excuse bad architecture.
+
+### 21.3 Mobile Layout & UI Craftsmanship (`antislop-layoutmobile`, `antislop-ui`, `antislop-human`)
+- **Mobile is a distinct designed state, not desktop squeezed into 375px:**
+  - Layout must reflow with intent (column stacking, scale adjustment, reordered blocks).
+  - Breakpoints must be content-driven, not device-name driven.
+  - Touch targets must be at least 48x48 dp (minimum 44x44 dp), well-spaced for real human thumbs.
+- **Visuals without AI tropes:**
+  - No default purple/cyan AI gradients, no floating decorative sparkles (✨), no fake glowing borders unless purposeful.
+  - Semantic HTML / Android views: `<button>` for actions, `<a>` for links, no clickable `div`/`span` without keyboard accessibility.
+  - Every interactive element must be functional: no dead buttons, no fake links.
+
+### 21.4 Copywriting & Honesty (`antislop-copywriting`)
+- No artificial AI hype, buzzwords ("next-gen", "seamless synergy"), or empty marketing jargon.
+- No fabricated data, fake stats ("99.9% uptime"), or fake testimonials. Use `[REAL DATA]` or honest placeholders when data is missing.
+- Tone: plain, respectful, direct, natural human communication (Indonesian slank gw/lu).
+
+### 21.5 Pre-Finish Anti-Slop Gate
+Before marking any deliverable complete:
+- [ ] No decorative/obvious AI slop comments in code.
+- [ ] Mobile reflow and touch targets verified for thumb reach.
+- [ ] Accessible contrast and semantic controls validated.
+- [ ] No dead controls, fake statistics, or invented claims.
+- [ ] Code reads like clean, senior human-crafted engineering.
+
+<!-- antislop:start -->
+## antislop
+For UI, copy, people, mobile layout, or code comments work, read `antislop.md` (core) and then the skill for the task:
+- UI / visual: `skills/antislop-ui/SKILL.md`
+- Copy & text: `skills/antislop-copywriting/SKILL.md`
+- People: `skills/antislop-human/SKILL.md`
+- Mobile / responsive: `skills/antislop-layoutmobile/SKILL.md`
+- Code comments: `skills/antislop-code/SKILL.md`
+Before starting, follow the core's "Two Usage Modes" section in strict order: explicit session instruction first, then global preference, then ask. A session instruction always wins. For a resolved mode, say `antislop active: <mode> (session override).` or `antislop active: <mode> (global preference).` once before presenting findings or making edits, using the actual mode and source. Acknowledging the user's request without naming the source does not replace this notice.
+Only an explicit choice of antislop during or after selects a session mode. A request to review, audit, or avoid file edits does not select a mode; read the global preference in that case. Another skill's mode does not select antislop's mode.
+If the mode is unresolved, ask during/after and end the response; wait for the answer before any UI review, planning, or concept. For read-only tasks, put the active-mode notice only at the start of the final answer, never in progress messages. For editing tasks, announce before the first edit and omit it from the final answer.
+To update antislop later: download `antislop.md` again, or run `npx antislop-ai --update` if it was installed as skill folders.
+<!-- antislop:end -->
