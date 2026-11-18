@@ -42,7 +42,7 @@ class DiagnosticsStoreTest {
         // Sesi cache-hit kecil tidak boleh menghapus sesi besar di belakangnya.
         PerfStore.saveSession(session("cache-hit", "render", 7))
         assertEquals(3, PerfStore.getSessions().size)
-        assertEquals(2259, PerfStore.getSessions()[2].durationMs)
+        assertEquals(2259L, PerfStore.getSessions()[2].durationMs)
     }
 
     @Test
@@ -71,13 +71,13 @@ class DiagnosticsStoreTest {
         )
         // Tanggal harus berasal dari jam dinding; uptime 100 ms bukan tanggal 1970.
         assertTrue(session.startedAtWallClock > 1_600_000_000_000)
-        assertEquals("abc", session.events.single().detail)
-        assertEquals(7, session.durationMs)
+        assertEquals("hash=abc", session.events.single().detail)
+        assertEquals(7L, session.durationMs)
 
         val defaults = PerfEvent(name = "RENDER_CALLED", elapsedMs = 0)
         assertEquals("main", defaults.thread)
         assertEquals("", defaults.detail)
-        assertEquals(0, PerfSession("2", 0, 0, null, emptyList()).durationMs)
+        assertEquals(0L, PerfSession("2", 0, 0, null, emptyList()).durationMs)
     }
 
     @Test
