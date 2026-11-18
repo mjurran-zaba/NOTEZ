@@ -132,6 +132,7 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
         setupTopBar()
+        setupSelectionBar()
         setupSpeedDial()
         displayMode = HomeDisplayPref.get(this)
         setupRecyclerView()
@@ -140,6 +141,18 @@ class MainActivity : AppCompatActivity() {
         applyHorseThemeAccent()
 
         observeNotePresence()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val thirtyDaysAgo = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000L
+            dao.purgeExpiredRecycle(thirtyDaysAgo)
+        }
+
+        Looper.myQueue().addIdleHandler {
+            runCatching {
+                android.webkit.WebView(applicationContext).destroy()
+            }
+            false
+        }
     }
 
     private fun initViews() {
@@ -294,6 +307,9 @@ class MainActivity : AppCompatActivity() {
             onDelete = { note ->
                 Breadcrumb.add("HOME", "TAP_DELETE id=${note.id} title='${note.title}'")
                 deleteWithUndo(note)
+            },
+            onSelectionChanged = { count ->
+                updateSelectionUi(count)
             }
         )
         displayMode = HomeDisplayPref.get(this)
@@ -570,6 +586,10 @@ class MainActivity : AppCompatActivity() {
             Breadcrumb.add("HOME", "TAP_MENU_DIAGNOSTICS")
             closeDrawerThen { startActivity(Intent(this, com.zaba.notez.diagnostics.DiagnosticsActivity::class.java)) }
         }
+        findViewById<View>(R.id.menu_recycle)?.setOnClickListener {
+            Breadcrumb.add("HOME", "TAP_MENU_RECYCLE")
+            closeDrawerThen { startActivity(Intent(this, RecycleActivity::class.java)) }
+        }
     }
 
     private fun closeDrawerThen(action: () -> Unit) {
@@ -583,13 +603,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun deleteWithUndo(note: Note) {
         lifecycleScope.launch(Dispatchers.IO) {
-            dao.delete(note)
-            Breadcrumb.add("IO", "DB_DELETE id=${note.id}")
+            dao.moveToRecycle(listOf(note.id))
+            Breadcrumb.add("IO", "DB_MOVE_RECYCLE id=${note.id}")
             launch(Dispatchers.Main) {
-                Snackbar.make(listView, "Catatan dihapus", Snackbar.LENGTH_LONG)
+                Snackbar.make(listView, "Catatan dipindahkan ke Recycle", Snackbar.LENGTH_LONG)
                     .setAction("Batal") {
                         lifecycleScope.launch(Dispatchers.IO) {
-                            dao.upsert(note)
+                            dao.restoreFromRecycle(listOf(note.id))
                             Breadcrumb.add("IO", "DB_RESTORE id=${note.id}")
                         }
                     }
@@ -628,12 +648,84 @@ class MainActivity : AppCompatActivity() {
         overridePendingTransition(R.anim.fade_in_fast, R.anim.fade_out_fast)
     }
 
+    private fun setupSelectionBar() {
+        findViewById<ImageButton>(R.id.btn_selection_close)?.setOnClickListener {
+            adapter.clearSelection()
+        }
+        findViewById<ImageButton>(R.id.btn_selection_pin)?.setOnClickListener {
+            val selected = adapter.getSelectedNotes()
+            if (selected.isEmpty()) return@setOnClickListener
+            val allPinned = selected.all { it.isPinned }
+            val newPinnedState = !allPinned
+            lifecycleScope.launch(Dispatchers.IO) {
+                dao.setPinned(selected.map { it.id }, newPinnedState)
+                withContext(Dispatchers.Main) {
+                    val msg = if (newPinnedState) "Catatan disematkan" else "Sematan dilepas"
+                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
+                    adapter.clearSelection()
+                }
+            }
+        }
+        findViewById<ImageButton>(R.id.btn_selection_delete)?.setOnClickListener {
+            val selected = adapter.getSelectedNotes()
+            if (selected.isEmpty()) return@setOnClickListener
+            val ids = selected.map { it.id }
+            val count = ids.size
+            lifecycleScope.launch(Dispatchers.IO) {
+                dao.moveToRecycle(ids)
+                withContext(Dispatchers.Main) {
+                    adapter.clearSelection()
+                    Snackbar.make(listView, "$count catatan dipindahkan ke Recycle", Snackbar.LENGTH_LONG)
+                        .setAction("Batal") {
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                dao.restoreFromRecycle(ids)
+                            }
+                        }
+                        .setAnimationMode(BaseTransientBottomBar.ANIMATION_MODE_SLIDE)
+                        .show()
+                }
+            }
+        }
+    }
+
+    private fun updateSelectionUi(count: Int) {
+        val normalBar = findViewById<View>(R.id.home_normal_bar)
+        val selectionBar = findViewById<View>(R.id.home_selection_bar)
+        val selectionTitle = findViewById<TextView>(R.id.selection_title)
+        val btnPin = findViewById<ImageButton>(R.id.btn_selection_pin)
+
+        if (count > 0) {
+            selectionTitle?.text = "$count dipilih"
+            val selected = adapter.getSelectedNotes()
+            val allPinned = selected.isNotEmpty() && selected.all { it.isPinned }
+            btnPin?.contentDescription = if (allPinned) "Lepas sematan" else "Sematkan catatan"
+
+            if (selectionBar?.visibility != View.VISIBLE) {
+                normalBar?.visibility = View.GONE
+                selectionBar?.visibility = View.VISIBLE
+                selectionBar?.alpha = 0f
+                selectionBar?.animate()?.alpha(1f)?.setDuration(160L)?.start()
+            }
+        } else {
+            if (selectionBar?.visibility == View.VISIBLE) {
+                selectionBar.animate().alpha(0f).setDuration(160L).withEndAction {
+                    selectionBar.visibility = View.GONE
+                    normalBar?.visibility = View.VISIBLE
+                    normalBar?.alpha = 0f
+                    normalBar?.animate()?.alpha(1f)?.setDuration(160L)?.start()
+                }.start()
+            }
+        }
+    }
+
     override fun onBackPressed() {
         Breadcrumb.add(
             "HOME",
-            "BACK drawer=${drawer.isDrawerVisible(GravityCompat.START)} search=$searchOpen speedDial=$speedDialOpen"
+            "BACK drawer=${drawer.isDrawerVisible(GravityCompat.START)} search=$searchOpen speedDial=$speedDialOpen selection=${adapter.isSelectionMode}"
         )
-        if (drawer.isDrawerVisible(GravityCompat.START)) {
+        if (adapter.isSelectionMode) {
+            adapter.clearSelection()
+        } else if (drawer.isDrawerVisible(GravityCompat.START)) {
             pendingDrawerAction = null
             drawer.closeDrawer(GravityCompat.START)
         } else if (speedDialOpen) {

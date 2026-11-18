@@ -3,6 +3,7 @@ package com.zaba.notez.music
 import android.content.ComponentName
 import android.os.Handler
 import android.os.Looper
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageButton
@@ -95,6 +96,7 @@ class MusicMiniPlayerHelper(
         isDismissedByUser = true
         isPlayerVisible = false
         val targetCard = card ?: root
+        targetCard.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
         targetCard.animate()
             .translationY(targetCard.height.toFloat().coerceAtLeast(UiStyle.dp(activity, 80f).toFloat()))
             .alpha(0f)
@@ -223,22 +225,22 @@ class MusicMiniPlayerHelper(
 
     private fun playPrevious() {
         val c = controller ?: return
-        if (c.hasPreviousMediaItem()) {
-            c.seekToPreviousMediaItem()
+        if (c.mediaItemCount == 0) return
+        val prevIndex = if (c.currentMediaItemIndex > 0) {
+            c.currentMediaItemIndex - 1
         } else {
-            c.seekTo(0L)
+            c.mediaItemCount - 1
         }
+        c.seekTo(prevIndex, 0L)
         c.play()
         updateUi()
     }
 
     private fun playNext() {
         val c = controller ?: return
-        if (c.hasNextMediaItem()) {
-            c.seekToNextMediaItem()
-        } else if (c.mediaItemCount > 0) {
-            c.seekTo(0, 0L)
-        }
+        if (c.mediaItemCount == 0) return
+        val nextIndex = (c.currentMediaItemIndex + 1) % c.mediaItemCount
+        c.seekTo(nextIndex, 0L)
         c.play()
         updateUi()
     }
@@ -285,6 +287,7 @@ class MusicMiniPlayerHelper(
                         if (dy > thresholdY && dy > abs(dx) * 1.1f) {
                             dismissPlayer()
                         } else if (abs(dx) > thresholdX && abs(dx) > abs(dy) * 1.1f) {
+                            targetCard.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             targetCard.animate().translationX(0f).setDuration(150L).start()
                             if (dx < 0) {
                                 playNext()

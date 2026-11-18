@@ -45,6 +45,8 @@ class MusicDrawerController(
     private val previous: ImageButton = root.findViewById(R.id.music_previous)
     private val playPause: ImageButton = root.findViewById(R.id.music_play_pause)
     private val next: ImageButton = root.findViewById(R.id.music_next)
+    private val rewind10: ImageButton? = root.findViewById(R.id.music_rewind_10)
+    private val forward10: ImageButton? = root.findViewById(R.id.music_forward_10)
     private val mode: ImageButton = root.findViewById(R.id.music_mode)
     private val modeLabel: TextView = root.findViewById(R.id.music_mode_label)
     private val addMusic: TextView = root.findViewById(R.id.music_add)
@@ -78,6 +80,8 @@ class MusicDrawerController(
         playPause.setOnClickListener { togglePlayPause() }
         previous.setOnClickListener { playPrevious() }
         next.setOnClickListener { playNext() }
+        rewind10?.setOnClickListener { seekDelta(-10_000L) }
+        forward10?.setOnClickListener { seekDelta(10_000L) }
         mode.setOnClickListener { cycleMode() }
         modeLabel.setOnClickListener { cycleMode() }
         connectController()
@@ -187,6 +191,16 @@ class MusicDrawerController(
             c.seekTo(0, 0L)
         }
         c.play()
+    }
+
+    private fun seekDelta(deltaMs: Long) {
+        val c = controller ?: return toastNotReady()
+        if (snapshot.tracks.isEmpty()) return
+        val current = c.currentPosition
+        val duration = c.duration.takeIf { it > 0 } ?: Long.MAX_VALUE
+        val target = (current + deltaMs).coerceIn(0L, duration)
+        c.seekTo(target)
+        updateUi()
     }
 
     private fun cycleMode() {

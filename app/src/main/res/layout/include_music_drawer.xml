@@ -88,9 +88,21 @@
             android:paddingBottom="8dp">
 
             <ImageButton
+                android:id="@+id/music_rewind_10"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_music_rewind_10"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_lucide_rotate_ccw_10"
+                app:tint="?attr/colorOnSurfaceVariant" />
+
+            <ImageButton
                 android:id="@+id/music_previous"
-                android:layout_width="48dp"
-                android:layout_height="44dp"
+                android:layout_width="44dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cd_music_previous"
                 android:src="@drawable/ic_lucide_skip_back"
@@ -100,8 +112,8 @@
                 android:id="@+id/music_play_pause"
                 android:layout_width="48dp"
                 android:layout_height="44dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Putar musik"
                 android:src="@drawable/ic_lucide_play"
@@ -109,12 +121,24 @@
 
             <ImageButton
                 android:id="@+id/music_next"
-                android:layout_width="48dp"
-                android:layout_height="44dp"
+                android:layout_width="44dp"
+                android:layout_height="42dp"
+                android:layout_marginEnd="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cd_music_next"
                 android:src="@drawable/ic_lucide_skip_forward"
                 app:tint="?attr/colorPrimary" />
+
+            <ImageButton
+                android:id="@+id/music_forward_10"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_music_forward_10"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_lucide_rotate_cw_10"
+                app:tint="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
         <LinearLayout
