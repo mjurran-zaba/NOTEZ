@@ -597,6 +597,11 @@ class EditorActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         perfTracker?.mark("ACTIVITY_DESTROY", "note=$noteId editing=$isEditing")
+        // Sesi yang belum selesai (render/impor berhenti sebelum PAINT_REAL, atau
+        // sesi edit yang post()-nya belum jalan) harus tetap disimpan. Tanpa ini
+        // timeline-nya hilang tanpa jejak: di data perangkat, impor 100 KB yang
+        // ditinggal sebelum PAINT_REAL tidak pernah muncul di Diagnostics.
+        perfTracker?.finishSession()
         Breadcrumb.add("EDITOR", "onDestroy note=$noteId")
         if (::musicDrawer.isInitialized) musicDrawer.destroy()
         if (::markdownPreview.isInitialized) markdownPreview.destroy()

@@ -189,6 +189,38 @@ class MarkdownPreviewRendererRecoveryGuardTest {
         )
     }
 
+    @Test
+    fun editorDestroyFlushesOpenSession() {
+        // Data perangkat: impor 100 KB ditutup sebelum PAINT_REAL, jadi sesi
+        // render-nya hilang sama sekali dari Diagnostics. Activity yang mati
+        // harus menyimpan sesi yang masih terbuka, bukan menunggu PAINT_REAL.
+        val body = functionBody(editorCode, "override fun onDestroy(")
+        assertTrue("onDestroy tidak ditemukan", body.isNotEmpty())
+        val markAt = body.indexOf("mark(\"ACTIVITY_DESTROY\"")
+        val finishAt = body.indexOf("perfTracker?.finishSession()")
+        assertTrue("ACTIVITY_DESTROY harus tetap dicatat", markAt >= 0)
+        assertTrue("sesi yang masih terbuka harus disimpan saat destroy", finishAt >= 0)
+        assertTrue(
+            "penutupan sesi terjadi setelah marker destroy supaya urutannya benar",
+            markAt < finishAt
+        )
+    }
+
+    @Test
+    fun shellDeclaresInlineFaviconSoWebViewDoesNotRequestIt() {
+        // Data perangkat: satu-satunya WEBVIEW_SUBRESOURCE_ERROR adalah
+        // ERR_CACHE_MISS untuk https://notez.local/favicon.ico yang diminta
+        // Chromium sendiri. Ikon inline menghapus permintaan itu di sumbernya.
+        val raw = SourceScan.readMainFile("java/com/zaba/notez/markdown/MarkdownPreviewRenderer.kt")
+        val icon = "<link rel=\"icon\" href=\"data:,\">"
+        assertTrue("shell harus mendeklarasikan ikon inline", raw.contains(icon))
+        val iconAt = raw.indexOf(icon)
+        assertTrue(
+            "ikon inline harus berada di dalam <head>",
+            iconAt in 0 until raw.indexOf("</head>")
+        )
+    }
+
     /** Badan satu fungsi berdasarkan awal signature-nya. */
     private fun functionBody(code: String, signature: String): String {
         val start = code.indexOf(signature)

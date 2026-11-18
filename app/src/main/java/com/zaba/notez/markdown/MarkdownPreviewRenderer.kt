@@ -277,6 +277,10 @@ class MarkdownPreviewRenderer(
             <head>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+              <!-- Tanpa ikon inline, Chromium meminta https://notez.local/favicon.ico
+                   sendiri, gagal dengan ERR_CACHE_MISS, lalu tampil sebagai
+                   WEBVIEW_SUBRESOURCE_ERROR yang menyesatkan di Diagnostics. -->
+              <link rel="icon" href="data:,">
               <style>${css(colors)}</style>
             </head>
             <body>
