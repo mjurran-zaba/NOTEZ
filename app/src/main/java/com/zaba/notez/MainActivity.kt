@@ -396,6 +396,7 @@ class MainActivity : AppCompatActivity() {
         searchOpen = true
         homeHeaderInfo.visibility = View.GONE
         searchPill.visibility = View.VISIBLE
+        searchInput.visibility = View.VISIBLE
         searchPill.alpha = 0f
         searchPill.animate().alpha(1f).setDuration(SEARCH_SLIDE_MS).start()
 
@@ -409,6 +410,7 @@ class MainActivity : AppCompatActivity() {
     private fun closeSearch() {
         searchOpen = false
         searchInput.setText("")
+        searchInput.visibility = View.GONE
         searchPill.visibility = View.GONE
         homeHeaderInfo.visibility = View.VISIBLE
         homeHeaderInfo.alpha = 0f
