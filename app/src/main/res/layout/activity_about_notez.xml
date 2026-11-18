@@ -19,7 +19,7 @@
             android:contentDescription="@string/cd_back"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            app:srcCompat="@drawable/ic_lucide_arrow_left"
+            android:src="@drawable/ic_lucide_arrow_left"
             android:tint="?attr/colorOnSurface" />
 
         <TextView
