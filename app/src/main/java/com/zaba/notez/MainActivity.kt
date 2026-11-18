@@ -14,6 +14,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Looper
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
@@ -26,6 +27,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.RadioGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -689,7 +691,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateSelectionUi(count: Int) {
-        val normalBar = findViewById<View>(R.id.home_normal_bar)
+        val normalBar = findViewById<View>(R.id.home_top_bar)
         val selectionBar = findViewById<View>(R.id.home_selection_bar)
         val selectionTitle = findViewById<TextView>(R.id.selection_title)
         val btnPin = findViewById<ImageButton>(R.id.btn_selection_pin)

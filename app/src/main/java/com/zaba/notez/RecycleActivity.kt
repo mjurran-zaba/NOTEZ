@@ -32,7 +32,7 @@ class RecycleActivity : AppCompatActivity() {
     private val adapter = RecycleAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(ThemePref.optionOf(ThemePref.get(this)).themeRes)
+        setTheme(ThemePref.styleOf(ThemePref.get(this)))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_recycle)
 
