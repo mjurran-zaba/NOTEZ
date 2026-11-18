@@ -78,6 +78,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fab: FloatingActionButton
     private lateinit var fabScrim: View
     private lateinit var fabSpeedDial: View
+    private var miniPlayerOffset = 0f
     private lateinit var btnSpeedNewNote: MaterialCardView
     private lateinit var btnSpeedOpenFile: MaterialCardView
     private lateinit var btnDrawer: ImageButton
@@ -244,6 +245,8 @@ class MainActivity : AppCompatActivity() {
         fabScrim.alpha = 0f
         fabScrim.animate().alpha(0.38f).setDuration(180L).start()
 
+        fabSpeedDial.translationY = miniPlayerOffset
+        fabSpeedDial.alpha = 1f
         fabSpeedDial.visibility = View.VISIBLE
         animateSpeedDialItem(btnSpeedNewNote, delayMs = 0L)
         animateSpeedDialItem(btnSpeedOpenFile, delayMs = 35L)
@@ -257,12 +260,12 @@ class MainActivity : AppCompatActivity() {
 
         fabSpeedDial.animate()
             .alpha(0f)
-            .translationY(UiStyle.dp(this, 12f).toFloat())
+            .translationY(miniPlayerOffset + UiStyle.dp(this, 12f).toFloat())
             .setDuration(140L)
             .withEndAction {
                 fabSpeedDial.visibility = View.GONE
                 fabSpeedDial.alpha = 1f
-                fabSpeedDial.translationY = 0f
+                fabSpeedDial.translationY = miniPlayerOffset
             }.start()
     }
 
@@ -373,9 +376,9 @@ class MainActivity : AppCompatActivity() {
                 root = miniPlayerView,
                 onOpenDrawer = null,
                 onVisibilityChanged = { isVisible ->
-                    val offset = if (isVisible) -UiStyle.dp(this, 68f).toFloat() else 0f
-                    fab.animate().translationY(offset).setDuration(180L).start()
-                    fabSpeedDial.animate().translationY(offset).setDuration(180L).start()
+                    miniPlayerOffset = if (isVisible) -UiStyle.dp(this, 68f).toFloat() else 0f
+                    fab.animate().translationY(miniPlayerOffset).setDuration(180L).start()
+                    fabSpeedDial.animate().translationY(miniPlayerOffset).setDuration(180L).start()
                 }
             )
         }.onFailure { err ->
