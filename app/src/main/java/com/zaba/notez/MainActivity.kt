@@ -389,7 +389,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<ImageView>(R.id.splash_glow)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
         findViewById<ImageView>(R.id.empty_notez_accent)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
         findViewById<ImageView>(R.id.empty_notez_glow)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
-        findViewById<ImageView>(R.id.drawer_footer_horse)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
+        findViewById<ImageView>(R.id.drawer_footer_accent)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
+        findViewById<ImageView>(R.id.drawer_footer_glow)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
     }
 
     private fun openSearch() {
