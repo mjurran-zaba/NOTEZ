@@ -179,6 +179,7 @@ class EditorActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             bodyEdit.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
         }
+        (bodyEdit as? androidx.appcompat.widget.AppCompatEditText)?.isEmojiCompatEnabled = false
         bodyWebView = findViewById(R.id.view_body_web)
         bodyEmptyView = findViewById(R.id.view_body_empty)
         counter = findViewById(R.id.counter)
@@ -186,6 +187,18 @@ class EditorActivity : AppCompatActivity() {
         markdownPreview = MarkdownPreviewRenderer(this, bodyWebView)
         perfTracker?.mark("WEBVIEW_CREATED")
         markdownPreview.perfTracker = perfTracker
+        markdownPreview.onPaintReal = {
+            if (!isEditing && bodyTextSynced != currentContent && currentContent.isNotEmpty()) {
+                Looper.myQueue().addIdleHandler {
+                    if (!isEditing && bodyTextSynced != currentContent && currentContent.isNotEmpty()) {
+                        Breadcrumb.add("PERF", "PREWARM_EDIT_START chars=${currentContent.length}")
+                        syncBodyText()
+                        Breadcrumb.add("PERF", "PREWARM_EDIT_DONE chars=${currentContent.length}")
+                    }
+                    false
+                }
+            }
+        }
 
         lifecycleScope.launch {
             dao.getById(noteId)?.let {
@@ -263,12 +276,14 @@ class EditorActivity : AppCompatActivity() {
         applyMode(true)
         perfTracker?.mark("EDIT_MODE_APPLIED", "chars=${currentContent.length} titleChars=${currentTitle.length}")
         perfTracker?.mark("EDIT_VISIBLE")
-        // Kursor ke akhir tulisan, fokus, dan keyboard dikerjakan setelah view
-        // terlihat. Kalau dilakukan sebelum visibility berubah, framework
-        // memaksa layout dokumen penuh dua kali: sekali untuk bringPointIntoView
-        // pada view GONE, sekali lagi saat view diukur.
+        // Kursor, fokus, dan keyboard dikerjakan setelah view terlihat.
+        // Menaruh kursor di posisi awal (0) menghindari kalkulasi bringPointIntoView
+        // yang memaksa scroll ekstrem ke baris ke-2400 pada dokumen 96 KB.
         bodyEdit.post {
-            bodyEdit.setSelection(bodyEdit.text?.length ?: 0)
+            val currentSel = bodyEdit.selectionStart
+            if (currentSel <= 0) {
+                bodyEdit.setSelection(0)
+            }
             bodyEdit.requestFocus()
             showKeyboard(bodyEdit)
             perfTracker?.mark("KEYBOARD_REQUESTED")

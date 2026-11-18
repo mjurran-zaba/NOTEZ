@@ -60,6 +60,7 @@ class MarkdownPreviewRenderer(
     private val remoteImageCache = RemoteImageCache(activity)
     private val imageExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     var perfTracker: PerfTracker? = null
+    var onPaintReal: (() -> Unit)? = null
     @Volatile private var destroyed = false
     private var currentMarkdown: String = ""
     private var shellLoaded = false
@@ -87,6 +88,7 @@ class MarkdownPreviewRenderer(
             // ditutup di sini. Tanpa ini sesi menggantung dan sesi berikutnya
             // menumpuk di atasnya.
             perfTracker?.finishSession()
+            onPaintReal?.invoke()
             return
         }
         lastRenderTheme = colors
@@ -182,8 +184,17 @@ class MarkdownPreviewRenderer(
                     // ini, ekor 470–778 ms di data perangkat tidak bisa dipisah
                     // antara menunggu frame berikutnya dan satu frame yang mahal.
                     message == "NOTEZ_FRAME_START" -> { perfTracker?.mark("FRAME_START"); return true }
-                    message == "NOTEZ_PAINT_REAL" -> { perfTracker?.mark("PAINT_REAL"); perfTracker?.finishSession(); return true }
-                    message == "NOTEZ_CACHE_HIT" -> { perfTracker?.mark("CACHE_HIT"); return true }
+                    message == "NOTEZ_PAINT_REAL" -> {
+                        perfTracker?.mark("PAINT_REAL")
+                        perfTracker?.finishSession()
+                        onPaintReal?.invoke()
+                        return true
+                    }
+                    message == "NOTEZ_CACHE_HIT" -> {
+                        perfTracker?.mark("CACHE_HIT")
+                        onPaintReal?.invoke()
+                        return true
+                    }
                 }
                 // Pesan yang bukan marker tetap direkam: error/warning JS adalah
                 // penyebab paling sering render terlihat "kosong" tanpa error native.

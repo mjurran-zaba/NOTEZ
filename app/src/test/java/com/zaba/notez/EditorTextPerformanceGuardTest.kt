@@ -15,12 +15,18 @@ import org.junit.Test
  *    dapat menyebabkan DynamicLayout freeze 2.8 - 5.0 detik saat pertama kali masuk mode edit.
  * 2. Autofill traversal pada dokumen puluhan ribu karakter yang memicu inspect view hierarchy.
  * 3. Text watcher autosave tidak sengaja terpicu selama `syncBodyText`.
+ * 4. EmojiCompat text scanner yang menyisir seluruh karakter untuk mencari emoji spans.
+ * 5. Kursor dipaksa lari ke ujung akhir dokumen (baris 2400) yang memicu bringPointIntoView 1 detik.
+ * 6. Menjamin idle pre-warming pada saat Reading View aktif agar toggle edit instan (< 10 ms).
  */
 class EditorTextPerformanceGuardTest {
 
     private val editorXml: String = SourceScan.readRes("layout/activity_editor.xml")
     private val editorRaw: String = SourceScan.readMainFile("java/com/zaba/notez/EditorActivity.kt")
     private val editorCode: String = SourceScan.codeOnly(editorRaw)
+    private val rendererCode: String = SourceScan.codeOnly(
+        SourceScan.readMainFile("java/com/zaba/notez/markdown/MarkdownPreviewRenderer.kt")
+    )
 
     @Test
     fun editBodyXmlDeclaresSimpleBreakStrategy() {
@@ -53,6 +59,16 @@ class EditorTextPerformanceGuardTest {
     }
 
     @Test
+    fun editBodyXmlDeclaresEmojiCompatDisabled() {
+        val editBodyTag = extractTag(editorXml, "<EditText", "android:id=\"@+id/edit_body\"")
+        assertTrue("Tag edit_body harus ditemukan di XML", editBodyTag.isNotEmpty())
+        assertTrue(
+            "edit_body harus menonaktifkan emojiCompat scanning dengan app:emojiCompatEnabled=\"false\"",
+            editBodyTag.contains("app:emojiCompatEnabled=\"false\"")
+        )
+    }
+
+    @Test
     fun editorActivityProgrammaticallyEnforcesSimpleLayoutAndNoAutofill() {
         assertTrue(
             "EditorActivity harus menyetel breakStrategy simple",
@@ -65,6 +81,10 @@ class EditorTextPerformanceGuardTest {
         assertTrue(
             "EditorActivity harus menyetel importantForAutofill no",
             editorCode.contains("bodyEdit.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO")
+        )
+        assertTrue(
+            "EditorActivity harus menyetel isEmojiCompatEnabled false",
+            editorCode.contains("isEmojiCompatEnabled = false")
         )
     }
 
@@ -85,6 +105,40 @@ class EditorTextPerformanceGuardTest {
         assertTrue("suppressAutosave = true harus sebelum setText", suppressStart < setTextAt)
         assertTrue("setText harus sebelum finally", setTextAt < finallyAt)
         assertTrue("finally harus sebelum suppressRestore", finallyAt < suppressRestore)
+    }
+
+    @Test
+    fun editorActivityHooksIdlePrewarmOnPaintReal() {
+        assertTrue(
+            "MarkdownPreviewRenderer harus menyediakan callback onPaintReal",
+            rendererCode.contains("var onPaintReal:")
+        )
+        assertTrue(
+            "EditorActivity harus mendaftarkan handler onPaintReal untuk idle pre-warm",
+            editorCode.contains("markdownPreview.onPaintReal =")
+        )
+        assertTrue(
+            "Pre-warm harus menggunakan IdleHandler agar tidak mengganggu rendering aktif",
+            editorCode.contains("addIdleHandler")
+        )
+        assertTrue(
+            "Idle pre-warm harus memanggil syncBodyText",
+            editorCode.contains("syncBodyText()")
+        )
+    }
+
+    @Test
+    fun switchToEditPlacesCursorAtStartNotEnd() {
+        val body = functionBody(editorCode, "private fun switchToEdit()")
+        assertTrue("switchToEdit() harus ada", body.isNotEmpty())
+        assertFalse(
+            "Kursor tidak boleh dipaksa ke akhir dokumen panjang (memaksa scroll 2400 baris)",
+            body.contains("bodyEdit.setSelection(bodyEdit.text?.length ?: 0)")
+        )
+        assertTrue(
+            "Kursor harus diset ke posisi awal (0)",
+            body.contains("bodyEdit.setSelection(0)")
+        )
     }
 
     private fun extractTag(xml: String, tagStart: String, identifier: String): String {
