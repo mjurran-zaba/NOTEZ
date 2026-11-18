@@ -5,22 +5,35 @@ import android.util.Log
 
 class PerfTracker(private val noteId: Long?, initialTimeMs: Long? = null) {
     private var startedAt: Long = initialTimeMs ?: SystemClock.uptimeMillis()
+    private var startedAtWallClock: Long = System.currentTimeMillis()
     private val events = mutableListOf<PerfEvent>()
+    private var droppedEvents = 0
     private var finished = false
 
     /** Jenis sesi terakhir, supaya timeline render dan timeline editor tidak tertukar. */
     private var label: String = LABEL_RENDER
 
     init {
-        mark("OPEN_T0")
+        mark("OPEN_T0", "note=$noteId")
     }
 
-    fun mark(name: String) {
+    /**
+     * Catat satu titik di timeline.
+     *
+     * [detail] sengaja bebas format: isinya bisa ukuran karakter, hash, id
+     * catatan, atau pesan error. Setiap marker juga disalin ke [Breadcrumb]
+     * supaya urutan lintas Activity tetap terlihat walaupun sesi ini nanti
+     * ditimpa sesi lain.
+     */
+    fun mark(name: String, detail: String = "") {
         val elapsed = SystemClock.uptimeMillis() - startedAt
+        val thread = Thread.currentThread().name
+        val event = PerfEvent(name, elapsed, thread, detail)
         synchronized(events) {
-            events += PerfEvent(name, elapsed)
+            if (events.size >= MAX_EVENTS) droppedEvents++ else events += event
         }
-        Log.d("NOTEZ_PERF", "$name +${elapsed}ms")
+        Breadcrumb.add("PERF", "$name +${elapsed}ms$threadSuffix(thread)$detailSuffix(detail)")
+        Log.d("NOTEZ_PERF", "$name +${elapsed}ms [$thread]$detailSuffix(detail)")
     }
 
     /**
@@ -46,13 +59,7 @@ class PerfTracker(private val noteId: Long?, initialTimeMs: Long? = null) {
         }
         val startFresh = synchronized(events) { finished }
         if (startFresh) {
-            synchronized(events) {
-                startedAt = SystemClock.uptimeMillis()
-                events.clear()
-                finished = false
-                label = LABEL_RENDER
-            }
-            mark("OPEN_T0")
+            resetSession(LABEL_RENDER)
         }
         mark(MARK_RENDER_CALLED)
     }
@@ -74,13 +81,20 @@ class PerfTracker(private val noteId: Long?, initialTimeMs: Long? = null) {
         if (previousOpen) {
             finishSession()
         }
+        resetSession(LABEL_INTERACTION)
+        mark(name)
+    }
+
+    private fun resetSession(newLabel: String) {
         synchronized(events) {
             startedAt = SystemClock.uptimeMillis()
+            startedAtWallClock = System.currentTimeMillis()
             events.clear()
+            droppedEvents = 0
             finished = false
-            label = LABEL_INTERACTION
+            label = newLabel
         }
-        mark(name)
+        mark("OPEN_T0", "note=$noteId label=$newLabel")
     }
 
     fun finishSession() {
@@ -94,18 +108,33 @@ class PerfTracker(private val noteId: Long?, initialTimeMs: Long? = null) {
                 PerfSession(
                     id = System.currentTimeMillis().toString(),
                     startedAt = startedAt,
+                    startedAtWallClock = startedAtWallClock,
                     noteId = noteId,
                     events = events.toList(),
-                    label = label
+                    label = label,
+                    droppedEvents = droppedEvents
                 )
             }
         } ?: return
         PerfStore.saveSession(session)
+        Breadcrumb.add("PERF", "session ${session.label} disimpan: ${session.events.size} event, ${session.durationMs}ms")
     }
+
+    private fun detailSuffix(detail: String): String =
+        if (detail.isBlank()) "" else " · $detail"
+
+    private fun threadSuffix(thread: String): String =
+        if (thread == "main") "" else " [$thread]"
 
     private companion object {
         const val MARK_RENDER_CALLED = "RENDER_CALLED"
         const val LABEL_RENDER = "render"
         const val LABEL_INTERACTION = "edit"
+
+        /**
+         * Batas event per sesi. Breadcrumb global tetap merekam semua, jadi
+         * pemotongan di sini tidak menghilangkan jejak, hanya meringkas timeline.
+         */
+        const val MAX_EVENTS = 400
     }
 }

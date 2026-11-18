@@ -18,6 +18,7 @@ import android.webkit.WebResourceError
 import android.webkit.ConsoleMessage
 import java.security.MessageDigest
 import android.webkit.RenderProcessGoneDetail
+import com.zaba.notez.diagnostics.Breadcrumb
 import com.zaba.notez.diagnostics.PerfTracker
 import android.widget.Toast
 import com.zaba.notez.R
@@ -72,8 +73,9 @@ class MarkdownPreviewRenderer(
         currentMarkdown = markdown
         val colors = PreviewColors.from(activity)
         val renderHash = sha256(markdown + "|" + colors.toString() + "|v1")
+        perfTracker?.mark("RENDER_REQUEST", "chars=${markdown.length} hash=${renderHash.take(10)}")
         if (shellLoaded && lastRenderTheme == colors && lastRenderHash == renderHash) {
-            perfTracker?.mark("CACHE_HIT")
+            perfTracker?.mark("CACHE_HIT", "shellLoaded=true hash=${renderHash.take(10)}")
             // Jalur ini tidak akan pernah sampai PAINT_REAL, jadi sesi harus
             // ditutup di sini. Tanpa ini sesi menggantung dan sesi berikutnya
             // menumpuk di atasnya.
@@ -95,8 +97,8 @@ class MarkdownPreviewRenderer(
             perfTracker?.mark("HTML_READY")
             perfTracker?.mark("SHELL_BUILD_START")
             val shell = buildHtml()
-            perfTracker?.mark("SHELL_BUILD_END")
-            perfTracker?.mark("LOAD_DATA_CALLED")
+            perfTracker?.mark("SHELL_BUILD_END", "chars=${shell.length}")
+            perfTracker?.mark("LOAD_DATA_CALLED", "chars=${shell.length}")
             webView.loadDataWithBaseURL(NOTEZ_BASE_URL, shell, "text/html", "UTF-8", null)
             // loadDataWithBaseURL() sinkron: selisih LOAD_DATA_CALLED vs RETURNED
             // adalah biaya panggilan, sisanya (sampai PAGE_STARTED) adalah biaya
@@ -106,7 +108,7 @@ class MarkdownPreviewRenderer(
             perfTracker?.mark("HTML_BUILD_DONE")
             perfTracker?.mark("HTML_READY")
             val js = "window.notezRender($markdownJson, $baseJson, $cacheJson);"
-            perfTracker?.mark("RENDER_JS_CALLED")
+            perfTracker?.mark("RENDER_JS_CALLED", "jsChars=${js.length} chars=${markdown.length}")
             webView.evaluateJavascript(js, null)
             perfTracker?.mark("RENDER_JS_CALLED_RETURNED")
         }
@@ -118,6 +120,7 @@ class MarkdownPreviewRenderer(
     }
 
     fun destroy() {
+        Breadcrumb.add("WEBVIEW", "destroy: shellLoaded=$shellLoaded")
         destroyed = true
         imageExecutor.shutdownNow()
         webView.stopLoading()
@@ -160,6 +163,13 @@ class MarkdownPreviewRenderer(
                     "NOTEZ_PAINT_REAL" -> { perfTracker?.mark("PAINT_REAL"); perfTracker?.finishSession(); return true }
                     "NOTEZ_CACHE_HIT" -> { perfTracker?.mark("CACHE_HIT"); return true }
                 }
+                // Pesan yang bukan marker tetap direkam: error/warning JS adalah
+                // penyebab paling sering render terlihat "kosong" tanpa error native.
+                perfTracker?.mark(
+                    "JS_CONSOLE",
+                    "${consoleMessage.messageLevel()}: ${consoleMessage.message()} " +
+                        "@${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}"
+                )
                 return super.onConsoleMessage(consoleMessage)
             }
         }
@@ -181,10 +191,12 @@ class MarkdownPreviewRenderer(
                 // Subresource yang memang diblokir (favicon, gambar remote) bukan
                 // kegagalan sesi. Hanya error main frame yang menandai WEBVIEW_ERROR,
                 // supaya sinyal "render gagal" tidak tenggelam oleh noise.
+                val errorDetail =
+                    "code=${error?.errorCode} desc=${error?.description} url=${request?.url}"
                 if (forMainFrame) {
-                    perfTracker?.mark("WEBVIEW_ERROR")
+                    perfTracker?.mark("WEBVIEW_ERROR", errorDetail)
                 } else {
-                    perfTracker?.mark("WEBVIEW_SUBRESOURCE_ERROR")
+                    perfTracker?.mark("WEBVIEW_SUBRESOURCE_ERROR", errorDetail)
                 }
             }
 
@@ -194,6 +206,7 @@ class MarkdownPreviewRenderer(
                 val pending = pendingSourceJson
                 if (pending != null) {
                     val js = "window.notezRender($pending, ${pendingBaseJson}, ${pendingCacheJson});"
+                    perfTracker?.mark("SHELL_RENDER_INJECTED", "jsChars=${js.length}")
                     view?.evaluateJavascript(js, null)
                     pendingSourceJson = null
                     pendingBaseJson = null
@@ -229,10 +242,15 @@ class MarkdownPreviewRenderer(
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url ?: return true
                 if (isImageLoadRequest(uri)) {
+                    perfTracker?.mark("TAP_IMAGE_LOAD", uri.toString())
                     confirmAndLoadImage(uri)
                     return true
                 }
-                if (isLocalPreviewUrl(uri)) return false
+                if (isLocalPreviewUrl(uri)) {
+                    perfTracker?.mark("NAV_LOCAL", uri.toString())
+                    return false
+                }
+                perfTracker?.mark("NAV_EXTERNAL", uri.toString())
                 return openExternalOrBlock(uri)
             }
 
@@ -1806,9 +1824,14 @@ class MarkdownPreviewRenderer(
 
     private fun downloadImage(source: String) {
         Toast.makeText(activity, "Mengambil gambar…", Toast.LENGTH_SHORT).show()
+        perfTracker?.mark("IMAGE_DOWNLOAD_START", source)
         imageExecutor.execute {
             val result = remoteImageCache.download(source)
             activity.runOnUiThread {
+                perfTracker?.mark(
+                    if (result.success) "IMAGE_DOWNLOAD_DONE" else "IMAGE_DOWNLOAD_FAIL",
+                    "$source · ${result.message}"
+                )
                 if (destroyed || activity.isFinishing) return@runOnUiThread
                 Toast.makeText(activity, result.message, Toast.LENGTH_SHORT).show()
                 if (result.success) render(currentMarkdown)

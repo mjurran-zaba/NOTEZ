@@ -21,7 +21,9 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import com.zaba.notez.markdown.MarkdownPreviewRenderer
+import com.zaba.notez.diagnostics.Breadcrumb
 import com.zaba.notez.diagnostics.PerfTracker
+import com.zaba.notez.diagnostics.installBreadcrumbLogcat
 import android.os.SystemClock
 import com.zaba.notez.music.MusicDrawerController
 import java.io.ByteArrayOutputStream
@@ -122,7 +124,15 @@ class EditorActivity : AppCompatActivity() {
         setTheme(ThemePref.styleOf(ThemePref.get(this)))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_editor)
-        perfTracker?.mark("ACTIVITY_CREATED")
+        installBreadcrumbLogcat()
+        perfTracker?.mark(
+            "ACTIVITY_CREATED",
+            "note=$noteId editing=$isEditing rotation=${savedInstanceState != null}"
+        )
+        Breadcrumb.add(
+            "EDITOR",
+            "onCreate note=$noteId editing=$isEditing rotation=${savedInstanceState != null}"
+        )
         dao = AppDatabase.get(this).noteDao()
         drawer = findViewById(R.id.drawer)
         UiStyle.applyDrawerGlass(findViewById(R.id.drawer_panel))
@@ -134,14 +144,17 @@ class EditorActivity : AppCompatActivity() {
         )
 
         findViewById<View>(R.id.menu_file_open)?.setOnClickListener {
+            perfTracker?.mark("TAP_MENU_OPEN_FILE")
             drawer.closeDrawer(GravityCompat.START)
             handleOpenFile()
         }
         findViewById<View>(R.id.menu_file_save)?.setOnClickListener {
+            perfTracker?.mark("TAP_MENU_SAVE_FILE")
             drawer.closeDrawer(GravityCompat.START)
             handleSaveFile()
         }
         findViewById<View>(R.id.menu_file_save_as)?.setOnClickListener {
+            perfTracker?.mark("TAP_MENU_SAVE_AS")
             drawer.closeDrawer(GravityCompat.START)
             handleSaveAs()
         }
@@ -169,7 +182,7 @@ class EditorActivity : AppCompatActivity() {
             dao.getById(noteId)?.let {
                 currentTitle = it.title
                 currentContent = it.content
-                perfTracker?.mark("DB_QUERY_DONE")
+                perfTracker?.mark("DB_QUERY_DONE", "chars=${it.content.length}")
                 titleEdit.setText(it.title)
                 // Batch 1: tunda setText body saat mode view; hanya diisi saat edit.
                 // Body belum di-set di sini, jadi marker ini hanya mengukur judul.
@@ -177,7 +190,7 @@ class EditorActivity : AppCompatActivity() {
                 updateCounter(it.content.length, "")
                 perfTracker?.mark("COUNTER_DONE")
             }
-            perfTracker?.mark("NOTE_LOADED")
+            perfTracker?.mark("NOTE_LOADED", "chars=${currentContent.length} editing=$isEditing")
             loaded = true
             applyMode(isEditing)
         }
@@ -195,7 +208,7 @@ class EditorActivity : AppCompatActivity() {
 
         editToggle.setOnClickListener {
             if (isEditing) {
-                perfTracker?.mark("EDIT_CLICK")
+                perfTracker?.mark("EDIT_CLICK", "-> view chars=${bodyEdit.text.length}")
                 switchToView()
             } else {
                 // Sesi baru: marker EDIT_* tidak lagi hilang setelah PAINT_REAL.
@@ -219,6 +232,7 @@ class EditorActivity : AppCompatActivity() {
         bodyEdit.clearFocus()
         hideKeyboard()
         applyMode(false)
+        perfTracker?.mark("VIEW_MODE_APPLIED", "chars=${currentContent.length}")
     }
 
     private fun switchToEdit() {
@@ -231,6 +245,7 @@ class EditorActivity : AppCompatActivity() {
         titleEdit.setSelection(titleEdit.text?.length ?: 0)
         suppressAutosave = false
         applyMode(true)
+        perfTracker?.mark("EDIT_MODE_APPLIED", "chars=${currentContent.length} titleChars=${currentTitle.length}")
         perfTracker?.mark("EDIT_VISIBLE")
         // Kursor ke akhir tulisan, fokus, dan keyboard dikerjakan setelah view
         // terlihat. Kalau dilakukan sebelum visibility berubah, framework
@@ -260,10 +275,13 @@ class EditorActivity : AppCompatActivity() {
      * seperti `bodyEdit.text.toString()`.
      */
     private fun syncBodyText() {
-        if (bodyTextSynced == currentContent) return
+        if (bodyTextSynced == currentContent) {
+            perfTracker?.mark("EDIT_TEXT_SKIP", "chars=${currentContent.length}")
+            return
+        }
         bodyEdit.setText(currentContent)
         bodyTextSynced = currentContent
-        perfTracker?.mark("EDIT_TEXT_SET")
+        perfTracker?.mark("EDIT_TEXT_SET", "chars=${currentContent.length}")
     }
 
     /** Tampilkan set view yang sesuai mode, dan render Markdown saat masuk mode view. */
@@ -293,7 +311,10 @@ class EditorActivity : AppCompatActivity() {
             hideKeyboard()
             titleView.text = currentTitle.ifBlank { getString(R.string.untitled_note) }
             if (hasContent) {
+                perfTracker?.mark("RENDER_FROM_MODE", "chars=${currentContent.length}")
                 markdownPreview.render(currentContent)
+            } else {
+                perfTracker?.mark("RENDER_SKIPPED_EMPTY")
             }
         }
     }
@@ -310,6 +331,7 @@ class EditorActivity : AppCompatActivity() {
 
     private fun save(title: String, body: String) {
         val generation = nextSaveGeneration()
+        perfTracker?.mark("SAVE_DISPATCH", "gen=$generation chars=${body.length}")
         // Tulis DB di IO thread — jangan block UI (penyebab scroll tersendat).
         // Generasi + mutex mencegah save lama menimpa snapshot yang lebih baru.
         lifecycleScope.launch(Dispatchers.IO) {
@@ -346,6 +368,11 @@ class EditorActivity : AppCompatActivity() {
         } finally {
             saveMutex.unlock()
         }
+        if (saved) {
+            Breadcrumb.add("IO", "DB_WRITE gen=$generation chars=${body.length}")
+        } else {
+            Breadcrumb.add("IO", "DB_WRITE_DILEWATI gen=$generation latest=$saveGeneration")
+        }
         if (saved && updateUi && generation == saveGeneration) {
             withContext(Dispatchers.Main) {
                 if (isEditing && generation == saveGeneration) updateCounter(body.length, " • tersimpan")
@@ -366,6 +393,7 @@ class EditorActivity : AppCompatActivity() {
 
     private fun handleSaveFile() {
         val targetUri = NoteFileTargetStore.getTargetUri(this, noteId)
+        Breadcrumb.add("EDITOR", "SAVE_FILE target=${targetUri != null} note=$noteId")
         if (targetUri != null) {
             writeToExternalUri(targetUri)
         } else {
@@ -377,6 +405,7 @@ class EditorActivity : AppCompatActivity() {
         val title = if (isEditing) titleEdit.text.toString() else currentTitle
         val body = if (isEditing) bodyEdit.text.toString() else currentContent
         val suggestedName = NoteFileTargetStore.suggestFilename(title, body)
+        perfTracker?.mark("SAVE_AS_LAUNCH", "name=$suggestedName chars=${body.length}")
         saveAsLauncher.launch(suggestedName)
     }
 
@@ -390,6 +419,7 @@ class EditorActivity : AppCompatActivity() {
     private fun handleOpenFile() {
         // "text/*" menangkap .md/.txt dari SAF; octet-stream menangkap provider
         // yang tidak memberi MIME jelas (mis. beberapa penyimpanan awan).
+        perfTracker?.mark("OPEN_FILE_LAUNCH")
         openFileLauncher.launch(arrayOf("text/*", "application/octet-stream"))
     }
 
@@ -398,6 +428,7 @@ class EditorActivity : AppCompatActivity() {
      * sumbernya sehingga "Simpan file" menulis balik ke file yang sama.
      */
     private fun importFromUri(uri: Uri) {
+        perfTracker?.mark("IMPORT_PICKED", uri.toString())
         // Jangan buang edit yang belum tersimpan di catatan yang sedang terbuka:
         // noteId akan berganti, jadi simpan sekarang sebelum konteks berpindah.
         saveTask?.let(handler::removeCallbacks)
@@ -408,6 +439,14 @@ class EditorActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             val result = runCatching { readMarkdown(uri, fallbackTitle) }
                 .getOrDefault(ImportResult.Failed)
+            perfTracker?.mark(
+                "IMPORT_READ_DONE",
+                when (result) {
+                    is ImportResult.Success -> "chars=${result.content.length} title=${result.title}"
+                    ImportResult.TooLarge -> "too_large"
+                    ImportResult.Failed -> "failed"
+                }
+            )
             when (result) {
                 is ImportResult.Success -> {
                     runCatching {
@@ -436,6 +475,7 @@ class EditorActivity : AppCompatActivity() {
                         return@launch
                     }
                     NoteFileTargetStore.setTargetUri(this@EditorActivity, newId, uri)
+                    perfTracker?.mark("IMPORT_NOTE_CREATED", "note=$newId chars=${result.content.length}")
                     withContext(Dispatchers.Main) { bindImportedNote(newId, result) }
                 }
 
@@ -500,6 +540,7 @@ class EditorActivity : AppCompatActivity() {
         suppressAutosave = false
         updateCounter(imported.content.length, "")
         loaded = true
+        perfTracker?.mark("IMPORT_BOUND", "note=$newId chars=${imported.content.length}")
         applyMode(false)
         Toast.makeText(this, R.string.open_file_done, Toast.LENGTH_SHORT).show()
     }
@@ -507,15 +548,18 @@ class EditorActivity : AppCompatActivity() {
     private fun writeToExternalUri(uri: Uri) {
         val title = if (isEditing) titleEdit.text.toString() else currentTitle
         val body = if (isEditing) bodyEdit.text.toString() else currentContent
+        perfTracker?.mark("FILE_WRITE_START", "chars=${body.length} uri=$uri")
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 contentResolver.openOutputStream(uri, "wt")?.use { stream ->
                     stream.write(body.toByteArray(Charsets.UTF_8))
                 }
+                perfTracker?.mark("FILE_WRITE_DONE", "chars=${body.length}")
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@EditorActivity, "File tersimpan", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
+                perfTracker?.mark("FILE_WRITE_FAIL", e.localizedMessage.orEmpty())
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@EditorActivity, "Gagal menyimpan file: " + e.localizedMessage, Toast.LENGTH_LONG).show()
                 }
@@ -532,6 +576,7 @@ class EditorActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        perfTracker?.mark("ACTIVITY_PAUSE", "editing=$isEditing note=$noteId")
         saveTask?.let(handler::removeCallbacks)
         saveTask = null
         val title = if (isEditing) titleEdit.text.toString() else currentTitle
@@ -539,6 +584,7 @@ class EditorActivity : AppCompatActivity() {
         currentTitle = title
         currentContent = body
         saveBlocking(title, body)
+        perfTracker?.mark("SAVE_BLOCKING_DONE", "chars=${body.length}")
         super.onPause()
     }
 
@@ -546,9 +592,12 @@ class EditorActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putLong(KEY_NOTE_ID, noteId)
         outState.putBoolean(KEY_EDITING, isEditing)
+        Breadcrumb.add("EDITOR", "onSaveInstanceState note=$noteId editing=$isEditing")
     }
 
     override fun onDestroy() {
+        perfTracker?.mark("ACTIVITY_DESTROY", "note=$noteId editing=$isEditing")
+        Breadcrumb.add("EDITOR", "onDestroy note=$noteId")
         if (::musicDrawer.isInitialized) musicDrawer.destroy()
         if (::markdownPreview.isInitialized) markdownPreview.destroy()
         super.onDestroy()

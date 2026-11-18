@@ -86,13 +86,13 @@ class MarkdownPreviewRendererRecoveryGuardTest {
         )
         val sync = functionBody(editorCode, "private fun syncBodyText(")
         assertTrue("syncBodyText tidak ditemukan", sync.isNotEmpty())
+        val guardAt = sync.indexOf("bodyTextSynced == currentContent")
+        val setTextAt = sync.indexOf("bodyEdit.setText(currentContent)")
+        assertTrue("isi ulang hanya saat berbeda, supaya kursor tidak reset", guardAt >= 0)
+        assertTrue("syncBodyText harus punya jalur skip", sync.contains("return"))
         assertTrue(
-            "isi ulang hanya saat berbeda, supaya kursor tidak reset",
-            sync.contains("if (bodyTextSynced == currentContent) return")
-        )
-        assertTrue(
-            "isi body harus ditulis lewat syncBodyText",
-            sync.contains("bodyEdit.setText(currentContent)")
+            "isi body hanya ditulis setelah cek isi yang sama",
+            guardAt in 0 until setTextAt
         )
     }
 
@@ -140,8 +140,17 @@ class MarkdownPreviewRendererRecoveryGuardTest {
         )
         val begin = functionBody(tracker, "fun beginInteractionSession(")
         assertTrue("beginInteractionSession tidak ditemukan", begin.isNotEmpty())
-        assertTrue("sesi baru harus membuka ulang sesi", begin.contains("finished = false"))
-        assertTrue("sesi baru harus punya garis waktu sendiri", begin.contains("events.clear()"))
+        assertTrue("sesi baru harus mereset garis waktu", begin.contains("resetSession("))
+        // Reset dipusatkan di resetSession: satu tempat untuk render dan edit,
+        // supaya label, jam dinding, dan daftar event tidak bisa lupa di-reset.
+        val reset = functionBody(tracker, "private fun resetSession(")
+        assertTrue("resetSession tidak ditemukan", reset.isNotEmpty())
+        assertTrue("sesi baru harus membuka ulang sesi", reset.contains("finished = false"))
+        assertTrue("sesi baru harus punya garis waktu sendiri", reset.contains("events.clear()"))
+        assertTrue(
+            "label sesi harus ikut diganti",
+            reset.contains("label = newLabel")
+        )
 
         val switchToEdit = functionBody(editorCode, "private fun switchToEdit(")
         assertTrue(

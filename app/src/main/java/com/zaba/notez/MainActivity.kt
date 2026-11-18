@@ -29,6 +29,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
+import com.zaba.notez.diagnostics.Breadcrumb
+import com.zaba.notez.diagnostics.installBreadcrumbLogcat
 import com.zaba.notez.music.MusicDrawerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -69,6 +71,11 @@ class MainActivity : AppCompatActivity() {
         setTheme(ThemePref.styleOf(appliedTheme))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        installBreadcrumbLogcat()
+        Breadcrumb.add(
+            "HOME",
+            "onCreate theme=$appliedTheme rotation=${savedInstanceState != null}"
+        )
         applyHomeSystemBars()
         playStartupSplash(savedInstanceState)
         dao = AppDatabase.get(this).noteDao()
@@ -82,8 +89,14 @@ class MainActivity : AppCompatActivity() {
         )
 
         adapter = NoteAdapter(
-            onOpen = { note -> openEditor(note.id) },
-            onDelete = { note -> deleteWithUndo(note) }
+            onOpen = { note ->
+                Breadcrumb.add("HOME", "TAP_NOTE id=${note.id} title='${note.title}'")
+                openEditor(note.id)
+            },
+            onDelete = { note ->
+                Breadcrumb.add("HOME", "TAP_DELETE id=${note.id} title='${note.title}'")
+                deleteWithUndo(note)
+            }
         )
         displayMode = HomeDisplayPref.get(this)
         listView = findViewById(R.id.list)
@@ -99,18 +112,27 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, AboutNotezActivity::class.java))
         }
         findViewById<FloatingActionButton>(R.id.fab).setOnClickListener {
+            Breadcrumb.add("HOME", "TAP_FAB_NEW_NOTE")
             lifecycleScope.launch(Dispatchers.IO) {
                 val id = dao.upsert(Note(title = "Catatan baru"))
+                Breadcrumb.add("IO", "NEW_NOTE_CREATED id=$id")
                 launch(Dispatchers.Main) { openEditor(id, isNew = true) }
             }
         }
         val searchToggle = findViewById<ImageButton>(R.id.search_toggle)
         val searchInput = findViewById<EditText>(R.id.search_input)
         searchToggle.setOnClickListener {
-            if (searchOpen) closeSearch(searchToggle, searchInput) else openSearch(searchToggle, searchInput)
+            if (searchOpen) {
+                Breadcrumb.add("HOME", "TAP_SEARCH_CLOSE")
+                closeSearch(searchToggle, searchInput)
+            } else {
+                Breadcrumb.add("HOME", "TAP_SEARCH_OPEN")
+                openSearch(searchToggle, searchInput)
+            }
         }
         searchInput.doAfterTextChanged {
             query = it?.toString().orEmpty()
+            Breadcrumb.add("HOME", "SEARCH_QUERY chars=${query.length} q='$query'")
             observe()
         }
         observeNotePresence(searchToggle, searchInput)
@@ -242,16 +264,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupDrawer() {
         findViewById<View>(R.id.menu_markdown_guide).setOnClickListener {
+            Breadcrumb.add("HOME", "TAP_MENU_MARKDOWN_GUIDE")
             closeDrawerThen { startActivity(Intent(this, MarkdownGuideActivity::class.java)) }
         }
         findViewById<TextView>(R.id.drawer_settings).setOnClickListener {
+            Breadcrumb.add("HOME", "TAP_MENU_SETTINGS")
             closeDrawerThen { startActivity(Intent(this, SettingsActivity::class.java)) }
         }
         findViewById<TextView>(R.id.drawer_diagnostics)?.setOnClickListener {
+            Breadcrumb.add("HOME", "TAP_MENU_DIAGNOSTICS")
             closeDrawerThen { startActivity(Intent(this, com.zaba.notez.diagnostics.DiagnosticsActivity::class.java)) }
         }
         drawer.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
             override fun onDrawerClosed(drawerView: View) {
+                Breadcrumb.add("HOME", "DRAWER_CLOSED")
                 val action = pendingDrawerAction ?: return
                 pendingDrawerAction = null
                 action()
@@ -271,6 +297,7 @@ class MainActivity : AppCompatActivity() {
     private fun deleteWithUndo(note: Note) {
         lifecycleScope.launch(Dispatchers.IO) {
             dao.delete(note)
+            Breadcrumb.add("IO", "DB_DELETE id=${note.id}")
             launch(Dispatchers.Main) {
                 showUndoDeleteSnackbar(note)
             }
@@ -282,6 +309,7 @@ class MainActivity : AppCompatActivity() {
         Snackbar.make(findViewById(R.id.drawer), "Catatan dihapus", Snackbar.LENGTH_LONG)
             .setAction("BATALKAN") {
                 undone = true
+                Breadcrumb.add("HOME", "TAP_UNDO_DELETE id=${note.id}")
                 lifecycleScope.launch(Dispatchers.IO) { dao.upsert(note) }
             }
             .addCallback(object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
@@ -295,6 +323,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun vacuumDeletedNotes() {
+        Breadcrumb.add("IO", "DB_VACUUM")
         try {
             AppDatabase.get(this).openHelper.writableDatabase.execSQL("VACUUM")
         } catch (_: Exception) {
@@ -387,6 +416,7 @@ class MainActivity : AppCompatActivity() {
             }
             // Tap mode yang sama tidak boleh rebuild adapter/layout.
             if (selected == displayMode) return@setOnCheckedChangeListener
+            Breadcrumb.add("HOME", "DISPLAY_MODE_CHANGE $displayMode -> $selected")
             HomeDisplayPref.set(this, selected)
             applyDisplayMode(selected, restoreScroll = true)
         }
@@ -463,6 +493,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
+        Breadcrumb.add(
+            "HOME",
+            "BACK drawer=${drawer.isDrawerVisible(GravityCompat.START)} search=$searchOpen"
+        )
         if (drawer.isDrawerVisible(GravityCompat.START)) {
             pendingDrawerAction = null
             drawer.closeDrawer(GravityCompat.START)
@@ -476,13 +510,16 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         val currentTheme = ThemePref.get(this)
+        Breadcrumb.add("HOME", "onResume theme=$currentTheme applied=$appliedTheme")
         if (currentTheme != appliedTheme) {
+            Breadcrumb.add("HOME", "RECREATE_FOR_THEME")
             recreate()
             return
         }
         observe()
         lifecycleScope.launch(Dispatchers.IO) {
             if (BackupHelper.autoBackupIfDue(this@MainActivity, dao)) {
+                Breadcrumb.add("IO", "AUTO_BACKUP_SAVED")
                 launch(Dispatchers.Main) { toast("Backup otomatis tersimpan") }
             }
         }
@@ -516,6 +553,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openEditor(id: Long, isNew: Boolean = false) {
+        Breadcrumb.add("HOME", "OPEN_EDITOR note=$id isNew=$isNew")
         startActivity(
             Intent(this, EditorActivity::class.java)
                 .putExtra("note_id", id)
