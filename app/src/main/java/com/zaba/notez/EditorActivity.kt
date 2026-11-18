@@ -178,11 +178,6 @@ class EditorActivity : AppCompatActivity() {
             )
         }
 
-        findViewById<View>(R.id.menu_file_open)?.setOnClickListener {
-            perfTracker?.mark("TAP_MENU_OPEN_FILE")
-            drawer.closeDrawer(GravityCompat.START)
-            handleOpenFile()
-        }
         findViewById<View>(R.id.menu_file_save)?.setOnClickListener {
             perfTracker?.mark("TAP_MENU_SAVE_FILE")
             drawer.closeDrawer(GravityCompat.START)

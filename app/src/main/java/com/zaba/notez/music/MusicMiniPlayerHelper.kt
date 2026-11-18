@@ -125,7 +125,16 @@ class MusicMiniPlayerHelper(
 
     private fun updateUi() {
         val c = controller
-        val hasTrack = c != null && c.mediaItemCount > 0 && c.currentMediaItem != null
+        if (c == null) {
+            if (isPlayerVisible) {
+                isPlayerVisible = false
+                root.visibility = View.GONE
+                onVisibilityChanged?.invoke(false)
+            }
+            return
+        }
+
+        val hasTrack = c.mediaItemCount > 0 && c.currentMediaItem != null
         val shouldShow = hasTrack && (c.isPlaying || c.playbackState != Player.STATE_IDLE)
 
         if (shouldShow != isPlayerVisible) {
@@ -134,7 +143,7 @@ class MusicMiniPlayerHelper(
             onVisibilityChanged?.invoke(shouldShow)
         }
 
-        if (!shouldShow || c == null) return
+        if (!shouldShow) return
 
         val item = c.currentMediaItem
         val metadata = item?.mediaMetadata
