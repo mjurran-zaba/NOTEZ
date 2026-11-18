@@ -45,6 +45,8 @@ class MusicDrawerController(
     private val previous: ImageButton = root.findViewById(R.id.music_previous)
     private val playPause: ImageButton = root.findViewById(R.id.music_play_pause)
     private val next: ImageButton = root.findViewById(R.id.music_next)
+    private val rewind10: ImageButton? = root.findViewById(R.id.music_rewind_10)
+    private val forward10: ImageButton? = root.findViewById(R.id.music_forward_10)
     private val mode: ImageButton = root.findViewById(R.id.music_mode)
     private val modeLabel: TextView = root.findViewById(R.id.music_mode_label)
     private val addMusic: TextView = root.findViewById(R.id.music_add)
@@ -78,6 +80,8 @@ class MusicDrawerController(
         playPause.setOnClickListener { togglePlayPause() }
         previous.setOnClickListener { playPrevious() }
         next.setOnClickListener { playNext() }
+        rewind10?.setOnClickListener { seekDelta(-10_000L) }
+        forward10?.setOnClickListener { seekDelta(10_000L) }
         mode.setOnClickListener { cycleMode() }
         modeLabel.setOnClickListener { cycleMode() }
         connectController()
@@ -144,6 +148,7 @@ class MusicDrawerController(
     private fun togglePlayPause() {
         val c = controller ?: return toastNotReady()
         if (snapshot.tracks.isEmpty()) return Toast.makeText(activity, "Belum ada musik lokal", Toast.LENGTH_SHORT).show()
+        MusicMiniPlayerHelper.isDismissedByUser = false
         if (c.isPlaying) {
             c.pause()
         } else {
@@ -188,6 +193,16 @@ class MusicDrawerController(
         c.play()
     }
 
+    private fun seekDelta(deltaMs: Long) {
+        val c = controller ?: return toastNotReady()
+        if (snapshot.tracks.isEmpty()) return
+        val current = c.currentPosition
+        val duration = c.duration.takeIf { it > 0 } ?: Long.MAX_VALUE
+        val target = (current + deltaMs).coerceIn(0L, duration)
+        c.seekTo(target)
+        updateUi()
+    }
+
     private fun cycleMode() {
         val currentId = currentTrackId()
         snapshot = MusicLibraryStore.savePlaybackState(activity, snapshot.playbackMode.next(), currentId)
@@ -198,6 +213,7 @@ class MusicDrawerController(
     private fun playTrack(index: Int) {
         val c = controller ?: return toastNotReady()
         if (snapshot.tracks.isEmpty()) return
+        MusicMiniPlayerHelper.isDismissedByUser = false
         val safe = wrapIndex(index)
         val track = snapshot.tracks[safe]
         snapshot = MusicLibraryStore.savePlaybackState(activity, snapshot.playbackMode, track.id)
@@ -265,7 +281,7 @@ class MusicDrawerController(
             MusicPresentation.artistLine(it.artist, it.displayName)
         }.orEmpty()
         val isPlaying = controller?.isPlaying == true
-        playPause.setImageResource(if (isPlaying) R.drawable.ic_music_pause else R.drawable.ic_music_play)
+        playPause.setImageResource(if (isPlaying) R.drawable.ic_lucide_pause else R.drawable.ic_lucide_play)
         playPause.contentDescription = if (isPlaying) "Jeda musik" else "Putar musik"
         mode.setImageResource(MusicPresentation.iconOf(snapshot.playbackMode))
         mode.contentDescription =

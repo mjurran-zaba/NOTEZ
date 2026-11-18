@@ -14,7 +14,11 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.ConsoleMessage
+import java.security.MessageDigest
+import android.webkit.RenderProcessGoneDetail
+import com.zaba.notez.diagnostics.Breadcrumb
 import com.zaba.notez.diagnostics.PerfTracker
 import android.widget.Toast
 import com.zaba.notez.R
@@ -43,37 +47,134 @@ class MarkdownPreviewRenderer(
     private val activity: Activity,
     private val webView: WebView
 ) {
-    private val markdownItJs: String by lazy {
-        activity.assets.open("markdown/markdown-it.umd.min.js").bufferedReader().use { it.readText() }
-    }
+    /**
+     * markdown-it dibaca sekali per proses lewat [MarkdownItAsset], bukan sekali
+     * per Activity. Sebelumnya `by lazy` hanya menyimpan di instance renderer,
+     * dan renderer dibuat ulang setiap Activity — jadi setiap buka catatan
+     * membaca asset 115 KB dari APK di main thread (di dalam SHELL_BUILD).
+     */
+    private val markdownItJs: String
+        get() = MarkdownItAsset.get {
+            activity.assets.open("markdown/markdown-it.umd.min.js").bufferedReader().use { it.readText() }
+        }
     private val remoteImageCache = RemoteImageCache(activity)
     private val imageExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     var perfTracker: PerfTracker? = null
+    var onPaintReal: (() -> Unit)? = null
     @Volatile private var destroyed = false
     private var currentMarkdown: String = ""
+    private var shellLoaded = false
+    private var shellTheme: PreviewColors? = null
+    private var pendingSourceJson: String? = null
+    private var pendingBaseJson: String? = null
+    private var pendingCacheJson: String? = null
+    private var lastRenderHash: String? = null
+    private var lastRenderTheme: PreviewColors? = null
+    private var lastTrackedScrollRatio: Float = 0f
 
     init {
         configureWebView()
     }
 
+    /**
+     * Rasio posisi scroll vertikal saat ini (0.0f sampai 1.0f).
+     *
+     * Dipakai untuk menyinkronkan posisi pandang antara Reading View dan Edit Mode.
+     */
+    fun currentScrollRatio(): Float {
+        val density = activity.resources.displayMetrics.density
+        val webContentHeightPx = (webView.contentHeight * density).toInt()
+        val webMaxScroll = (webContentHeightPx - webView.height).coerceAtLeast(1)
+        val ratioFromView = if (webMaxScroll > 0) {
+            (webView.scrollY.toFloat() / webMaxScroll).coerceIn(0f, 1f)
+        } else 0f
+        return if (ratioFromView > 0f) ratioFromView else lastTrackedScrollRatio
+    }
+
+    /**
+     * Gulir WebView ke rasio posisi vertikal tertentu (0.0f sampai 1.0f).
+     */
+    fun scrollToRatio(ratio: Float) {
+        val clamped = ratio.coerceIn(0f, 1f)
+        lastTrackedScrollRatio = clamped
+        if (clamped <= 0f) {
+            webView.scrollTo(0, 0)
+            webView.evaluateJavascript("window.scrollTo({top: 0, behavior: 'instant'});", null)
+            return
+        }
+        webView.post {
+            val density = activity.resources.displayMetrics.density
+            val webContentHeightPx = (webView.contentHeight * density).toInt()
+            val webMaxScroll = (webContentHeightPx - webView.height).coerceAtLeast(0)
+            if (webMaxScroll > 0) {
+                val targetY = (webMaxScroll * clamped).toInt()
+                webView.scrollTo(0, targetY)
+                val targetCssY = (targetY / density).toInt()
+                webView.evaluateJavascript("window.scrollTo({top: $targetCssY, behavior: 'instant'});", null)
+            }
+        }
+    }
+
     fun render(markdown: String, tracker: PerfTracker? = null) {
         if (tracker != null) perfTracker = tracker
+        perfTracker?.beginRenderSession()
         currentMarkdown = markdown
-        perfTracker?.mark("MARKDOWN_PARSED")
-        val html = buildHtml(markdown)
-        perfTracker?.mark("HTML_READY")
-        webView.loadDataWithBaseURL(
-            NOTEZ_BASE_URL,
-            html,
-            "text/html",
-            "UTF-8",
-            null
-        )
+        val colors = PreviewColors.from(activity)
+        val renderHash = sha256(markdown + "|" + colors.toString() + "|v1")
+        perfTracker?.mark("RENDER_REQUEST", "chars=${markdown.length} hash=${renderHash.take(10)}")
+        if (shellLoaded && lastRenderTheme == colors && lastRenderHash == renderHash) {
+            perfTracker?.mark("CACHE_HIT", "shellLoaded=true hash=${renderHash.take(10)}")
+            // Jalur ini tidak akan pernah sampai PAINT_REAL, jadi sesi harus
+            // ditutup di sini. Tanpa ini sesi menggantung dan sesi berikutnya
+            // menumpuk di atasnya.
+            perfTracker?.finishSession()
+            onPaintReal?.invoke()
+            return
+        }
+        lastRenderTheme = colors
+        lastRenderHash = renderHash
+        val markdownJson = JSONObject.quote(markdown)
+        val baseJson = JSONObject.quote(githubRawBase(markdown))
+        val cacheJson = cachedImagesJson(markdown)
+        if (!shellLoaded || shellTheme != colors) {
+            shellTheme = colors
+            shellLoaded = false
+            pendingSourceJson = markdownJson
+            pendingBaseJson = baseJson
+            pendingCacheJson = cacheJson
+            perfTracker?.mark("HTML_BUILD_DONE")
+            perfTracker?.mark("HTML_READY")
+            perfTracker?.mark("SHELL_BUILD_START")
+            val shell = buildHtml()
+            perfTracker?.mark("SHELL_BUILD_END", "chars=${shell.length}")
+            perfTracker?.mark("LOAD_DATA_CALLED", "chars=${shell.length}")
+            webView.loadDataWithBaseURL(NOTEZ_BASE_URL, shell, "text/html", "UTF-8", null)
+            // loadDataWithBaseURL() sinkron: selisih LOAD_DATA_CALLED vs RETURNED
+            // adalah biaya panggilan, sisanya (sampai PAGE_STARTED) adalah biaya
+            // startup renderer Chromium.
+            perfTracker?.mark("LOAD_DATA_RETURNED")
+        } else {
+            perfTracker?.mark("HTML_BUILD_DONE")
+            perfTracker?.mark("HTML_READY")
+            val js = "window.notezRender($markdownJson, $baseJson, $cacheJson);"
+            perfTracker?.mark("RENDER_JS_CALLED", "jsChars=${js.length} chars=${markdown.length}")
+            webView.evaluateJavascript(js, null)
+            perfTracker?.mark("RENDER_JS_CALLED_RETURNED")
+        }
+    }
+
+    private fun sha256(input: String): String {
+        val md = MessageDigest.getInstance("SHA-256")
+        return md.digest(input.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
     }
 
     fun destroy() {
+        Breadcrumb.add("WEBVIEW", "destroy: shellLoaded=$shellLoaded")
         destroyed = true
         imageExecutor.shutdownNow()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            webView.setOnScrollChangeListener(null)
+        }
         webView.stopLoading()
         webView.loadUrl("about:blank")
         webView.destroy()
@@ -84,6 +185,17 @@ class MarkdownPreviewRenderer(
         webView.setBackgroundColor(Color.TRANSPARENT)
         webView.isVerticalScrollBarEnabled = true
         webView.isHorizontalScrollBarEnabled = false
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+                val density = activity.resources.displayMetrics.density
+                val webContentHeightPx = (webView.contentHeight * density).toInt()
+                val webMaxScroll = (webContentHeightPx - webView.height).coerceAtLeast(1)
+                if (webMaxScroll > 0) {
+                    lastTrackedScrollRatio = (scrollY.toFloat() / webMaxScroll).coerceIn(0f, 1f)
+                }
+            }
+        }
 
         with(webView.settings) {
             javaScriptEnabled = true
@@ -106,10 +218,45 @@ class MarkdownPreviewRenderer(
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                if (consoleMessage.message() == "NOTEZ_FIRST_PAINT") {
-                    perfTracker?.mark("FIRST_PAINT")
-                    return true
+                val message = consoleMessage.message()
+                android.util.Log.d("NOTEZ_WEB", "${consoleMessage.messageLevel()}: $message @${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}")
+                when {
+                    message == "NOTEZ_RENDER_JS_START" -> { perfTracker?.mark("RENDER_JS_START"); return true }
+                    message == "NOTEZ_RENDER_JS_END" -> { perfTracker?.mark("RENDER_JS_END"); return true }
+                    // Rincian biaya tiap fase JS. RENDER_JS_START→END saja tidak
+                    // bisa menunjukkan apakah waktunya habis di parser markdown,
+                    // sanitizer DOM, atau highlighter kode.
+                    message.startsWith(NOTEZ_RENDER_PHASES_PREFIX) -> {
+                        perfTracker?.mark(
+                            "RENDER_PHASES",
+                            message.removePrefix(NOTEZ_RENDER_PHASES_PREFIX).trim()
+                        )
+                        return true
+                    }
+                    message == "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); perfTracker?.mark("FULL_RENDER"); return true }
+                    // Antara FIRST_PAINT dan PAINT_REAL ada dua frame. Tanpa marker
+                    // ini, ekor 470–778 ms di data perangkat tidak bisa dipisah
+                    // antara menunggu frame berikutnya dan satu frame yang mahal.
+                    message == "NOTEZ_FRAME_START" -> { perfTracker?.mark("FRAME_START"); return true }
+                    message == "NOTEZ_PAINT_REAL" -> {
+                        perfTracker?.mark("PAINT_REAL")
+                        perfTracker?.finishSession()
+                        onPaintReal?.invoke()
+                        return true
+                    }
+                    message == "NOTEZ_CACHE_HIT" -> {
+                        perfTracker?.mark("CACHE_HIT")
+                        onPaintReal?.invoke()
+                        return true
+                    }
                 }
+                // Pesan yang bukan marker tetap direkam: error/warning JS adalah
+                // penyebab paling sering render terlihat "kosong" tanpa error native.
+                perfTracker?.mark(
+                    "JS_CONSOLE",
+                    "${consoleMessage.messageLevel()}: $message " +
+                        "@${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}"
+                )
                 return super.onConsoleMessage(consoleMessage)
             }
         }
@@ -117,23 +264,81 @@ class MarkdownPreviewRenderer(
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                perfTracker?.mark("PAGE_STARTED")
                 perfTracker?.mark("HTML_SENT")
+            }
+
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                super.onReceivedError(view, request, error)
+                val forMainFrame = request?.isForMainFrame == true
+                android.util.Log.e(
+                    "NOTEZ_WEB",
+                    "ERROR code=${error?.errorCode} desc=${error?.description} main=$forMainFrame url=${request?.url}"
+                )
+                // Subresource yang memang diblokir (favicon, gambar remote) bukan
+                // kegagalan sesi. Hanya error main frame yang menandai WEBVIEW_ERROR,
+                // supaya sinyal "render gagal" tidak tenggelam oleh noise.
+                val errorDetail =
+                    "code=${error?.errorCode} desc=${error?.description} url=${request?.url}"
+                if (forMainFrame) {
+                    perfTracker?.mark("WEBVIEW_ERROR", errorDetail)
+                } else {
+                    perfTracker?.mark("WEBVIEW_SUBRESOURCE_ERROR", errorDetail)
+                }
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                if (url != "about:blank") {
-                    perfTracker?.mark("FULL_RENDER")
-                    perfTracker?.finishSession()
+                perfTracker?.mark("PAGE_FINISHED")
+                val pending = pendingSourceJson
+                if (pending != null) {
+                    val js = "window.notezRender($pending, ${pendingBaseJson}, ${pendingCacheJson});"
+                    perfTracker?.mark("SHELL_RENDER_INJECTED", "jsChars=${js.length}")
+                    view?.evaluateJavascript(js, null)
+                    pendingSourceJson = null
+                    pendingBaseJson = null
+                    pendingCacheJson = null
+                    shellLoaded = true
                 }
+            }
+
+            override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                // Renderer mati: jangan ikut crash, dan reset state shell.
+                //
+                // Ini HANYA reset state, BUKAN recreate objek WebView. View yang
+                // renderer-nya sudah mati tidak bisa dipakai lagi, jadi loadUrl()
+                // ke view itu tidak berguna (dan pernah membuat render() berikutnya
+                // lolos guard CACHE_HIT lalu tidak menggambar apa pun).
+                //
+                // Limitasi runtime: recovery penuh butuh WebView baru. Arsitektur
+                // saat ini menyuntikkan WebView lewat constructor, jadi recreate
+                // belum dilakukan di sini. Setelah reset ini, render() berikutnya
+                // akan membangun ulang shell lewat loadDataWithBaseURL; pada proses
+                // renderer yang sudah mati hasilnya tetap bergantung pada perilaku
+                // WebView platform dan belum divalidasi di perangkat.
+                perfTracker?.mark("RENDER_PROCESS_GONE")
+                shellLoaded = false
+                shellTheme = null
+                lastRenderTheme = null
+                lastRenderHash = null
+                lastTrackedScrollRatio = 0f
+                pendingSourceJson = null
+                pendingBaseJson = null
+                pendingCacheJson = null
+                return true
             }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url ?: return true
                 if (isImageLoadRequest(uri)) {
+                    perfTracker?.mark("TAP_IMAGE_LOAD", uri.toString())
                     confirmAndLoadImage(uri)
                     return true
                 }
-                if (isLocalPreviewUrl(uri)) return false
+                if (isLocalPreviewUrl(uri)) {
+                    perfTracker?.mark("NAV_LOCAL", uri.toString())
+                    return false
+                }
+                perfTracker?.mark("NAV_EXTERNAL", uri.toString())
                 return openExternalOrBlock(uri)
             }
 
@@ -152,29 +357,52 @@ class MarkdownPreviewRenderer(
         }
     }
 
-    private fun buildHtml(markdown: String): String {
+    private fun buildHtml(): String {
         val colors = PreviewColors.from(activity)
-        val markdownJson = JSONObject.quote(markdown)
-        val githubRawBaseJson = JSONObject.quote(githubRawBase(markdown))
-        val cachedImagesJson = cachedImagesJson(markdown)
-        return """
+        val cached = cachedShellHtml
+        if (cached != null && cachedShellTheme == colors) {
+            perfTracker?.mark("SHELL_HTML_ASSEMBLED", "chars=${cached.length} cached=true")
+            return cached
+        }
+        // Satu marker SHELL_BUILD_START→END menutupi tiga biaya berbeda: susun
+        // CSS, baca asset markdown-it, dan rakit 183 KB HTML. Dipecah supaya
+        // perbaikan cache asset bisa dibuktikan angkanya, bukan cuma diklaim.
+        perfTracker?.mark("SHELL_CSS_START")
+        val styleSheet = css(colors)
+        perfTracker?.mark("SHELL_CSS_DONE", "chars=${styleSheet.length}")
+        val loadsBefore = MarkdownItAsset.loadCount
+        val markdownIt = markdownItJs
+        perfTracker?.mark(
+            "SHELL_ASSET_READY",
+            "chars=${markdownIt.length} cached=${MarkdownItAsset.loadCount == loadsBefore}"
+        )
+        val html = """
             <!doctype html>
             <html>
             <head>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-              <style>${css(colors)}</style>
+              <!-- Tanpa ikon inline, Chromium meminta https://notez.local/favicon.ico
+                   sendiri, gagal dengan ERR_CACHE_MISS, lalu tampil sebagai
+                   WEBVIEW_SUBRESOURCE_ERROR yang menyesatkan di Diagnostics. -->
+              <link rel="icon" href="data:,">
+              <style>${styleSheet}</style>
             </head>
             <body>
               <main id="preview" class="markdown-body"></main>
-              <script>$markdownItJs</script>
+              <script>$markdownIt</script>
               <script>
-                (function () {
+                // Shell ini TIDAK boleh diubah lewat replace() string: pola seperti
+                // "(function () {" juga muncul di callback requestAnimationFrame,
+                // dan replace() Kotlin mengganti semua kemunculan. Itu pernah
+                // menimpa window.notezRender dengan callback paint sehingga
+                // preview kosong. Definisikan fungsinya langsung di sini.
+                window.notezRender = function (sourceJson, githubRawBaseJson, cachedImagesJson) {
                   'use strict';
 
-                  var source = $markdownJson;
-                  var githubRawBase = $githubRawBaseJson;
-                  var cachedImages = $cachedImagesJson;
+                  var source = sourceJson;
+                  var githubRawBase = githubRawBaseJson;
+                  var cachedImages = cachedImagesJson;
                   var safeExternalLink = /^(https?:|mailto:|tel:)/i;
                   var safeAnchorLink = /^#[A-Za-z0-9][A-Za-z0-9_-]*$/;
                   var safeImageLoadLink = /^notez-image:\/\/load\?src=.+/i;
@@ -772,7 +1000,8 @@ class MarkdownPreviewRenderer(
                     return true;
                   }
 
-                  function preprocessDefinitionLists(markdown) {
+                  function preprocessDefinitionLists(markdown, footnotes) {
+                    footnotes = footnotes || Object.create(null);
                     var lines = String(markdown || '').split(/\r?\n/);
                     var output = [];
                     var fence = '';
@@ -806,7 +1035,7 @@ class MarkdownPreviewRenderer(
                           output.push('<dt>' + escapeHtml(term) + '</dt>');
                         });
                         definitions.forEach(function (definition) {
-                          output.push('<dd>' + escapeHtml(definition) + '</dd>');
+                          output.push('<dd>' + md.renderInline(definition, { footnotes: footnotes, footnoteOrder: [], footnoteNumbers: Object.create(null), footnoteRefCounts: Object.create(null) }) + '</dd>');
                         });
                         output.push('</dl>');
                         output.push('');
@@ -918,25 +1147,64 @@ class MarkdownPreviewRenderer(
                   };
 
                   var preview = document.getElementById('preview');
-                  var footnoteExtraction = extractFootnotes(source);
-                  var preparedSource = preprocessDefinitionLists(footnoteExtraction.markdown);
+
+                  // Setiap fase diukur sendiri. Total RENDER_JS_START→END tidak
+                  // menunjukkan fase mana yang mahal, jadi angka per fase dikirim
+                  // sebagai satu console message dan tampil di Diagnostics.
+                  var notezPhases = [];
+                  var notezPhase = function (name, action) {
+                    var started = performance.now();
+                    var result = action();
+                    notezPhases.push(name + '=' + Math.round(performance.now() - started));
+                    return result;
+                  };
+
+                  var footnoteExtraction = notezPhase('extractFootnotes', function () {
+                    return extractFootnotes(source);
+                  });
+                  var preparedSource = notezPhase('prepareDefinitionLists', function () {
+                    return preprocessDefinitionLists(footnoteExtraction.markdown, footnoteExtraction.definitions);
+                  });
                   var renderEnv = {
                     footnotes: footnoteExtraction.definitions,
                     footnoteOrder: [],
                     footnoteNumbers: Object.create(null),
                     footnoteRefCounts: Object.create(null)
                   };
-                  setSafePreviewHtml(md.render(preparedSource, renderEnv));
-                  addHeadingAnchors();
-                  wrapTables();
-                  enhanceTaskLists();
-                  enhanceCodeBlocks();
-                  enhanceCallouts();
-                  enhanceFootnoteRefs();
-                  appendFootnotes(renderEnv);
-                  hardenLinks();
-                  addImagePlaceholderHandlers();
+                  console.log("NOTEZ_RENDER_JS_START");
+                  var renderedHtml = notezPhase('md.render', function () {
+                    return md.render(preparedSource, renderEnv);
+                  });
+                  notezPhase('sanitize+insert', function () { setSafePreviewHtml(renderedHtml); });
+                  notezPhase('headingAnchors', function () { addHeadingAnchors(); });
+                  notezPhase('tables', function () { wrapTables(); });
+                  notezPhase('taskLists', function () { enhanceTaskLists(); });
+                  notezPhase('codeHighlight', function () { enhanceCodeBlocks(); });
+                  notezPhase('callouts', function () { enhanceCallouts(); });
+                  notezPhase('footnotes', function () {
+                    enhanceFootnoteRefs();
+                    appendFootnotes(renderEnv);
+                  });
+                  notezPhase('links', function () { hardenLinks(); });
+                  notezPhase('imageHandlers', function () { addImagePlaceholderHandlers(); });
+                  console.log("NOTEZ_RENDER_JS_END");
+                  // nodes = jumlah elemen DOM; biaya layout/paint sesudah ini
+                  // sebanding dengan angka ini, jadi dicatat sekali per render.
+                  console.log(
+                    "NOTEZ_RENDER_PHASES " + notezPhases.join(' ') +
+                    ' nodes=' + document.getElementsByTagName('*').length
+                  );
                   console.log("NOTEZ_FIRST_PAINT");
+                  // FIRST_PAINT = akhir task JS, belum tentu sudah dilukis. Dua
+                  // requestAnimationFrame berurutan menunggu frame yang benar-benar
+                  // sudah di-commit, jadi PAINT_REAL adalah paint nyata (bukan tebakan).
+                  // FRAME_START memisahkan "menunggu frame" dari "frame itu mahal".
+                  requestAnimationFrame(function () {
+                    console.log("NOTEZ_FRAME_START");
+                    requestAnimationFrame(function () {
+                      console.log("NOTEZ_PAINT_REAL");
+                    });
+                  });
 
                   function slugifyHeading(text) {
                     var slug = String(text || '').toLowerCase()
@@ -1269,11 +1537,15 @@ class MarkdownPreviewRenderer(
                       });
                     });
                   }
-                })();
+                };
               </script>
             </body>
             </html>
-        """.trimIndent()
+        """
+        perfTracker?.mark("SHELL_HTML_ASSEMBLED", "chars=${html.length} cached=false")
+        cachedShellTheme = colors
+        cachedShellHtml = html
+        return html
     }
 
     private fun css(colors: PreviewColors): String = """
@@ -1626,7 +1898,7 @@ class MarkdownPreviewRenderer(
           border-top: 1px solid var(--notez-border);
           margin: 1.35em 0;
         }
-    """.trimIndent()
+    """
 
 
     private fun cachedImagesJson(markdown: String): String {
@@ -1694,9 +1966,14 @@ class MarkdownPreviewRenderer(
 
     private fun downloadImage(source: String) {
         Toast.makeText(activity, "Mengambil gambar…", Toast.LENGTH_SHORT).show()
+        perfTracker?.mark("IMAGE_DOWNLOAD_START", source)
         imageExecutor.execute {
             val result = remoteImageCache.download(source)
             activity.runOnUiThread {
+                perfTracker?.mark(
+                    if (result.success) "IMAGE_DOWNLOAD_DONE" else "IMAGE_DOWNLOAD_FAIL",
+                    "$source · ${result.message}"
+                )
                 if (destroyed || activity.isFinishing) return@runOnUiThread
                 Toast.makeText(activity, result.message, Toast.LENGTH_SHORT).show()
                 if (result.success) render(currentMarkdown)
@@ -1746,7 +2023,18 @@ class MarkdownPreviewRenderer(
         }
     }
 
-    private companion object {
+    internal companion object {
+        @Volatile private var cachedShellTheme: PreviewColors? = null
+        @Volatile private var cachedShellHtml: String? = null
+
+        /** Hanya untuk testing: reset cache shell HTML. */
+        internal fun resetShellCacheForTest() {
+            cachedShellTheme = null
+            cachedShellHtml = null
+        }
+
+        /** Awalan console message berisi rincian fase JS. */
+        private const val NOTEZ_RENDER_PHASES_PREFIX = "NOTEZ_RENDER_PHASES "
         private const val NOTEZ_HOST = "notez.local"
         private const val NOTEZ_BASE_URL = "https://notez.local/"
         private const val IMAGE_LOAD_SCHEME = "notez-image"
