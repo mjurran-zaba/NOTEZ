@@ -265,7 +265,7 @@ class MusicDrawerController(
             MusicPresentation.artistLine(it.artist, it.displayName)
         }.orEmpty()
         val isPlaying = controller?.isPlaying == true
-        playPause.setImageResource(if (isPlaying) R.drawable.ic_music_pause else R.drawable.ic_music_play)
+        playPause.setImageResource(if (isPlaying) R.drawable.ic_lucide_pause else R.drawable.ic_lucide_play)
         playPause.contentDescription = if (isPlaying) "Jeda musik" else "Putar musik"
         mode.setImageResource(MusicPresentation.iconOf(snapshot.playbackMode))
         mode.contentDescription =

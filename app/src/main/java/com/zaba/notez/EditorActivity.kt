@@ -74,6 +74,7 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var bodyEmptyView: TextView
     private lateinit var counter: TextView
     private lateinit var editToggle: ImageButton
+    private var musicMiniPlayer: com.zaba.notez.music.MusicMiniPlayerHelper? = null
 
     private var noteId: Long = -1
     private var loaded = false
@@ -147,6 +148,35 @@ class EditorActivity : AppCompatActivity() {
             root = drawer,
             onAddMusicRequested = { openMusic.launch(arrayOf("audio/*")) }
         )
+
+        findViewById<View>(R.id.btn_back)?.setOnClickListener {
+            onBackPressed()
+        }
+        val btnEditorDrawer = findViewById<ImageButton>(R.id.btn_editor_drawer)
+        btnEditorDrawer?.setOnClickListener {
+            if (drawer.isDrawerVisible(GravityCompat.START)) {
+                drawer.closeDrawer(GravityCompat.START)
+            } else {
+                drawer.openDrawer(GravityCompat.START)
+            }
+        }
+        drawer.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                btnEditorDrawer?.rotation = slideOffset * 180f
+            }
+            override fun onDrawerClosed(drawerView: View) {
+                btnEditorDrawer?.rotation = 0f
+            }
+        })
+
+        val miniPlayerView = findViewById<View>(R.id.editor_mini_player)
+        if (miniPlayerView != null) {
+            musicMiniPlayer = com.zaba.notez.music.MusicMiniPlayerHelper(
+                activity = this,
+                root = miniPlayerView,
+                onOpenDrawer = { drawer.openDrawer(GravityCompat.START) }
+            )
+        }
 
         findViewById<View>(R.id.menu_file_open)?.setOnClickListener {
             perfTracker?.mark("TAP_MENU_OPEN_FILE")
@@ -391,11 +421,13 @@ class EditorActivity : AppCompatActivity() {
         bodyWebView.visibility = if (!editing && hasContent) View.VISIBLE else View.GONE
         bodyEmptyView.visibility = if (!editing && !hasContent) View.VISIBLE else View.GONE
         counter.visibility = if (editing) View.VISIBLE else View.GONE
-        editToggle.setImageResource(if (editing) R.drawable.ic_done_check else R.drawable.ic_edit_pencil)
+        editToggle.setImageResource(if (editing) R.drawable.ic_lucide_check else R.drawable.ic_lucide_pencil)
         editToggle.contentDescription =
             getString(if (editing) R.string.cd_done_editing else R.string.cd_edit_note)
 
+        val miniPlayer = findViewById<View>(R.id.editor_mini_player)
         if (editing) {
+            miniPlayer?.visibility = View.GONE
             // Rotasi bisa memulihkan isEditing=true sementara bodyEdit masih kosong
             // (setText body sengaja ditunda sampai mode edit). Tanpa isi ulang di
             // sini, onPause berikutnya menyimpan string kosong dan catatan hilang.
@@ -404,6 +436,7 @@ class EditorActivity : AppCompatActivity() {
         }
 
         if (!editing) {
+            musicMiniPlayer?.refresh()
             titleEdit.clearFocus()
             bodyEdit.clearFocus()
             hideKeyboard()
@@ -715,6 +748,8 @@ class EditorActivity : AppCompatActivity() {
         // ditinggal sebelum PAINT_REAL tidak pernah muncul di Diagnostics.
         perfTracker?.finishSession()
         Breadcrumb.add("EDITOR", "onDestroy note=$noteId")
+        musicMiniPlayer?.destroy()
+        musicMiniPlayer = null
         if (::musicDrawer.isInitialized) musicDrawer.destroy()
         if (::markdownPreview.isInitialized) markdownPreview.destroy()
         super.onDestroy()

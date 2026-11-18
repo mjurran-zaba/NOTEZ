@@ -3,7 +3,6 @@ package com.zaba.notez
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
@@ -13,12 +12,11 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Adapter daftar catatan Home.
+ * Adapter daftar catatan Home untuk mode List dan Grid.
  *
- * Satu dataset dan satu adapter untuk dua presentasi (List/Grid): yang berubah
- * hanya view type dan layout, bukan urutan, note ID, source body, atau
- * timestamp. `submit()` tetap `notifyDataSetChanged()` seperti baseline;
- * menggantinya ke DiffUtil bukan bagian batch ini.
+ * Menggunakan kartu berestetika lempengan kaca gelap (slate glass) dengan
+ * stroke outline yang tenang, tipografi berjenjang, dan bebas dari tombol
+ * sampah inline demi kenyamanan sentuhan jempol pengguna.
  */
 class NoteAdapter(
     private val onOpen: (Note) -> Unit,
@@ -63,14 +61,26 @@ class NoteAdapter(
         val n = items[position]
         val context = h.itemView.context
         h.card.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(context), 224))
-        h.card.setStrokeColor(ColorUtils.setAlphaComponent(UiStyle.primary(context), 64))
-        h.card.setRadius(UiStyle.dp(context, 18f).toFloat())
-        h.card.setCardElevation(UiStyle.dp(context, 2f).toFloat())
+        h.card.setStrokeColor(ColorUtils.setAlphaComponent(UiStyle.outline(context), 45))
+        h.card.setRadius(UiStyle.dp(context, 16f).toFloat())
+        h.card.setCardElevation(UiStyle.dp(context, 1.5f).toFloat())
+
         h.title.text = n.title.ifBlank { "(tanpa judul)" }
-        h.preview.text = n.content.lines().take(2).joinToString(" ").take(120)
+
+        val previewText = n.content.lines().filter { it.isNotBlank() }.take(2).joinToString(" ").take(120)
+        if (previewText.isBlank()) {
+            h.preview.visibility = View.GONE
+        } else {
+            h.preview.visibility = View.VISIBLE
+            h.preview.text = previewText
+        }
+
         h.meta.text = "${fmt.format(Date(n.updatedAt))} • ${n.content.length} karakter"
         h.itemView.setOnClickListener { onOpen(n) }
-        h.delete.setOnClickListener { onDelete(n) }
+        h.itemView.setOnLongClickListener {
+            onDelete(n)
+            true
+        }
     }
 
     override fun getItemCount() = items.size
@@ -80,7 +90,6 @@ class NoteAdapter(
         val title: TextView = v.findViewById(R.id.item_title)
         val preview: TextView = v.findViewById(R.id.item_preview)
         val meta: TextView = v.findViewById(R.id.item_meta)
-        val delete: ImageButton = v.findViewById(R.id.item_delete)
     }
 
     private companion object {

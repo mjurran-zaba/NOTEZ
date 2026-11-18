@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -94,20 +95,20 @@ class SettingsActivity : AppCompatActivity() {
         applyScreenPolish()
 
         findViewById<ImageButton>(R.id.settings_back).setOnClickListener { finish() }
-        findViewById<android.view.View>(R.id.settings_row_theme).setOnClickListener { showThemeDialog() }
-        findViewById<TextView>(R.id.settings_row_export_json).setOnClickListener { exportJson() }
-        findViewById<TextView>(R.id.settings_row_import_json).setOnClickListener {
+        findViewById<View>(R.id.settings_row_theme).setOnClickListener { showThemeDialog() }
+        findViewById<View>(R.id.settings_row_export_json).setOnClickListener { exportJson() }
+        findViewById<View>(R.id.settings_row_import_json).setOnClickListener {
             openDoc.launch(arrayOf("application/json"))
         }
-        findViewById<TextView>(R.id.settings_row_export_txt).setOnClickListener { exportTxt() }
-        findViewById<TextView>(R.id.settings_row_auto_backup_folder).setOnClickListener {
+        findViewById<View>(R.id.settings_row_export_txt).setOnClickListener { exportTxt() }
+        findViewById<View>(R.id.settings_row_auto_backup_folder).setOnClickListener {
             openTree.launch(null)
         }
-        findViewById<TextView>(R.id.settings_row_about_notez).setOnClickListener {
+        findViewById<View>(R.id.settings_row_about_notez).setOnClickListener {
             startActivity(Intent(this, AboutNotezActivity::class.java))
         }
-        findViewById<TextView>(R.id.settings_row_privacy).setOnClickListener { showPrivacyDialog() }
-        findViewById<TextView>(R.id.settings_row_clear_remote_image_cache).setOnClickListener { confirmClearRemoteImageCache() }
+        findViewById<View>(R.id.settings_row_privacy).setOnClickListener { showPrivacyDialog() }
+        findViewById<View>(R.id.settings_row_clear_remote_image_cache).setOnClickListener { confirmClearRemoteImageCache() }
 
         setupExpandableSections()
         updateSummaries()
@@ -160,15 +161,15 @@ class SettingsActivity : AppCompatActivity() {
     private fun setupExpandableSections() {
         val headerApp = findViewById<View>(R.id.section_header_appearance)
         val contentApp = findViewById<View>(R.id.section_content_appearance)
-        val indicatorApp = findViewById<TextView>(R.id.section_indicator_appearance)
+        val indicatorApp = findViewById<ImageView>(R.id.section_indicator_appearance)
 
         val headerData = findViewById<View>(R.id.section_header_data)
         val contentData = findViewById<View>(R.id.section_content_data)
-        val indicatorData = findViewById<TextView>(R.id.section_indicator_data)
+        val indicatorData = findViewById<ImageView>(R.id.section_indicator_data)
 
         val headerMain = findViewById<View>(R.id.section_header_app)
         val contentMain = findViewById<View>(R.id.section_content_app)
-        val indicatorMain = findViewById<TextView>(R.id.section_indicator_app)
+        val indicatorMain = findViewById<ImageView>(R.id.section_indicator_app)
 
         headerApp.setOnClickListener {
             toggleSection(contentApp, indicatorApp)
@@ -181,10 +182,13 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun toggleSection(contentView: View, indicatorView: TextView) {
-        val isVisible = contentView.visibility == View.VISIBLE
-        contentView.visibility = if (isVisible) View.GONE else View.VISIBLE
-        indicatorView.text = if (isVisible) "▼" else "▲"
+    private fun toggleSection(contentView: View, indicatorView: ImageView) {
+        val willShow = contentView.visibility != View.VISIBLE
+        contentView.visibility = if (willShow) View.VISIBLE else View.GONE
+        indicatorView.animate()
+            .rotation(if (willShow) 180f else 0f)
+            .setDuration(200L)
+            .start()
     }
 
     private fun updateSummaries() {
@@ -269,13 +273,13 @@ class SettingsActivity : AppCompatActivity() {
                 }
             )
             addView(
-                TextView(this@SettingsActivity).apply {
-                    text = if (option.value == current) "✓" else ""
-                    setTextColor(getColor(option.accentColorRes))
-                    textSize = 20f
-                    typeface = Typeface.DEFAULT_BOLD
-                    gravity = Gravity.CENTER
-                    layoutParams = LinearLayout.LayoutParams(dp(28), ViewGroup.LayoutParams.WRAP_CONTENT)
+                ImageView(this@SettingsActivity).apply {
+                    setImageResource(R.drawable.ic_lucide_check)
+                    setColorFilter(getColor(option.accentColorRes))
+                    visibility = if (option.value == current) View.VISIBLE else View.INVISIBLE
+                    layoutParams = LinearLayout.LayoutParams(dp(22), dp(22)).apply {
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
                 }
             )
         }
