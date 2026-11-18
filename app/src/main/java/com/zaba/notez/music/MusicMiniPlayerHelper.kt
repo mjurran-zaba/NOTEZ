@@ -31,6 +31,10 @@ class MusicMiniPlayerHelper(
     private val onOpenDrawer: (() -> Unit)? = null,
     private val onVisibilityChanged: ((Boolean) -> Unit)? = null
 ) {
+    companion object {
+        var isDismissedByUser: Boolean = false
+    }
+
     private val handler = Handler(Looper.getMainLooper())
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
@@ -50,9 +54,6 @@ class MusicMiniPlayerHelper(
     private val infoContainer: View? = root.findViewById(R.id.mini_player_info)
 
     private var isPlayerVisible = false
-    private var isDismissedByUser = false
-    private var startTouchX = 0f
-    private var startTouchY = 0f
 
     private val progressTick = object : Runnable {
         override fun run() {
@@ -75,7 +76,6 @@ class MusicMiniPlayerHelper(
         playPause?.setOnClickListener { togglePlayPause() }
         prev?.setOnClickListener { playPrevious() }
         next?.setOnClickListener { playNext() }
-        infoContainer?.setOnClickListener { onOpenDrawer?.invoke() }
 
         setupSwipeGesture()
         connectController()
@@ -245,33 +245,80 @@ class MusicMiniPlayerHelper(
 
     private fun setupSwipeGesture() {
         val targetCard = card ?: return
-        val threshold = UiStyle.dp(activity, 36f)
-        targetCard.setOnTouchListener { _, event ->
+        val density = activity.resources.displayMetrics.density
+        val thresholdY = 28f * density
+        val thresholdX = 36f * density
+        val touchSlop = 8f * density
+
+        var startRawX = 0f
+        var startRawY = 0f
+        var isDragging = false
+
+        val swipeTouchListener = View.OnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    startTouchX = event.x
-                    startTouchY = event.y
-                    false
+                    startRawX = event.rawX
+                    startRawY = event.rawY
+                    isDragging = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - startRawX
+                    val dy = event.rawY - startRawY
+                    if (!isDragging && (abs(dy) > touchSlop || abs(dx) > touchSlop)) {
+                        isDragging = true
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                    if (isDragging) {
+                        if (dy > 0 && dy > abs(dx) * 0.8f) {
+                            targetCard.translationY = dy * 0.7f
+                        } else if (abs(dx) > abs(dy) * 0.8f) {
+                            targetCard.translationX = dx * 0.4f
+                        }
+                    }
+                    true
                 }
                 MotionEvent.ACTION_UP -> {
-                    val dx = event.x - startTouchX
-                    val dy = event.y - startTouchY
-                    if (dy > threshold && dy > abs(dx) * 1.2f) {
-                        dismissPlayer()
-                        true
-                    } else if (abs(dx) > threshold && abs(dx) > abs(dy) * 1.5f) {
-                        if (dx < 0) {
-                            playNext()
+                    val dx = event.rawX - startRawX
+                    val dy = event.rawY - startRawY
+                    if (isDragging) {
+                        if (dy > thresholdY && dy > abs(dx) * 1.1f) {
+                            dismissPlayer()
+                        } else if (abs(dx) > thresholdX && abs(dx) > abs(dy) * 1.1f) {
+                            targetCard.animate().translationX(0f).setDuration(150L).start()
+                            if (dx < 0) {
+                                playNext()
+                            } else {
+                                playPrevious()
+                            }
                         } else {
-                            playPrevious()
+                            targetCard.animate()
+                                .translationY(0f)
+                                .translationX(0f)
+                                .setDuration(180L)
+                                .start()
                         }
-                        true
                     } else {
-                        false
+                        targetCard.translationY = 0f
+                        targetCard.translationX = 0f
+                        v.performClick()
+                        onOpenDrawer?.invoke()
                     }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    targetCard.animate()
+                        .translationY(0f)
+                        .translationX(0f)
+                        .setDuration(180L)
+                        .start()
+                    true
                 }
                 else -> false
             }
         }
+
+        infoContainer?.setOnTouchListener(swipeTouchListener)
+        targetCard.setOnTouchListener(swipeTouchListener)
     }
 }

@@ -144,6 +144,7 @@ class MusicDrawerController(
     private fun togglePlayPause() {
         val c = controller ?: return toastNotReady()
         if (snapshot.tracks.isEmpty()) return Toast.makeText(activity, "Belum ada musik lokal", Toast.LENGTH_SHORT).show()
+        MusicMiniPlayerHelper.isDismissedByUser = false
         if (c.isPlaying) {
             c.pause()
         } else {
@@ -198,6 +199,7 @@ class MusicDrawerController(
     private fun playTrack(index: Int) {
         val c = controller ?: return toastNotReady()
         if (snapshot.tracks.isEmpty()) return
+        MusicMiniPlayerHelper.isDismissedByUser = false
         val safe = wrapIndex(index)
         val track = snapshot.tracks[safe]
         snapshot = MusicLibraryStore.savePlaybackState(activity, snapshot.playbackMode, track.id)

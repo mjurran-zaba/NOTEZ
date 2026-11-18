@@ -622,6 +622,7 @@ class MainActivity : AppCompatActivity() {
                 .putExtra("is_new", isNew)
                 .putExtra("open_started_at", android.os.SystemClock.uptimeMillis())
         )
+        overridePendingTransition(R.anim.fade_in_fast, R.anim.fade_out_fast)
     }
 
     override fun onBackPressed() {

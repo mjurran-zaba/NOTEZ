@@ -430,9 +430,7 @@ class EditorActivity : AppCompatActivity() {
         editToggle.contentDescription =
             getString(if (editing) R.string.cd_done_editing else R.string.cd_edit_note)
 
-        val miniPlayer = findViewById<View>(R.id.editor_mini_player)
         if (editing) {
-            miniPlayer?.visibility = View.GONE
             // Rotasi bisa memulihkan isEditing=true sementara bodyEdit masih kosong
             // (setText body sengaja ditunda sampai mode edit). Tanpa isi ulang di
             // sini, onPause berikutnya menyimpan string kosong dan catatan hilang.
@@ -743,6 +741,11 @@ class EditorActivity : AppCompatActivity() {
         }
         outState.putFloat(KEY_SCROLL_RATIO, currentRatio)
         Breadcrumb.add("EDITOR", "onSaveInstanceState note=$noteId editing=$isEditing ratio=$currentRatio")
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.fade_in_fast, R.anim.fade_out_fast)
     }
 
     override fun onDestroy() {
