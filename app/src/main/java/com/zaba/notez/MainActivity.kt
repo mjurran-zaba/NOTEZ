@@ -419,10 +419,6 @@ class MainActivity : AppCompatActivity() {
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(searchInput.windowToken, 0)
     }
-        searchToggle.contentDescription = getString(R.string.cd_open_search)
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(searchInput.windowToken, 0)
-    }
 
     private fun observeNotePresence() {
         notePresenceJob?.cancel()
