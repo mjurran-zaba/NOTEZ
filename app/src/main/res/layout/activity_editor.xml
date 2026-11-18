@@ -78,6 +78,9 @@
                 android:textColorHint="?attr/colorOnSurfaceVariant"
                 android:gravity="top|start"
                 android:inputType="textMultiLine|textNoSuggestions"
+                android:breakStrategy="simple"
+                android:hyphenationFrequency="none"
+                android:importantForAutofill="no"
                 android:scrollbars="vertical"
                 android:overScrollMode="ifContentScrolls"
                 android:background="@null" />

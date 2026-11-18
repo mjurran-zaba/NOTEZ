@@ -3,10 +3,12 @@ package com.zaba.notez
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.os.Handler
 import android.os.Looper
+import android.text.Layout
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
@@ -170,6 +172,13 @@ class EditorActivity : AppCompatActivity() {
         titleEdit = findViewById(R.id.edit_title)
         titleView = findViewById(R.id.view_title)
         bodyEdit = findViewById(R.id.edit_body)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            bodyEdit.breakStrategy = Layout.BREAK_STRATEGY_SIMPLE
+            bodyEdit.hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            bodyEdit.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+        }
         bodyWebView = findViewById(R.id.view_body_web)
         bodyEmptyView = findViewById(R.id.view_body_empty)
         counter = findViewById(R.id.counter)
@@ -286,13 +295,19 @@ class EditorActivity : AppCompatActivity() {
             perfTracker?.mark("EDIT_TEXT_SKIP", "chars=${currentContent.length}")
             return
         }
-        // START→END memisahkan biaya setText itu sendiri dari biaya langkah
-        // sebelumnya (judul, perbandingan isi) di dalam sesi edit.
-        perfTracker?.mark("EDIT_SETTEXT_START", "chars=${currentContent.length}")
-        bodyEdit.setText(currentContent)
-        bodyTextSynced = currentContent
-        perfTracker?.mark("EDIT_SETTEXT_END", "chars=${currentContent.length}")
-        perfTracker?.mark("EDIT_TEXT_SET", "chars=${currentContent.length}")
+        val prevSuppress = suppressAutosave
+        suppressAutosave = true
+        try {
+            // START→END memisahkan biaya setText itu sendiri dari biaya langkah
+            // sebelumnya (judul, perbandingan isi) di dalam sesi edit.
+            perfTracker?.mark("EDIT_SETTEXT_START", "chars=${currentContent.length}")
+            bodyEdit.setText(currentContent)
+            bodyTextSynced = currentContent
+            perfTracker?.mark("EDIT_SETTEXT_END", "chars=${currentContent.length}")
+            perfTracker?.mark("EDIT_TEXT_SET", "chars=${currentContent.length}")
+        } finally {
+            suppressAutosave = prevSuppress
+        }
     }
 
     /** Tampilkan set view yang sesuai mode, dan render Markdown saat masuk mode view. */
