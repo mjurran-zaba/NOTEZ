@@ -82,6 +82,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSpeedOpenFile: MaterialCardView
     private lateinit var btnDrawer: ImageButton
     private lateinit var searchToggle: ImageButton
+    private lateinit var searchPill: MaterialCardView
     private lateinit var searchInput: EditText
     private lateinit var homeHeaderInfo: View
     private lateinit var homeSubtitle: TextView
@@ -143,9 +144,12 @@ class MainActivity : AppCompatActivity() {
     private fun initViews() {
         btnDrawer = findViewById(R.id.btn_drawer)
         searchToggle = findViewById(R.id.search_toggle)
+        searchPill = findViewById(R.id.search_pill)
         searchInput = findViewById(R.id.search_input)
         homeHeaderInfo = findViewById(R.id.home_header_info)
         homeSubtitle = findViewById(R.id.home_subtitle)
+
+        UiStyle.applyGlassCard(searchPill, alpha = 200, radiusDp = 20f)
 
         fab = findViewById(R.id.fab)
         fabScrim = findViewById(R.id.fab_scrim)
@@ -385,14 +389,15 @@ class MainActivity : AppCompatActivity() {
         findViewById<ImageView>(R.id.splash_glow)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
         findViewById<ImageView>(R.id.empty_notez_accent)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
         findViewById<ImageView>(R.id.empty_notez_glow)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
+        findViewById<ImageView>(R.id.drawer_footer_horse)?.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
     }
 
     private fun openSearch() {
         searchOpen = true
         homeHeaderInfo.visibility = View.GONE
-        searchInput.visibility = View.VISIBLE
-        searchInput.alpha = 0f
-        searchInput.animate().alpha(1f).setDuration(SEARCH_SLIDE_MS).start()
+        searchPill.visibility = View.VISIBLE
+        searchPill.alpha = 0f
+        searchPill.animate().alpha(1f).setDuration(SEARCH_SLIDE_MS).start()
 
         searchToggle.setImageResource(R.drawable.ic_lucide_x)
         searchToggle.contentDescription = getString(R.string.cd_close_search)
@@ -404,12 +409,16 @@ class MainActivity : AppCompatActivity() {
     private fun closeSearch() {
         searchOpen = false
         searchInput.setText("")
-        searchInput.visibility = View.GONE
+        searchPill.visibility = View.GONE
         homeHeaderInfo.visibility = View.VISIBLE
         homeHeaderInfo.alpha = 0f
         homeHeaderInfo.animate().alpha(1f).setDuration(SEARCH_SLIDE_MS).start()
 
         searchToggle.setImageResource(R.drawable.ic_lucide_search)
+        searchToggle.contentDescription = getString(R.string.cd_open_search)
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(searchInput.windowToken, 0)
+    }
         searchToggle.contentDescription = getString(R.string.cd_open_search)
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(searchInput.windowToken, 0)
@@ -544,6 +553,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDrawer() {
+        val versionName = runCatching { getString(R.string.notez_version_name) }.getOrDefault("0.1.7")
+        findViewById<TextView>(R.id.drawer_footer_version)?.text = "NOTEZ v$versionName"
+
         findViewById<View>(R.id.menu_markdown_guide)?.setOnClickListener {
             Breadcrumb.add("HOME", "TAP_MENU_MARKDOWN_GUIDE")
             closeDrawerThen { startActivity(Intent(this, MarkdownGuideActivity::class.java)) }

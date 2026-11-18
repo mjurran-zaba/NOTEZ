@@ -154,11 +154,17 @@ class EditorActivity : AppCompatActivity() {
         }
         val btnEditorDrawer = findViewById<ImageButton>(R.id.btn_editor_drawer)
         btnEditorDrawer?.setOnClickListener {
+            it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
             if (drawer.isDrawerVisible(GravityCompat.START)) {
                 drawer.closeDrawer(GravityCompat.START)
             } else {
                 drawer.openDrawer(GravityCompat.START)
             }
+        }
+        findViewById<View>(R.id.menu_home)?.setOnClickListener {
+            com.zaba.notez.diagnostics.Breadcrumb.add("EDITOR", "TAP_MENU_HOME")
+            drawer.closeDrawer(GravityCompat.START)
+            finish()
         }
         drawer.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {

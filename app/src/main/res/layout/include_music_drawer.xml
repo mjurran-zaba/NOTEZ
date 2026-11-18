@@ -134,6 +134,8 @@
                 android:layout_height="36dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Music mode"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
                 android:src="@drawable/ic_lucide_repeat"
                 app:tint="?attr/colorOnSurface" />
 

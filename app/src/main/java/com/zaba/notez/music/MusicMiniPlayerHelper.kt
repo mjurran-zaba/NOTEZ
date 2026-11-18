@@ -50,6 +50,7 @@ class MusicMiniPlayerHelper(
     private val infoContainer: View? = root.findViewById(R.id.mini_player_info)
 
     private var isPlayerVisible = false
+    private var isDismissedByUser = false
     private var startTouchX = 0f
     private var startTouchY = 0f
 
@@ -82,6 +83,29 @@ class MusicMiniPlayerHelper(
 
     fun refresh() {
         updateUi()
+    }
+
+    fun showPlayer() {
+        isDismissedByUser = false
+        updateUi()
+    }
+
+    fun dismissPlayer() {
+        if (isDismissedByUser) return
+        isDismissedByUser = true
+        isPlayerVisible = false
+        val targetCard = card ?: root
+        targetCard.animate()
+            .translationY(targetCard.height.toFloat().coerceAtLeast(UiStyle.dp(activity, 80f).toFloat()))
+            .alpha(0f)
+            .setDuration(220L)
+            .withEndAction {
+                root.visibility = View.GONE
+                targetCard.translationY = 0f
+                targetCard.alpha = 1f
+                onVisibilityChanged?.invoke(false)
+            }
+            .start()
     }
 
     fun destroy() {
@@ -132,7 +156,7 @@ class MusicMiniPlayerHelper(
 
     private fun updateUi() {
         val c = controller
-        if (c == null) {
+        if (c == null || isDismissedByUser) {
             if (isPlayerVisible) {
                 isPlayerVisible = false
                 root.visibility = View.GONE
@@ -221,7 +245,7 @@ class MusicMiniPlayerHelper(
 
     private fun setupSwipeGesture() {
         val targetCard = card ?: return
-        val threshold = UiStyle.dp(activity, 42f)
+        val threshold = UiStyle.dp(activity, 36f)
         targetCard.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -232,7 +256,10 @@ class MusicMiniPlayerHelper(
                 MotionEvent.ACTION_UP -> {
                     val dx = event.x - startTouchX
                     val dy = event.y - startTouchY
-                    if (abs(dx) > threshold && abs(dx) > abs(dy) * 1.5f) {
+                    if (dy > threshold && dy > abs(dx) * 1.2f) {
+                        dismissPlayer()
+                        true
+                    } else if (abs(dx) > threshold && abs(dx) > abs(dy) * 1.5f) {
                         if (dx < 0) {
                             playNext()
                         } else {

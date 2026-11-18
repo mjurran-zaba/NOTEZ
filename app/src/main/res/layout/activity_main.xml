@@ -70,28 +70,59 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/search_pill"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="10dp">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:contentDescription="@null"
+                            app:srcCompat="@drawable/ic_lucide_search"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <EditText
+                            android:id="@+id/search_input"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:background="@null"
+                            android:hint="Cari catatan..."
+                            android:imeOptions="actionSearch"
+                            android:inputType="text|textNoSuggestions"
+                            android:maxLines="1"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textColorHint="?attr/colorOnSurfaceVariant"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <LinearLayout
                     android:id="@+id/home_toolbar"
                     android:layout_width="wrap_content"
                     android:layout_height="44dp"
-                    android:gravity="end"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:visibility="gone">
-
-                    <EditText
-                        android:id="@+id/search_input"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:background="@null"
-                        android:hint="Cari catatan..."
-                        android:imeOptions="actionSearch"
-                        android:inputType="text|textNoSuggestions"
-                        android:maxLines="1"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="8dp"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textColorHint="?attr/colorOnSurfaceVariant"
-                        android:visibility="gone" />
 
                     <ImageButton
                         android:id="@+id/search_toggle"
@@ -103,7 +134,6 @@
                         android:padding="10dp"
                         android:scaleType="fitCenter"
                         app:srcCompat="@drawable/ic_lucide_search"
-                        android:visibility="gone"
                         app:tint="?attr/colorOnSurface" />
                 </LinearLayout>
             </LinearLayout>
@@ -549,6 +579,40 @@
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="14sp" />
             </RadioGroup>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="12dp">
+
+                <ImageView
+                    android:id="@+id/drawer_footer_horse"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="@null"
+                    android:alpha="0.85"
+                    android:scaleType="fitCenter"
+                    app:srcCompat="@drawable/ic_notez_horse_launcher_fg" />
+
+                <TextView
+                    android:id="@+id/drawer_footer_version"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:text="NOTEZ" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 </androidx.drawerlayout.widget.DrawerLayout>
