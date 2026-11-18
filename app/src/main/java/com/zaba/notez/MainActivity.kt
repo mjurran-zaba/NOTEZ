@@ -566,7 +566,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDrawer() {
-        val versionName = runCatching { getString(R.string.notez_version_name) }.getOrDefault("0.1.7")
+        val versionName = runCatching { getString(R.string.notez_version_name) }.getOrDefault("0.1.9")
         findViewById<TextView>(R.id.drawer_footer_version)?.text = "NOTEZ v$versionName"
 
         findViewById<View>(R.id.menu_markdown_guide)?.setOnClickListener {
