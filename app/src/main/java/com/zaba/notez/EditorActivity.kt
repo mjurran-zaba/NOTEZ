@@ -238,10 +238,17 @@ class EditorActivity : AppCompatActivity() {
     private fun switchToEdit() {
         isEditing = true
         suppressAutosave = true
+        // Data perangkat: dari EDIT_CLICK ke EDIT_TEXT_SET ada 2,5–6,3 s tanpa
+        // satu pun marker, jadi tidak jelas biayanya di setText judul, di
+        // perbandingan isi, atau di setText body. Tiap langkah dipisah sekarang.
+        perfTracker?.mark("EDIT_TITLE_SET_START", "chars=${currentTitle.length}")
         titleEdit.setText(currentTitle)
+        perfTracker?.mark("EDIT_TITLE_SET_DONE")
         // Body hanya ditulis ulang kalau isinya memang berbeda (catatan besar:
         // setText = salinan + layout dokumen penuh).
+        perfTracker?.mark("EDIT_SYNC_START", "syncedChars=${bodyTextSynced?.length ?: -1}")
         syncBodyText()
+        perfTracker?.mark("EDIT_SYNC_DONE")
         titleEdit.setSelection(titleEdit.text?.length ?: 0)
         suppressAutosave = false
         applyMode(true)
@@ -279,8 +286,12 @@ class EditorActivity : AppCompatActivity() {
             perfTracker?.mark("EDIT_TEXT_SKIP", "chars=${currentContent.length}")
             return
         }
+        // START→END memisahkan biaya setText itu sendiri dari biaya langkah
+        // sebelumnya (judul, perbandingan isi) di dalam sesi edit.
+        perfTracker?.mark("EDIT_SETTEXT_START", "chars=${currentContent.length}")
         bodyEdit.setText(currentContent)
         bodyTextSynced = currentContent
+        perfTracker?.mark("EDIT_SETTEXT_END", "chars=${currentContent.length}")
         perfTracker?.mark("EDIT_TEXT_SET", "chars=${currentContent.length}")
     }
 

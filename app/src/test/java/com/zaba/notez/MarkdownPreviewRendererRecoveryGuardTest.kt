@@ -1,5 +1,6 @@
 package com.zaba.notez
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -220,6 +221,24 @@ class MarkdownPreviewRendererRecoveryGuardTest {
         assertTrue(
             "ikon inline harus berada di dalam <head>",
             iconAt in 0 until raw.indexOf("</head>")
+        )
+    }
+
+    @Test
+    fun markdownItAssetIsReadOncePerProcessNotPerActivity() {
+        // Data perangkat: SHELL_BUILD makan 426–1110 ms per Activity untuk shell
+        // yang ukurannya identik (183559 chars). Asset markdown-it 115 KB dulu
+        // di-cache per instance renderer, dan renderer dibuat ulang tiap Activity.
+        assertTrue(
+            "renderer harus memakai cache proses MarkdownItAsset",
+            rendererCode.contains("MarkdownItAsset.get")
+        )
+        val raw = SourceScan.readMainFile("java/com/zaba/notez/markdown/MarkdownPreviewRenderer.kt")
+        val assetName = "markdown-it.umd.min.js"
+        assertEquals(
+            "asset hanya boleh dibaca di satu tempat (loader MarkdownItAsset.get)",
+            1,
+            raw.split(assetName).size - 1
         )
     }
 

@@ -47,9 +47,16 @@ class MarkdownPreviewRenderer(
     private val activity: Activity,
     private val webView: WebView
 ) {
-    private val markdownItJs: String by lazy {
-        activity.assets.open("markdown/markdown-it.umd.min.js").bufferedReader().use { it.readText() }
-    }
+    /**
+     * markdown-it dibaca sekali per proses lewat [MarkdownItAsset], bukan sekali
+     * per Activity. Sebelumnya `by lazy` hanya menyimpan di instance renderer,
+     * dan renderer dibuat ulang setiap Activity — jadi setiap buka catatan
+     * membaca asset 115 KB dari APK di main thread (di dalam SHELL_BUILD).
+     */
+    private val markdownItJs: String
+        get() = MarkdownItAsset.get {
+            activity.assets.open("markdown/markdown-it.umd.min.js").bufferedReader().use { it.readText() }
+        }
     private val remoteImageCache = RemoteImageCache(activity)
     private val imageExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     var perfTracker: PerfTracker? = null
@@ -155,19 +162,34 @@ class MarkdownPreviewRenderer(
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                android.util.Log.d("NOTEZ_WEB", "${consoleMessage.messageLevel()}: ${consoleMessage.message()} @${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}")
-                when (consoleMessage.message()) {
-                    "NOTEZ_RENDER_JS_START" -> { perfTracker?.mark("RENDER_JS_START"); return true }
-                    "NOTEZ_RENDER_JS_END" -> { perfTracker?.mark("RENDER_JS_END"); return true }
-                    "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); perfTracker?.mark("FULL_RENDER"); return true }
-                    "NOTEZ_PAINT_REAL" -> { perfTracker?.mark("PAINT_REAL"); perfTracker?.finishSession(); return true }
-                    "NOTEZ_CACHE_HIT" -> { perfTracker?.mark("CACHE_HIT"); return true }
+                val message = consoleMessage.message()
+                android.util.Log.d("NOTEZ_WEB", "${consoleMessage.messageLevel()}: $message @${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}")
+                when {
+                    message == "NOTEZ_RENDER_JS_START" -> { perfTracker?.mark("RENDER_JS_START"); return true }
+                    message == "NOTEZ_RENDER_JS_END" -> { perfTracker?.mark("RENDER_JS_END"); return true }
+                    // Rincian biaya tiap fase JS. RENDER_JS_START→END saja tidak
+                    // bisa menunjukkan apakah waktunya habis di parser markdown,
+                    // sanitizer DOM, atau highlighter kode.
+                    message.startsWith(NOTEZ_RENDER_PHASES_PREFIX) -> {
+                        perfTracker?.mark(
+                            "RENDER_PHASES",
+                            message.removePrefix(NOTEZ_RENDER_PHASES_PREFIX).trim()
+                        )
+                        return true
+                    }
+                    message == "NOTEZ_FIRST_PAINT" -> { perfTracker?.mark("FIRST_PAINT"); perfTracker?.mark("FULL_RENDER"); return true }
+                    // Antara FIRST_PAINT dan PAINT_REAL ada dua frame. Tanpa marker
+                    // ini, ekor 470–778 ms di data perangkat tidak bisa dipisah
+                    // antara menunggu frame berikutnya dan satu frame yang mahal.
+                    message == "NOTEZ_FRAME_START" -> { perfTracker?.mark("FRAME_START"); return true }
+                    message == "NOTEZ_PAINT_REAL" -> { perfTracker?.mark("PAINT_REAL"); perfTracker?.finishSession(); return true }
+                    message == "NOTEZ_CACHE_HIT" -> { perfTracker?.mark("CACHE_HIT"); return true }
                 }
                 // Pesan yang bukan marker tetap direkam: error/warning JS adalah
                 // penyebab paling sering render terlihat "kosong" tanpa error native.
                 perfTracker?.mark(
                     "JS_CONSOLE",
-                    "${consoleMessage.messageLevel()}: ${consoleMessage.message()} " +
+                    "${consoleMessage.messageLevel()}: $message " +
                         "@${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}"
                 )
                 return super.onConsoleMessage(consoleMessage)
@@ -271,7 +293,19 @@ class MarkdownPreviewRenderer(
 
     private fun buildHtml(): String {
         val colors = PreviewColors.from(activity)
-        return """
+        // Satu marker SHELL_BUILD_START→END menutupi tiga biaya berbeda: susun
+        // CSS, baca asset markdown-it, dan rakit 183 KB HTML. Dipecah supaya
+        // perbaikan cache asset bisa dibuktikan angkanya, bukan cuma diklaim.
+        perfTracker?.mark("SHELL_CSS_START")
+        val styleSheet = css(colors)
+        perfTracker?.mark("SHELL_CSS_DONE", "chars=${styleSheet.length}")
+        val loadsBefore = MarkdownItAsset.loadCount
+        val markdownIt = markdownItJs
+        perfTracker?.mark(
+            "SHELL_ASSET_READY",
+            "chars=${markdownIt.length} cached=${MarkdownItAsset.loadCount == loadsBefore}"
+        )
+        val html = """
             <!doctype html>
             <html>
             <head>
@@ -281,11 +315,11 @@ class MarkdownPreviewRenderer(
                    sendiri, gagal dengan ERR_CACHE_MISS, lalu tampil sebagai
                    WEBVIEW_SUBRESOURCE_ERROR yang menyesatkan di Diagnostics. -->
               <link rel="icon" href="data:,">
-              <style>${css(colors)}</style>
+              <style>${styleSheet}</style>
             </head>
             <body>
               <main id="preview" class="markdown-body"></main>
-              <script>$markdownItJs</script>
+              <script>$markdownIt</script>
               <script>
                 // Shell ini TIDAK boleh diubah lewat replace() string: pola seperti
                 // "(function () {" juga muncul di callback requestAnimationFrame,
@@ -1042,8 +1076,24 @@ class MarkdownPreviewRenderer(
                   };
 
                   var preview = document.getElementById('preview');
-                  var footnoteExtraction = extractFootnotes(source);
-                  var preparedSource = preprocessDefinitionLists(footnoteExtraction.markdown, footnoteExtraction.definitions);
+
+                  // Setiap fase diukur sendiri. Total RENDER_JS_START→END tidak
+                  // menunjukkan fase mana yang mahal, jadi angka per fase dikirim
+                  // sebagai satu console message dan tampil di Diagnostics.
+                  var notezPhases = [];
+                  var notezPhase = function (name, action) {
+                    var started = performance.now();
+                    var result = action();
+                    notezPhases.push(name + '=' + Math.round(performance.now() - started));
+                    return result;
+                  };
+
+                  var footnoteExtraction = notezPhase('extractFootnotes', function () {
+                    return extractFootnotes(source);
+                  });
+                  var preparedSource = notezPhase('prepareDefinitionLists', function () {
+                    return preprocessDefinitionLists(footnoteExtraction.markdown, footnoteExtraction.definitions);
+                  });
                   var renderEnv = {
                     footnotes: footnoteExtraction.definitions,
                     footnoteOrder: [],
@@ -1051,22 +1101,35 @@ class MarkdownPreviewRenderer(
                     footnoteRefCounts: Object.create(null)
                   };
                   console.log("NOTEZ_RENDER_JS_START");
-                  setSafePreviewHtml(md.render(preparedSource, renderEnv));
-                  addHeadingAnchors();
-                  wrapTables();
-                  enhanceTaskLists();
-                  enhanceCodeBlocks();
-                  enhanceCallouts();
-                  enhanceFootnoteRefs();
-                  appendFootnotes(renderEnv);
-                  hardenLinks();
-                  addImagePlaceholderHandlers();
+                  var renderedHtml = notezPhase('md.render', function () {
+                    return md.render(preparedSource, renderEnv);
+                  });
+                  notezPhase('sanitize+insert', function () { setSafePreviewHtml(renderedHtml); });
+                  notezPhase('headingAnchors', function () { addHeadingAnchors(); });
+                  notezPhase('tables', function () { wrapTables(); });
+                  notezPhase('taskLists', function () { enhanceTaskLists(); });
+                  notezPhase('codeHighlight', function () { enhanceCodeBlocks(); });
+                  notezPhase('callouts', function () { enhanceCallouts(); });
+                  notezPhase('footnotes', function () {
+                    enhanceFootnoteRefs();
+                    appendFootnotes(renderEnv);
+                  });
+                  notezPhase('links', function () { hardenLinks(); });
+                  notezPhase('imageHandlers', function () { addImagePlaceholderHandlers(); });
                   console.log("NOTEZ_RENDER_JS_END");
+                  // nodes = jumlah elemen DOM; biaya layout/paint sesudah ini
+                  // sebanding dengan angka ini, jadi dicatat sekali per render.
+                  console.log(
+                    "NOTEZ_RENDER_PHASES " + notezPhases.join(' ') +
+                    ' nodes=' + document.getElementsByTagName('*').length
+                  );
                   console.log("NOTEZ_FIRST_PAINT");
                   // FIRST_PAINT = akhir task JS, belum tentu sudah dilukis. Dua
                   // requestAnimationFrame berurutan menunggu frame yang benar-benar
                   // sudah di-commit, jadi PAINT_REAL adalah paint nyata (bukan tebakan).
+                  // FRAME_START memisahkan "menunggu frame" dari "frame itu mahal".
                   requestAnimationFrame(function () {
+                    console.log("NOTEZ_FRAME_START");
                     requestAnimationFrame(function () {
                       console.log("NOTEZ_PAINT_REAL");
                     });
@@ -1408,6 +1471,8 @@ class MarkdownPreviewRenderer(
             </body>
             </html>
         """.trimIndent()
+        perfTracker?.mark("SHELL_HTML_ASSEMBLED", "chars=${html.length}")
+        return html
     }
 
     private fun css(colors: PreviewColors): String = """
@@ -1886,6 +1951,8 @@ class MarkdownPreviewRenderer(
     }
 
     private companion object {
+        /** Awalan console message berisi rincian fase JS. */
+        private const val NOTEZ_RENDER_PHASES_PREFIX = "NOTEZ_RENDER_PHASES "
         private const val NOTEZ_HOST = "notez.local"
         private const val NOTEZ_BASE_URL = "https://notez.local/"
         private const val IMAGE_LOAD_SCHEME = "notez-image"
