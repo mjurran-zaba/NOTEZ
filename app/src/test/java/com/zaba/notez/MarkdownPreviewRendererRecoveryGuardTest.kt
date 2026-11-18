@@ -194,7 +194,9 @@ class MarkdownPreviewRendererRecoveryGuardTest {
         // Data perangkat: impor 100 KB ditutup sebelum PAINT_REAL, jadi sesi
         // render-nya hilang sama sekali dari Diagnostics. Activity yang mati
         // harus menyimpan sesi yang masih terbuka, bukan menunggu PAINT_REAL.
-        val body = functionBody(editorCode, "override fun onDestroy(")
+        // Dibaca dari sumber mentah: codeOnly mengosongkan literal string, jadi
+        // nama marker "ACTIVITY_DESTROY" tidak akan ketemu di sana.
+        val body = functionBody(editorRaw, "override fun onDestroy(")
         assertTrue("onDestroy tidak ditemukan", body.isNotEmpty())
         val markAt = body.indexOf("mark(\"ACTIVITY_DESTROY\"")
         val finishAt = body.indexOf("perfTracker?.finishSession()")
