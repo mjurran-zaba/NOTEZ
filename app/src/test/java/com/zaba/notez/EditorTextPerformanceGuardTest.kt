@@ -141,6 +141,57 @@ class EditorTextPerformanceGuardTest {
         )
     }
 
+    @Test
+    fun markdownPreviewRendererProvidesScrollSynchronizationApis() {
+        assertTrue(
+            "MarkdownPreviewRenderer harus menyediakan currentScrollRatio()",
+            rendererCode.contains("fun currentScrollRatio(): Float")
+        )
+        assertTrue(
+            "MarkdownPreviewRenderer harus menyediakan scrollToRatio(ratio: Float)",
+            rendererCode.contains("fun scrollToRatio(ratio: Float)")
+        )
+    }
+
+    @Test
+    fun editorActivitySynchronizesScrollPositionBidirectionally() {
+        val switchToEdit = functionBody(editorCode, "private fun switchToEdit()")
+        assertTrue("switchToEdit harus ada", switchToEdit.isNotEmpty())
+        assertTrue(
+            "switchToEdit harus membaca rasio scroll dari MarkdownPreviewRenderer",
+            switchToEdit.contains("markdownPreview.currentScrollRatio()")
+        )
+        assertTrue(
+            "switchToEdit harus menggulir editor ke lineTop posisi baca",
+            switchToEdit.contains("bodyEdit.scrollTo(0, lineTop)")
+        )
+
+        val switchToView = functionBody(editorCode, "private fun switchToView()")
+        assertTrue("switchToView harus ada", switchToView.isNotEmpty())
+        assertTrue(
+            "switchToView harus menyimpan rasio scroll untuk dipulihkan",
+            switchToView.contains("pendingScrollRatio =")
+        )
+
+        assertTrue(
+            "onPaintReal harus memulihkan rasio scroll ke MarkdownPreviewRenderer",
+            editorCode.contains("markdownPreview.scrollToRatio(ratio)")
+        )
+    }
+
+    @Test
+    fun editorActivityPreservesScrollRatioAcrossConfigurationChange() {
+        assertTrue(
+            "EditorActivity harus mendefinisikan KEY_SCROLL_RATIO",
+            editorRaw.contains("const val KEY_SCROLL_RATIO = \"state_scroll_ratio\"")
+        )
+        val onSave = functionBody(editorCode, "override fun onSaveInstanceState(")
+        assertTrue("onSaveInstanceState harus menyimpan KEY_SCROLL_RATIO", onSave.contains("outState.putFloat(KEY_SCROLL_RATIO"))
+
+        val onCreate = functionBody(editorCode, "override fun onCreate(")
+        assertTrue("onCreate harus membaca KEY_SCROLL_RATIO", onCreate.contains("state.getFloat(KEY_SCROLL_RATIO"))
+    }
+
     private fun extractTag(xml: String, tagStart: String, identifier: String): String {
         var idx = 0
         while (idx < xml.length) {

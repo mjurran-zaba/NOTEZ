@@ -58,6 +58,7 @@ class EditorActivity : AppCompatActivity() {
         /** Identitas catatan aktif; harus bertahan saat layar diputar. */
         const val KEY_NOTE_ID = "state_note_id"
         const val KEY_EDITING = "state_editing"
+        const val KEY_SCROLL_RATIO = "state_scroll_ratio"
     }
 
     private lateinit var dao: NoteDao
@@ -78,6 +79,8 @@ class EditorActivity : AppCompatActivity() {
     private var loaded = false
     private var isEditing = false
     private var suppressAutosave = false
+    private var pendingScrollRatio: Float = 0f
+    private var lastEditScrollRatio: Float = 0f
 
     // Nilai terakhir yang tersimpan/valid, dipakai saat render mode view.
     private var currentTitle = ""
@@ -167,6 +170,10 @@ class EditorActivity : AppCompatActivity() {
         savedInstanceState?.let { state ->
             noteId = state.getLong(KEY_NOTE_ID, noteId)
             isEditing = state.getBoolean(KEY_EDITING, isEditing)
+            val restoredRatio = state.getFloat(KEY_SCROLL_RATIO, 0f)
+            if (restoredRatio > 0f) {
+                pendingScrollRatio = restoredRatio
+            }
         }
 
         titleEdit = findViewById(R.id.edit_title)
@@ -180,6 +187,16 @@ class EditorActivity : AppCompatActivity() {
             bodyEdit.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
         }
         (bodyEdit as? androidx.appcompat.widget.AppCompatEditText)?.isEmojiCompatEnabled = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            bodyEdit.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+                val layout = bodyEdit.layout
+                if (layout != null) {
+                    val visibleHeight = (bodyEdit.height - bodyEdit.totalPaddingTop - bodyEdit.totalPaddingBottom).coerceAtLeast(1)
+                    val maxEditScroll = (layout.height - visibleHeight).coerceAtLeast(1)
+                    lastEditScrollRatio = (scrollY.toFloat() / maxEditScroll).coerceIn(0f, 1f)
+                }
+            }
+        }
         bodyWebView = findViewById(R.id.view_body_web)
         bodyEmptyView = findViewById(R.id.view_body_empty)
         counter = findViewById(R.id.counter)
@@ -188,6 +205,11 @@ class EditorActivity : AppCompatActivity() {
         perfTracker?.mark("WEBVIEW_CREATED")
         markdownPreview.perfTracker = perfTracker
         markdownPreview.onPaintReal = {
+            if (!isEditing && pendingScrollRatio > 0f) {
+                val ratio = pendingScrollRatio
+                pendingScrollRatio = 0f
+                markdownPreview.scrollToRatio(ratio)
+            }
             if (!isEditing && bodyTextSynced != currentContent && currentContent.isNotEmpty()) {
                 Looper.myQueue().addIdleHandler {
                     if (!isEditing && bodyTextSynced != currentContent && currentContent.isNotEmpty()) {
@@ -215,6 +237,20 @@ class EditorActivity : AppCompatActivity() {
             perfTracker?.mark("NOTE_LOADED", "chars=${currentContent.length} editing=$isEditing")
             loaded = true
             applyMode(isEditing)
+            if (isEditing && pendingScrollRatio > 0f) {
+                val ratio = pendingScrollRatio
+                pendingScrollRatio = 0f
+                bodyEdit.post {
+                    val layout = bodyEdit.layout
+                    if (layout != null && ratio > 0f) {
+                        val targetLine = ((layout.lineCount - 1) * ratio).toInt().coerceIn(0, (layout.lineCount - 1).coerceAtLeast(0))
+                        val lineTop = layout.getLineTop(targetLine)
+                        val targetChar = layout.getLineStart(targetLine).coerceIn(0, bodyEdit.text?.length ?: 0)
+                        bodyEdit.scrollTo(0, lineTop)
+                        bodyEdit.setSelection(targetChar)
+                    }
+                }
+            }
         }
 
         val schedule = {
@@ -248,6 +284,16 @@ class EditorActivity : AppCompatActivity() {
         // Teks yang sama masih ada di EditText; catat supaya switchToEdit tidak
         // menyalin ulang isi yang identik.
         bodyTextSynced = currentContent
+
+        val layout = bodyEdit.layout
+        val ratioFromView = if (layout != null) {
+            val visibleHeight = (bodyEdit.height - bodyEdit.totalPaddingTop - bodyEdit.totalPaddingBottom).coerceAtLeast(1)
+            val maxEditScroll = (layout.height - visibleHeight).coerceAtLeast(1)
+            (bodyEdit.scrollY.toFloat() / maxEditScroll).coerceIn(0f, 1f)
+        } else 0f
+        val ratioToRestore = if (ratioFromView > 0f) ratioFromView else lastEditScrollRatio
+        pendingScrollRatio = ratioToRestore
+
         save(currentTitle, currentContent)
         isEditing = false
         titleEdit.clearFocus()
@@ -260,6 +306,10 @@ class EditorActivity : AppCompatActivity() {
     private fun switchToEdit() {
         isEditing = true
         suppressAutosave = true
+
+        // Ambil rasio posisi scroll dari Reading View sebelum disembunyikan
+        val scrollRatio = markdownPreview.currentScrollRatio()
+
         // Data perangkat: dari EDIT_CLICK ke EDIT_TEXT_SET ada 2,5–6,3 s tanpa
         // satu pun marker, jadi tidak jelas biayanya di setText judul, di
         // perbandingan isi, atau di setText body. Tiap langkah dipisah sekarang.
@@ -277,11 +327,18 @@ class EditorActivity : AppCompatActivity() {
         perfTracker?.mark("EDIT_MODE_APPLIED", "chars=${currentContent.length} titleChars=${currentTitle.length}")
         perfTracker?.mark("EDIT_VISIBLE")
         // Kursor, fokus, dan keyboard dikerjakan setelah view terlihat.
-        // Menaruh kursor di posisi awal (0) menghindari kalkulasi bringPointIntoView
-        // yang memaksa scroll ekstrem ke baris ke-2400 pada dokumen 96 KB.
+        // Sinkronkan ke posisi scroll terakhir dari Reading View; bila di paling atas,
+        // pasang kursor di 0 tanpa scroll.
         bodyEdit.post {
-            val currentSel = bodyEdit.selectionStart
-            if (currentSel <= 0) {
+            val layout = bodyEdit.layout
+            if (layout != null && scrollRatio > 0f) {
+                val targetLine = ((layout.lineCount - 1) * scrollRatio).toInt().coerceIn(0, (layout.lineCount - 1).coerceAtLeast(0))
+                val lineTop = layout.getLineTop(targetLine)
+                val targetChar = layout.getLineStart(targetLine).coerceIn(0, bodyEdit.text?.length ?: 0)
+                bodyEdit.scrollTo(0, lineTop)
+                bodyEdit.setSelection(targetChar)
+            } else {
+                bodyEdit.scrollTo(0, 0)
                 bodyEdit.setSelection(0)
             }
             bodyEdit.requestFocus()
@@ -573,6 +630,9 @@ class EditorActivity : AppCompatActivity() {
     private fun bindImportedNote(newId: Long, imported: ImportResult.Success) {
         noteId = newId
         isEditing = false
+        pendingScrollRatio = 0f
+        lastEditScrollRatio = 0f
+        markdownPreview.scrollToRatio(0f)
         currentTitle = imported.title
         currentContent = imported.content
         suppressAutosave = true
@@ -633,7 +693,18 @@ class EditorActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putLong(KEY_NOTE_ID, noteId)
         outState.putBoolean(KEY_EDITING, isEditing)
-        Breadcrumb.add("EDITOR", "onSaveInstanceState note=$noteId editing=$isEditing")
+        val currentRatio = if (isEditing) {
+            val layout = bodyEdit.layout
+            if (layout != null) {
+                val visibleHeight = (bodyEdit.height - bodyEdit.totalPaddingTop - bodyEdit.totalPaddingBottom).coerceAtLeast(1)
+                val maxEditScroll = (layout.height - visibleHeight).coerceAtLeast(1)
+                (bodyEdit.scrollY.toFloat() / maxEditScroll).coerceIn(0f, 1f)
+            } else lastEditScrollRatio
+        } else {
+            markdownPreview.currentScrollRatio()
+        }
+        outState.putFloat(KEY_SCROLL_RATIO, currentRatio)
+        Breadcrumb.add("EDITOR", "onSaveInstanceState note=$noteId editing=$isEditing ratio=$currentRatio")
     }
 
     override fun onDestroy() {

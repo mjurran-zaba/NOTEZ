@@ -70,9 +70,49 @@ class MarkdownPreviewRenderer(
     private var pendingCacheJson: String? = null
     private var lastRenderHash: String? = null
     private var lastRenderTheme: PreviewColors? = null
+    private var lastTrackedScrollRatio: Float = 0f
 
     init {
         configureWebView()
+    }
+
+    /**
+     * Rasio posisi scroll vertikal saat ini (0.0f sampai 1.0f).
+     *
+     * Dipakai untuk menyinkronkan posisi pandang antara Reading View dan Edit Mode.
+     */
+    fun currentScrollRatio(): Float {
+        val density = activity.resources.displayMetrics.density
+        val webContentHeightPx = (webView.contentHeight * density).toInt()
+        val webMaxScroll = (webContentHeightPx - webView.height).coerceAtLeast(1)
+        val ratioFromView = if (webMaxScroll > 0) {
+            (webView.scrollY.toFloat() / webMaxScroll).coerceIn(0f, 1f)
+        } else 0f
+        return if (ratioFromView > 0f) ratioFromView else lastTrackedScrollRatio
+    }
+
+    /**
+     * Gulir WebView ke rasio posisi vertikal tertentu (0.0f sampai 1.0f).
+     */
+    fun scrollToRatio(ratio: Float) {
+        val clamped = ratio.coerceIn(0f, 1f)
+        lastTrackedScrollRatio = clamped
+        if (clamped <= 0f) {
+            webView.scrollTo(0, 0)
+            webView.evaluateJavascript("window.scrollTo({top: 0, behavior: 'instant'});", null)
+            return
+        }
+        webView.post {
+            val density = activity.resources.displayMetrics.density
+            val webContentHeightPx = (webView.contentHeight * density).toInt()
+            val webMaxScroll = (webContentHeightPx - webView.height).coerceAtLeast(0)
+            if (webMaxScroll > 0) {
+                val targetY = (webMaxScroll * clamped).toInt()
+                webView.scrollTo(0, targetY)
+                val targetCssY = (targetY / density).toInt()
+                webView.evaluateJavascript("window.scrollTo({top: $targetCssY, behavior: 'instant'});", null)
+            }
+        }
     }
 
     fun render(markdown: String, tracker: PerfTracker? = null) {
@@ -132,6 +172,9 @@ class MarkdownPreviewRenderer(
         Breadcrumb.add("WEBVIEW", "destroy: shellLoaded=$shellLoaded")
         destroyed = true
         imageExecutor.shutdownNow()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            webView.setOnScrollChangeListener(null)
+        }
         webView.stopLoading()
         webView.loadUrl("about:blank")
         webView.destroy()
@@ -142,6 +185,17 @@ class MarkdownPreviewRenderer(
         webView.setBackgroundColor(Color.TRANSPARENT)
         webView.isVerticalScrollBarEnabled = true
         webView.isHorizontalScrollBarEnabled = false
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+                val density = activity.resources.displayMetrics.density
+                val webContentHeightPx = (webView.contentHeight * density).toInt()
+                val webMaxScroll = (webContentHeightPx - webView.height).coerceAtLeast(1)
+                if (webMaxScroll > 0) {
+                    lastTrackedScrollRatio = (scrollY.toFloat() / webMaxScroll).coerceIn(0f, 1f)
+                }
+            }
+        }
 
         with(webView.settings) {
             javaScriptEnabled = true
@@ -267,6 +321,7 @@ class MarkdownPreviewRenderer(
                 shellTheme = null
                 lastRenderTheme = null
                 lastRenderHash = null
+                lastTrackedScrollRatio = 0f
                 pendingSourceJson = null
                 pendingBaseJson = null
                 pendingCacheJson = null
