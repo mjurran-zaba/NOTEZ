@@ -86,7 +86,7 @@ class NoteAdapter(
     override fun getItemCount() = items.size
 
     class Holder(v: View) : RecyclerView.ViewHolder(v) {
-        val card: MaterialCardView = v.findViewById(R.id.note_card)
+        val card: MaterialCardView = (v as? MaterialCardView) ?: v.findViewById(R.id.note_card)
         val title: TextView = v.findViewById(R.id.item_title)
         val preview: TextView = v.findViewById(R.id.item_preview)
         val meta: TextView = v.findViewById(R.id.item_meta)

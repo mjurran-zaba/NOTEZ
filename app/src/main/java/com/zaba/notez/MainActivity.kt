@@ -102,6 +102,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         installBreadcrumbLogcat()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            android.util.Log.e("NOTEZ_CRASH", "FATAL EXCEPTION in thread ${thread.name}", throwable)
+            Breadcrumb.add("CRASH", "${throwable.javaClass.simpleName}: ${throwable.message}")
+        }
         Breadcrumb.add(
             "HOME",
             "onCreate theme=$appliedTheme rotation=${savedInstanceState != null}"
@@ -142,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         UiStyle.applyGlassCard(btnSpeedNewNote, alpha = 224, radiusDp = 22f)
         UiStyle.applyGlassCard(btnSpeedOpenFile, alpha = 224, radiusDp = 22f)
 
-        findViewById<TextView>(R.id.empty_about_link).setOnClickListener {
+        findViewById<View>(R.id.empty_about_link)?.setOnClickListener {
             startActivity(Intent(this, AboutNotezActivity::class.java))
         }
     }
@@ -348,17 +352,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupMiniPlayer() {
-        val miniPlayerView = findViewById<View>(R.id.home_mini_player)
-        musicMiniPlayer = MusicMiniPlayerHelper(
-            activity = this,
-            root = miniPlayerView,
-            onOpenDrawer = null,
-            onVisibilityChanged = { isVisible ->
-                val offset = if (isVisible) -UiStyle.dp(this, 68f).toFloat() else 0f
-                fab.animate().translationY(offset).setDuration(180L).start()
-                fabSpeedDial.animate().translationY(offset).setDuration(180L).start()
-            }
-        )
+        val miniPlayerView = findViewById<View>(R.id.home_mini_player) ?: return
+        runCatching {
+            musicMiniPlayer = MusicMiniPlayerHelper(
+                activity = this,
+                root = miniPlayerView,
+                onOpenDrawer = null,
+                onVisibilityChanged = { isVisible ->
+                    val offset = if (isVisible) -UiStyle.dp(this, 68f).toFloat() else 0f
+                    fab.animate().translationY(offset).setDuration(180L).start()
+                    fabSpeedDial.animate().translationY(offset).setDuration(180L).start()
+                }
+            )
+        }.onFailure { err ->
+            Breadcrumb.add("HOME", "MINI_PLAYER_INIT_FAIL: ${err.message}")
+        }
     }
 
     private fun applyHorseThemeAccent() {
@@ -443,7 +451,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDisplayModeDrawer() {
-        val group = findViewById<RadioGroup>(R.id.drawer_display_group)
+        val group = findViewById<RadioGroup>(R.id.drawer_display_group) ?: return
         group.check(
             if (displayMode == NoteDisplayMode.GRID) R.id.drawer_display_grid
             else R.id.drawer_display_list
@@ -526,11 +534,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDrawer() {
-        findViewById<View>(R.id.menu_markdown_guide).setOnClickListener {
+        findViewById<View>(R.id.menu_markdown_guide)?.setOnClickListener {
             Breadcrumb.add("HOME", "TAP_MENU_MARKDOWN_GUIDE")
             closeDrawerThen { startActivity(Intent(this, MarkdownGuideActivity::class.java)) }
         }
-        findViewById<View>(R.id.drawer_settings).setOnClickListener {
+        findViewById<View>(R.id.drawer_settings)?.setOnClickListener {
             Breadcrumb.add("HOME", "TAP_MENU_SETTINGS")
             closeDrawerThen { startActivity(Intent(this, SettingsActivity::class.java)) }
         }

@@ -6,7 +6,6 @@ import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -37,14 +36,18 @@ class MusicMiniPlayerHelper(
     private var controller: MediaController? = null
     private var playerListener: Player.Listener? = null
 
-    private val card: MaterialCardView = root.findViewById(R.id.mini_player_card)
-    private val title: TextView = root.findViewById(R.id.mini_player_title)
-    private val artist: TextView = root.findViewById(R.id.mini_player_artist)
-    private val progress: ProgressBar = root.findViewById(R.id.mini_player_progress)
-    private val playPause: ImageButton = root.findViewById(R.id.mini_player_play_pause)
-    private val prev: ImageButton = root.findViewById(R.id.mini_player_prev)
-    private val next: ImageButton = root.findViewById(R.id.mini_player_next)
-    private val infoContainer: View = root.findViewById(R.id.mini_player_info)
+    private val card: MaterialCardView? = (root as? MaterialCardView)
+        ?: root.findViewById(R.id.mini_player_card)
+        ?: root.findViewById(R.id.home_mini_player)
+        ?: root.findViewById(R.id.editor_mini_player)
+
+    private val title: TextView? = root.findViewById(R.id.mini_player_title)
+    private val artist: TextView? = root.findViewById(R.id.mini_player_artist)
+    private val progress: ProgressBar? = root.findViewById(R.id.mini_player_progress)
+    private val playPause: ImageButton? = root.findViewById(R.id.mini_player_play_pause)
+    private val prev: ImageButton? = root.findViewById(R.id.mini_player_prev)
+    private val next: ImageButton? = root.findViewById(R.id.mini_player_next)
+    private val infoContainer: View? = root.findViewById(R.id.mini_player_info)
 
     private var isPlayerVisible = false
     private var startTouchX = 0f
@@ -60,16 +63,18 @@ class MusicMiniPlayerHelper(
     }
 
     init {
-        card.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(activity), 224))
-        card.setStrokeColor(ColorUtils.setAlphaComponent(UiStyle.outline(activity), 45))
-        card.strokeWidth = UiStyle.dp(activity, 1f)
-        card.setRadius(UiStyle.dp(activity, 28f).toFloat())
-        card.setCardElevation(UiStyle.dp(activity, 4f).toFloat())
+        card?.let { c ->
+            c.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(activity), 224))
+            c.setStrokeColor(ColorUtils.setAlphaComponent(UiStyle.outline(activity), 45))
+            c.strokeWidth = UiStyle.dp(activity, 1f)
+            c.setRadius(UiStyle.dp(activity, 28f).toFloat())
+            c.setCardElevation(UiStyle.dp(activity, 4f).toFloat())
+        }
 
-        playPause.setOnClickListener { togglePlayPause() }
-        prev.setOnClickListener { playPrevious() }
-        next.setOnClickListener { playNext() }
-        infoContainer.setOnClickListener { onOpenDrawer?.invoke() }
+        playPause?.setOnClickListener { togglePlayPause() }
+        prev?.setOnClickListener { playPrevious() }
+        next?.setOnClickListener { playNext() }
+        infoContainer?.setOnClickListener { onOpenDrawer?.invoke() }
 
         setupSwipeGesture()
         connectController()
@@ -88,14 +93,16 @@ class MusicMiniPlayerHelper(
     }
 
     private fun connectController() {
-        val token = SessionToken(activity, ComponentName(activity, MusicPlaybackService::class.java))
-        val future = MediaController.Builder(activity, token).buildAsync()
-        controllerFuture = future
-        future.addListener({
-            controller = runCatching { future.get() }.getOrNull()
-            attachPlayerListener()
-            updateUi()
-        }, ContextCompat.getMainExecutor(activity))
+        runCatching {
+            val token = SessionToken(activity, ComponentName(activity, MusicPlaybackService::class.java))
+            val future = MediaController.Builder(activity, token).buildAsync()
+            controllerFuture = future
+            future.addListener({
+                controller = runCatching { future.get() }.getOrNull()
+                attachPlayerListener()
+                updateUi()
+            }, ContextCompat.getMainExecutor(activity))
+        }
     }
 
     private fun attachPlayerListener() {
@@ -152,12 +159,12 @@ class MusicMiniPlayerHelper(
             ?: "Musik"
         val displayArtist = metadata?.artist?.toString() ?: ""
 
-        title.text = displayTitle
-        artist.text = displayArtist.ifBlank { "NOTEZ Audio" }
-        title.isSelected = true
+        title?.text = displayTitle
+        artist?.text = displayArtist.ifBlank { "NOTEZ Audio" }
+        title?.isSelected = true
 
         val isPlaying = c.isPlaying
-        playPause.setImageResource(
+        playPause?.setImageResource(
             if (isPlaying) R.drawable.ic_lucide_pause else R.drawable.ic_lucide_play
         )
 
@@ -173,7 +180,7 @@ class MusicMiniPlayerHelper(
         val currentPos = c.currentPosition
         val duration = c.duration.coerceAtLeast(1L)
         val ratio = (currentPos.toFloat() / duration).coerceIn(0f, 1f)
-        progress.progress = (ratio * 1000).toInt()
+        progress?.progress = (ratio * 1000).toInt()
     }
 
     private fun togglePlayPause() {
@@ -213,8 +220,9 @@ class MusicMiniPlayerHelper(
     }
 
     private fun setupSwipeGesture() {
+        val targetCard = card ?: return
         val threshold = UiStyle.dp(activity, 42f)
-        card.setOnTouchListener { _, event ->
+        targetCard.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     startTouchX = event.x

@@ -171,11 +171,15 @@ class EditorActivity : AppCompatActivity() {
 
         val miniPlayerView = findViewById<View>(R.id.editor_mini_player)
         if (miniPlayerView != null) {
-            musicMiniPlayer = com.zaba.notez.music.MusicMiniPlayerHelper(
-                activity = this,
-                root = miniPlayerView,
-                onOpenDrawer = { drawer.openDrawer(GravityCompat.START) }
-            )
+            runCatching {
+                musicMiniPlayer = com.zaba.notez.music.MusicMiniPlayerHelper(
+                    activity = this,
+                    root = miniPlayerView,
+                    onOpenDrawer = { drawer.openDrawer(GravityCompat.START) }
+                )
+            }.onFailure { err ->
+                Breadcrumb.add("EDITOR", "MINI_PLAYER_INIT_FAIL: ${err.message}")
+            }
         }
 
         findViewById<View>(R.id.menu_file_save)?.setOnClickListener {

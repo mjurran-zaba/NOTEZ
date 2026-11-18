@@ -6,6 +6,9 @@
             android:innerRadiusRatio="2.5"
             android:thickness="2dp"
             android:useLevel="false">
+            <size
+                android:width="38dp"
+                android:height="38dp" />
             <solid android:color="@color/oled_outline" />
         </shape>
     </item>
@@ -18,6 +21,9 @@
                 android:innerRadiusRatio="2.5"
                 android:thickness="2dp"
                 android:useLevel="true">
+                <size
+                    android:width="38dp"
+                    android:height="38dp" />
                 <solid android:color="@color/oled_accent" />
             </shape>
         </rotate>
