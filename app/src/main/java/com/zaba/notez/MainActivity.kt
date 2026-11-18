@@ -28,6 +28,8 @@ import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.core.widget.doAfterTextChanged
@@ -96,16 +98,24 @@ class MainActivity : AppCompatActivity() {
         importExternalFile(uri)
     }
 
+    companion object {
+        init {
+            AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            android.util.Log.e("NOTEZ_CRASH", "FATAL EXCEPTION in thread ${thread.name}", throwable)
+            Breadcrumb.add("CRASH", "${throwable.javaClass.simpleName}: ${throwable.message}")
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
         appliedTheme = ThemePref.get(this)
         setTheme(ThemePref.styleOf(appliedTheme))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         installBreadcrumbLogcat()
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            android.util.Log.e("NOTEZ_CRASH", "FATAL EXCEPTION in thread ${thread.name}", throwable)
-            Breadcrumb.add("CRASH", "${throwable.javaClass.simpleName}: ${throwable.message}")
-        }
         Breadcrumb.add(
             "HOME",
             "onCreate theme=$appliedTheme rotation=${savedInstanceState != null}"
@@ -298,7 +308,7 @@ class MainActivity : AppCompatActivity() {
             private val deletePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.parseColor("#E02424")
             }
-            private val trashIcon: Drawable? = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_lucide_trash)?.apply {
+            private val trashIcon: Drawable? = AppCompatResources.getDrawable(this@MainActivity, R.drawable.ic_lucide_trash)?.apply {
                 setTint(Color.WHITE)
             }
 

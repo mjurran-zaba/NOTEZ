@@ -47,7 +47,7 @@
                     android:layout_height="18dp"
                     android:layout_gravity="center"
                     android:contentDescription="@null"
-                    android:src="@drawable/ic_lucide_disc"
+                    app:srcCompat="@drawable/ic_lucide_disc"
                     app:tint="?attr/colorPrimary" />
             </FrameLayout>
 
@@ -90,7 +90,7 @@
                 android:layout_height="32dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cd_music_previous"
-                android:src="@drawable/ic_lucide_skip_back"
+                app:srcCompat="@drawable/ic_lucide_skip_back"
                 app:tint="?attr/colorOnSurfaceVariant" />
 
             <com.google.android.material.card.MaterialCardView
@@ -110,7 +110,7 @@
                     android:layout_height="match_parent"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Putar atau jeda musik"
-                    android:src="@drawable/ic_lucide_play"
+                    app:srcCompat="@drawable/ic_lucide_play"
                     app:tint="?attr/colorOnPrimary" />
             </com.google.android.material.card.MaterialCardView>
 
@@ -120,7 +120,7 @@
                 android:layout_height="32dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cd_music_next"
-                android:src="@drawable/ic_lucide_skip_forward"
+                app:srcCompat="@drawable/ic_lucide_skip_forward"
                 app:tint="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

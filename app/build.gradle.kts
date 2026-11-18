@@ -18,6 +18,7 @@ android {
         versionCode = notezVersionCode
         versionName = notezVersionName
         resValue("string", "notez_version_name", "\"$notezVersionName\"")
+        vectorDrawables.useSupportLibrary = true
     }
 
     signingConfigs {

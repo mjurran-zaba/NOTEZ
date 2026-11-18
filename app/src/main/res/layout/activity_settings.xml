@@ -32,7 +32,7 @@
                 android:contentDescription="@string/cd_back"
                 android:padding="10dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_lucide_arrow_left"
+                app:srcCompat="@drawable/ic_lucide_arrow_left"
                 app:tint="?attr/colorOnSurface" />
 
             <TextView
@@ -80,7 +80,7 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:contentDescription="@null"
-                        android:src="@drawable/ic_lucide_sparkles"
+                        app:srcCompat="@drawable/ic_lucide_sparkles"
                         app:tint="?attr/colorPrimary" />
 
                     <TextView
@@ -99,7 +99,7 @@
                         android:layout_height="18dp"
                         android:contentDescription="@null"
                         android:rotation="180"
-                        android:src="@drawable/ic_lucide_chevron_down"
+                        app:srcCompat="@drawable/ic_lucide_chevron_down"
                         app:tint="?attr/colorPrimary" />
                 </LinearLayout>
 
@@ -125,7 +125,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_palette"
+                            app:srcCompat="@drawable/ic_lucide_palette"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
@@ -150,7 +150,7 @@
                             android:layout_marginStart="6dp"
                             android:alpha="0.4"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_chevron_right"
+                            app:srcCompat="@drawable/ic_lucide_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                 </LinearLayout>
@@ -180,7 +180,7 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:contentDescription="@null"
-                        android:src="@drawable/ic_lucide_database"
+                        app:srcCompat="@drawable/ic_lucide_database"
                         app:tint="?attr/colorPrimary" />
 
                     <TextView
@@ -198,7 +198,7 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:contentDescription="@null"
-                        android:src="@drawable/ic_lucide_chevron_down"
+                        app:srcCompat="@drawable/ic_lucide_chevron_down"
                         app:tint="?attr/colorPrimary" />
                 </LinearLayout>
 
@@ -225,7 +225,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_file_up"
+                            app:srcCompat="@drawable/ic_lucide_file_up"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
@@ -242,7 +242,7 @@
                             android:layout_height="16dp"
                             android:alpha="0.4"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_chevron_right"
+                            app:srcCompat="@drawable/ic_lucide_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
@@ -262,7 +262,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_file_down"
+                            app:srcCompat="@drawable/ic_lucide_file_down"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
@@ -279,7 +279,7 @@
                             android:layout_height="16dp"
                             android:alpha="0.4"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_chevron_right"
+                            app:srcCompat="@drawable/ic_lucide_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
@@ -299,7 +299,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_file_text"
+                            app:srcCompat="@drawable/ic_lucide_file_text"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
@@ -316,7 +316,7 @@
                             android:layout_height="16dp"
                             android:alpha="0.4"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_chevron_right"
+                            app:srcCompat="@drawable/ic_lucide_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
@@ -336,7 +336,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_folder_sync"
+                            app:srcCompat="@drawable/ic_lucide_folder_sync"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
@@ -353,7 +353,7 @@
                             android:layout_height="16dp"
                             android:alpha="0.4"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_chevron_right"
+                            app:srcCompat="@drawable/ic_lucide_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                 </LinearLayout>
@@ -383,7 +383,7 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:contentDescription="@null"
-                        android:src="@drawable/ic_lucide_sliders_horizontal"
+                        app:srcCompat="@drawable/ic_lucide_sliders_horizontal"
                         app:tint="?attr/colorPrimary" />
 
                     <TextView
@@ -401,7 +401,7 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:contentDescription="@null"
-                        android:src="@drawable/ic_lucide_chevron_down"
+                        app:srcCompat="@drawable/ic_lucide_chevron_down"
                         app:tint="?attr/colorPrimary" />
                 </LinearLayout>
 
@@ -428,7 +428,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_info"
+                            app:srcCompat="@drawable/ic_lucide_info"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
@@ -445,7 +445,7 @@
                             android:layout_height="16dp"
                             android:alpha="0.4"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_chevron_right"
+                            app:srcCompat="@drawable/ic_lucide_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
@@ -465,7 +465,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_shield_check"
+                            app:srcCompat="@drawable/ic_lucide_shield_check"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
@@ -482,7 +482,7 @@
                             android:layout_height="16dp"
                             android:alpha="0.4"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_chevron_right"
+                            app:srcCompat="@drawable/ic_lucide_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
@@ -502,7 +502,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_trash"
+                            app:srcCompat="@drawable/ic_lucide_trash"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
@@ -519,7 +519,7 @@
                             android:layout_height="16dp"
                             android:alpha="0.4"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_chevron_right"
+                            app:srcCompat="@drawable/ic_lucide_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
 
@@ -535,7 +535,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_lucide_tag"
+                            app:srcCompat="@drawable/ic_lucide_tag"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
