@@ -32,8 +32,11 @@ class PerfTracker(private val noteId: Long?, initialTimeMs: Long? = null) {
         synchronized(events) {
             if (events.size >= MAX_EVENTS) droppedEvents++ else events += event
         }
-        Breadcrumb.add("PERF", "$name +${elapsed}ms$threadSuffix(thread)$detailSuffix(detail)")
-        Log.d("NOTEZ_PERF", "$name +${elapsed}ms [$thread]$detailSuffix(detail)")
+        Breadcrumb.add(
+            "PERF",
+            "$name +${elapsed}ms${threadSuffix(thread)}${detailSuffix(detail)}"
+        )
+        Log.d("NOTEZ_PERF", "$name +${elapsed}ms [$thread]${detailSuffix(detail)}")
     }
 
     /**
