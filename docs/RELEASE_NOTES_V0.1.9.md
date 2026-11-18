@@ -1,8 +1,12 @@
 # NOTEZ v0.1.9
 
-**Status:** Production release candidate.
+**Status:** Production release, published.
 **Version:** `versionName 0.1.9`, `versionCode 10`.
-**Tag:** `v0.1.9`
+**Tag:** `v0.1.9` → commit `5905465`.
+**CI run:** [44413371930](https://github.com/mjurran-zaba/NOTEZ/actions/runs/44413371930) — `Build NOTEZ Production — v0.1.9`, success (3m30s).
+**Artifact:** `notez-v0.1.9-release`, 3.262.348 bytes.
+**SHA-256 APK:** `1ed6845feed6f68eaacdc9551d03b763909b309bd28bb4060ff68158bdfd6a21`.
+**GitHub Release:** <https://github.com/mjurran-zaba/NOTEZ/releases/tag/v0.1.9> — aset `NOTEZ-v0.1.9-release.apk`.
 
 ---
 
