@@ -242,6 +242,28 @@ class MarkdownPreviewRendererRecoveryGuardTest {
         )
     }
 
+    @Test
+    fun shellHtmlIsCachedPerThemeAndDoesNotTrimIndent() {
+        // Data perangkat Infinix SMART 9 HD: SHELL_HTML_ASSEMBLED memakan 510–636 ms
+        // hanya karena trimIndent() memecah string 185 KB menjadi 1.200 baris.
+        // Menghilangkan trimIndent() dan meng-cache shell per tema memangkas waktu ini.
+        val raw = SourceScan.readMainFile("java/com/zaba/notez/markdown/MarkdownPreviewRenderer.kt")
+        val body = functionBody(rendererCode, "private fun buildHtml(")
+        assertTrue("buildHtml tidak ditemukan", body.isNotEmpty())
+        assertFalse(
+            "buildHtml tidak boleh memanggil trimIndent() pada string 185 KB",
+            body.contains(".trimIndent()")
+        )
+        assertTrue(
+            "buildHtml harus mendukung cache shell per tema",
+            body.contains("cachedShellHtml") && body.contains("cachedShellTheme")
+        )
+        assertTrue(
+            "companion object harus menyediakan resetShellCacheForTest",
+            raw.contains("resetShellCacheForTest")
+        )
+    }
+
     /** Badan satu fungsi berdasarkan awal signature-nya. */
     private fun functionBody(code: String, signature: String): String {
         val start = code.indexOf(signature)

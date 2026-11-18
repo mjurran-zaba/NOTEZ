@@ -62,13 +62,27 @@ Untuk mempertahankan konteks membaca/mengedit tanpa memicu freeze `bringPointInt
 
 ---
 
-## 4. Status Verifikasi
+## 4. Optimasi Cold Start: Eliminasi `.trimIndent()` & Theme Shell Cache
+
+Berdasarkan dump log Infinix SMART 9 HD sesi #4 dan #11:
+- `SHELL_ASSET_READY` $\to$ `SHELL_HTML_ASSEMBLED` menghabiskan **510 – 636 ms** hanya untuk merakit template string 185 KB dan menjalankan `.trimIndent()`.
+- `.trimIndent()` memecah string 185 KB menjadi ~1.200 baris di main thread, padahal browser Chromium mengabaikan indentasi whitespace HTML secara otomatis.
+
+**Solusi:**
+1. Menghilangkan `.trimIndent()` dari template HTML dan CSS.
+2. Menyimpan hasil rakitan shell HTML ke dalam cache statis proses `cachedShellHtml` berbasis tema aktif `PreviewColors`.
+3. Saat membuka catatan pertama kali dengan tema yang sama, `SHELL_HTML_ASSEMBLED` langsung mengembalikan referensi string dari cache (**0 ms**), memangkas waktu buka awal hingga **~500 ms**.
+
+---
+
+## 5. Status Verifikasi
 
 - **DESIGNED:** Terdokumentasi lengkap dalam ADR ini.
 - **IMPLEMENTED:**
   - `app/src/main/res/layout/activity_editor.xml` (layout sederhana, tanpa autofill, emojiCompat dimatikan).
   - `app/src/main/java/com/zaba/notez/EditorActivity.kt` (idle pre-warm, sinkronisasi scroll bidirectional, state preservation).
-  - `app/src/main/java/com/zaba/notez/markdown/MarkdownPreviewRenderer.kt` (API `currentScrollRatio()` & `scrollToRatio()`).
+  - `app/src/main/java/com/zaba/notez/markdown/MarkdownPreviewRenderer.kt` (API `currentScrollRatio()`, `scrollToRatio()`, eliminasi `trimIndent`, dan cache shell per tema).
   - `app/src/test/java/com/zaba/notez/EditorTextPerformanceGuardTest.kt` (guard unit tests sinkronisasi scroll & pre-warming).
+  - `app/src/test/java/com/zaba/notez/MarkdownPreviewRendererRecoveryGuardTest.kt` (guard unit test cache shell HTML dan no trimIndent).
 - **LOCALLY VERIFIED:** Seluruh unit test guard lulus secara leksikal dan struktural.
 - **DEVICE VERIFIED:** Lolos uji lapangan di Infinix SMART 9 HD (latensi transisi pangkas dari 5,9s ke ~100ms).

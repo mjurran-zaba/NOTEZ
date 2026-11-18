@@ -359,6 +359,11 @@ class MarkdownPreviewRenderer(
 
     private fun buildHtml(): String {
         val colors = PreviewColors.from(activity)
+        val cached = cachedShellHtml
+        if (cached != null && cachedShellTheme == colors) {
+            perfTracker?.mark("SHELL_HTML_ASSEMBLED", "chars=${cached.length} cached=true")
+            return cached
+        }
         // Satu marker SHELL_BUILD_START→END menutupi tiga biaya berbeda: susun
         // CSS, baca asset markdown-it, dan rakit 183 KB HTML. Dipecah supaya
         // perbaikan cache asset bisa dibuktikan angkanya, bukan cuma diklaim.
@@ -1536,8 +1541,10 @@ class MarkdownPreviewRenderer(
               </script>
             </body>
             </html>
-        """.trimIndent()
-        perfTracker?.mark("SHELL_HTML_ASSEMBLED", "chars=${html.length}")
+        """
+        perfTracker?.mark("SHELL_HTML_ASSEMBLED", "chars=${html.length} cached=false")
+        cachedShellTheme = colors
+        cachedShellHtml = html
         return html
     }
 
@@ -1891,7 +1898,7 @@ class MarkdownPreviewRenderer(
           border-top: 1px solid var(--notez-border);
           margin: 1.35em 0;
         }
-    """.trimIndent()
+    """
 
 
     private fun cachedImagesJson(markdown: String): String {
@@ -2016,7 +2023,16 @@ class MarkdownPreviewRenderer(
         }
     }
 
-    private companion object {
+    internal companion object {
+        @Volatile private var cachedShellTheme: PreviewColors? = null
+        @Volatile private var cachedShellHtml: String? = null
+
+        /** Hanya untuk testing: reset cache shell HTML. */
+        internal fun resetShellCacheForTest() {
+            cachedShellTheme = null
+            cachedShellHtml = null
+        }
+
         /** Awalan console message berisi rincian fase JS. */
         private const val NOTEZ_RENDER_PHASES_PREFIX = "NOTEZ_RENDER_PHASES "
         private const val NOTEZ_HOST = "notez.local"
