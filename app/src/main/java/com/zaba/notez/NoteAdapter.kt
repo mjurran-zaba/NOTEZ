@@ -95,11 +95,11 @@ class NoteAdapter(
         val isSelected = selectedIds.contains(n.id)
 
         UiStyle.applyGlassCard(h.card, alpha = 185, radiusDp = 16f)
-        h.card.cardElevation = 0f
 
         if (isSelected) {
             h.card.strokeColor = UiStyle.primary(context)
-            h.card.strokeWidth = UiStyle.dp(context, 1.5f)
+            h.card.strokeWidth = UiStyle.dp(context, 2f)
+            h.card.cardElevation = UiStyle.dp(context, 3.5f).toFloat()
         }
 
         val isLight = ThemePref.isLightTheme(ThemePref.get(context))

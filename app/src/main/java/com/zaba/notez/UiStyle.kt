@@ -3,6 +3,7 @@ package com.zaba.notez
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.util.TypedValue
 import android.view.View
 import androidx.core.graphics.ColorUtils
@@ -10,11 +11,11 @@ import com.google.android.material.R as MaterialR
 import com.google.android.material.card.MaterialCardView
 
 /**
- * Small, theme-aware appearance helpers used by the native surfaces.
- *
- * NOTEZ does not use a blur dependency for its glass effect. Instead, the
- * cards use a translucent theme surface, a quiet outline, and the aurora
- * backdrop underneath. It keeps scrolling and older devices predictable.
+ * Theme-aware appearance helpers implementing Auroramorphism & Glassmorphism:
+ * - Directly tints card surfaces with curated theme pastels/accents
+ * - Specular hairline rims mimicking real frosted glass edges
+ * - Diagonal specular light reflection overlay (135 deg)
+ * - Subtle ambient depth & colored shadow glow (Android P+)
  */
 object UiStyle {
     fun resolveColor(context: Context, attr: Int, fallback: Int): Int {
@@ -40,29 +41,78 @@ object UiStyle {
         val context = card.context
         val isLight = ThemePref.isLightTheme(ThemePref.get(context))
         val surface = surface(context)
-        val primary = primary(context)
-        val outline = outline(context)
-        val glassStroke = if (isLight) {
-            ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 180),
-                ColorUtils.setAlphaComponent(outline, 80)
+        val opt = ThemePref.optionOf(ThemePref.get(context))
+        val accent = runCatching { context.getColor(opt.accentColorRes) }.getOrDefault(primary(context))
+
+        if (isLight) {
+            // Light mode: Tint card body directly with theme pastel (14% accent blend)
+            val tintedSurface = ColorUtils.blendARGB(surface, accent, 0.14f)
+            card.setCardBackgroundColor(ColorUtils.setAlphaComponent(tintedSurface, 218))
+
+            // Specular rim: crisp white reflection with subtle accent hue
+            val glassStroke = ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(Color.WHITE, 205),
+                ColorUtils.setAlphaComponent(accent, 70)
             )
+            card.setStrokeColor(glassStroke)
+            card.strokeWidth = dp(context, 1.2f)
+
+            // Elevation and colored ambient shadow glow
+            card.cardElevation = dp(context, 1.5f).toFloat()
+            card.maxCardElevation = dp(context, 2.5f).toFloat()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val glow = ColorUtils.blendARGB(Color.DKGRAY, accent, 0.35f)
+                card.outlineAmbientShadowColor = glow
+                card.outlineSpotShadowColor = glow
+            }
         } else {
-            ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(primary, 55),
-                ColorUtils.setAlphaComponent(outline, 70)
+            // Dark mode: Deep glass body with subtle theme tint (10% accent blend)
+            val tintedSurface = ColorUtils.blendARGB(surface, accent, 0.10f)
+            val darkAlpha = alpha.coerceIn(165, 225)
+            card.setCardBackgroundColor(ColorUtils.setAlphaComponent(tintedSurface, darkAlpha))
+
+            // Specular rim: translucent white highlight + neon accent
+            val glassStroke = ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(Color.WHITE, 65),
+                ColorUtils.setAlphaComponent(accent, 110)
             )
+            card.setStrokeColor(glassStroke)
+            card.strokeWidth = dp(context, 1.2f)
+
+            // Elevation and glowing neon ambient shadow
+            card.cardElevation = dp(context, 1.5f).toFloat()
+            card.maxCardElevation = dp(context, 2.5f).toFloat()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val glow = ColorUtils.setAlphaComponent(accent, 140)
+                card.outlineAmbientShadowColor = glow
+                card.outlineSpotShadowColor = glow
+            }
         }
-        val cardAlpha = if (isLight) 160 else alpha.coerceIn(0, 255)
-        card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, cardAlpha))
-        card.setStrokeColor(glassStroke)
-        card.strokeWidth = dp(context, 1.2f)
+
         card.setRadius(dp(context, radiusDp).toFloat())
-        card.cardElevation = 0f
-        card.maxCardElevation = 0f
         card.preventCornerOverlap = false
         card.useCompatPadding = false
-        card.setContentPadding(0, 0, 0, 0)
+
+        // Specular light reflection on card container (diagonal sheen 135 deg)
+        if (card.childCount > 0) {
+            val inner = card.getChildAt(0)
+            val sheenAlpha = if (isLight) 48 else 22
+            val specularGradient = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(
+                    ColorUtils.setAlphaComponent(Color.WHITE, sheenAlpha),
+                    Color.TRANSPARENT
+                )
+            ).apply {
+                cornerRadius = dp(context, radiusDp).toFloat()
+            }
+            val pStart = inner.paddingStart
+            val pTop = inner.paddingTop
+            val pEnd = inner.paddingEnd
+            val pBottom = inner.paddingBottom
+            inner.background = specularGradient
+            inner.setPaddingRelative(pStart, pTop, pEnd, pBottom)
+        }
     }
 
     fun applyDrawerGlass(view: View, alpha: Int = 230) {

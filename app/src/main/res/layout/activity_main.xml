@@ -215,7 +215,9 @@
                     android:paddingStart="8dp"
                     android:paddingTop="6dp"
                     android:paddingEnd="8dp"
-                    android:paddingBottom="92dp" />
+                    android:paddingBottom="92dp"
+                    android:requiresFadingEdge="vertical"
+                    android:fadingEdgeLength="36dp" />
 
                 <LinearLayout
                     android:id="@+id/empty_welcome"

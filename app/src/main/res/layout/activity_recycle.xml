@@ -79,6 +79,7 @@
         app:strokeWidth="1dp">
 
         <TextView
+            android:id="@+id/recycle_info_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="12dp"
@@ -100,7 +101,9 @@
             android:clipToPadding="false"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
-            android:paddingBottom="16dp" />
+            android:paddingBottom="16dp"
+            android:requiresFadingEdge="vertical"
+            android:fadingEdgeLength="36dp" />
 
         <TextView
             android:id="@+id/recycle_empty"

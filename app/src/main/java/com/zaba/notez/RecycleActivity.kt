@@ -46,6 +46,10 @@ class RecycleActivity : AppCompatActivity() {
 
         val infoCard = findViewById<MaterialCardView>(R.id.recycle_info_card)
         UiStyle.applyGlassCard(infoCard, alpha = 185, radiusDp = 14f)
+        val infoText = findViewById<TextView>(R.id.recycle_info_text)
+        if (ThemePref.isLightTheme(ThemePref.get(this))) {
+            infoText?.setTextColor(Color.parseColor("#2E3A31"))
+        }
 
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter
