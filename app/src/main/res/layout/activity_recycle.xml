@@ -102,13 +102,6 @@
             android:paddingEnd="10dp"
             android:paddingBottom="16dp" />
 
-        <View
-            android:id="@+id/recycle_top_fade"
-            android:layout_width="match_parent"
-            android:layout_height="14dp"
-            android:layout_gravity="top"
-            android:importantForAccessibility="no" />
-
         <TextView
             android:id="@+id/recycle_empty"
             android:layout_width="wrap_content"

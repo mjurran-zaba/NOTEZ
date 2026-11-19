@@ -45,7 +45,6 @@ class RecycleActivity : AppCompatActivity() {
 
         val infoCard = findViewById<MaterialCardView>(R.id.recycle_info_card)
         UiStyle.applyGlassCard(infoCard, alpha = 185, radiusDp = 14f)
-        findViewById<View>(R.id.recycle_top_fade)?.background = UiStyle.createTopFadeGradient(this)
 
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter
@@ -115,6 +114,15 @@ class RecycleActivity : AppCompatActivity() {
         override fun onBindViewHolder(h: Holder, position: Int) {
             val note = items[position]
             UiStyle.applyGlassCard(h.card, alpha = 185, radiusDp = 16f)
+
+            val isLight = ThemePref.isLightTheme(ThemePref.get(h.itemView.context))
+            if (isLight) {
+                h.title.setTextColor(Color.parseColor("#1C241E"))
+                h.date.setTextColor(Color.parseColor("#4A5568"))
+            } else {
+                h.title.setTextColor(UiStyle.resolveColor(h.itemView.context, com.google.android.material.R.attr.colorOnSurface, Color.WHITE))
+                h.date.setTextColor(UiStyle.resolveColor(h.itemView.context, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.LTGRAY))
+            }
 
             h.title.text = note.title.ifBlank { "(tanpa judul)" }
             val deletedDate = note.deletedAt?.let { Date(it) } ?: Date(note.updatedAt)

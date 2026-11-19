@@ -101,6 +101,17 @@ class NoteAdapter(
             h.card.strokeWidth = UiStyle.dp(context, 1.5f)
         }
 
+        val isLight = ThemePref.isLightTheme(ThemePref.get(context))
+        if (isLight) {
+            h.title.setTextColor(Color.parseColor("#1C241E"))
+            h.preview.setTextColor(Color.parseColor("#2E3A31"))
+            h.meta.setTextColor(Color.parseColor("#4A5568"))
+        } else {
+            h.title.setTextColor(UiStyle.resolveColor(context, com.google.android.material.R.attr.colorOnSurface, Color.WHITE))
+            h.preview.setTextColor(UiStyle.resolveColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.LTGRAY))
+            h.meta.setTextColor(UiStyle.resolveColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.GRAY))
+        }
+
         h.title.text = n.title.ifBlank { "(tanpa judul)" }
 
         val previewText = n.content.lines().filter { it.isNotBlank() }.take(2).joinToString(" ").take(120)

@@ -47,8 +47,6 @@ class MarkdownGuideActivity : AppCompatActivity() {
         val webView = findViewById<WebView>(R.id.guide_body_web)
         markdownPreview = MarkdownPreviewRenderer(this, webView)
 
-        findViewById<View>(R.id.guide_top_fade)?.background = UiStyle.createTopFadeGradient(this)
-
         val guideMarkdown = assets.open("help/markdown_guide.md").bufferedReader().use { it.readText() }
         sections = MarkdownGuideParser.parse(guideMarkdown)
 
@@ -71,11 +69,12 @@ class MarkdownGuideActivity : AppCompatActivity() {
         indexList.removeAllViews()
         val grouped = sections.groupBy { it.group }
 
+        val isLight = ThemePref.isLightTheme(ThemePref.get(this))
         grouped.forEach { (groupName, groupSections) ->
             val groupHeader = TextView(this).apply {
                 text = groupName
-                setTextColor(UiStyle.primary(this@MarkdownGuideActivity))
-                setPadding(dp(16), dp(20), dp(16), dp(8))
+                setTextColor(if (isLight) android.graphics.Color.parseColor("#25542E") else UiStyle.primary(this@MarkdownGuideActivity))
+                setPadding(dp(12), dp(18), dp(12), dp(6))
                 textSize = 12f
                 typeface = Typeface.DEFAULT_BOLD
                 letterSpacing = 0.08f
@@ -83,30 +82,27 @@ class MarkdownGuideActivity : AppCompatActivity() {
             indexList.addView(groupHeader)
 
             groupSections.forEach { section ->
-                val rowView = layoutInflater.inflate(R.layout.item_guide_toc, indexList, false)
-                val titleView = rowView.findViewById<TextView>(R.id.toc_title)
-                val summaryView = rowView.findViewById<TextView>(R.id.toc_summary)
+                val cardView = layoutInflater.inflate(R.layout.item_guide_toc, indexList, false) as com.google.android.material.card.MaterialCardView
+                val titleView = cardView.findViewById<TextView>(R.id.toc_title)
+                val summaryView = cardView.findViewById<TextView>(R.id.toc_summary)
 
                 titleView.text = section.title
                 summaryView.text = section.summary
-                rowView.background = UiStyle.roundedBackground(
-                    this,
-                    fillAlpha = 58,
-                    strokeAlpha = 42,
-                    radiusDp = 14f
-                )
-                val rippleAttrs = obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground))
-                rowView.foreground = rippleAttrs.getDrawable(0)
-                rippleAttrs.recycle()
-                (rowView.layoutParams as? LinearLayout.LayoutParams)?.apply {
-                    setMargins(dp(8), 0, dp(8), dp(6))
+                UiStyle.applyGlassCard(cardView, alpha = 160, radiusDp = 16f)
+
+                if (isLight) {
+                    titleView.setTextColor(android.graphics.Color.parseColor("#1C241E"))
+                    summaryView.setTextColor(android.graphics.Color.parseColor("#2E3A31"))
+                } else {
+                    titleView.setTextColor(UiStyle.resolveColor(this@MarkdownGuideActivity, com.google.android.material.R.attr.colorOnSurface, android.graphics.Color.WHITE))
+                    summaryView.setTextColor(UiStyle.resolveColor(this@MarkdownGuideActivity, com.google.android.material.R.attr.colorOnSurfaceVariant, android.graphics.Color.LTGRAY))
                 }
 
-                rowView.setOnClickListener {
+                cardView.setOnClickListener {
                     openSectionById(section.id)
                 }
 
-                indexList.addView(rowView)
+                indexList.addView(cardView)
             }
         }
 

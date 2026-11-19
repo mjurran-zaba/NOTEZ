@@ -44,8 +44,8 @@ object UiStyle {
         val outline = outline(context)
         val glassStroke = if (isLight) {
             ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(primary, 45),
-                ColorUtils.setAlphaComponent(outline, 85)
+                ColorUtils.setAlphaComponent(Color.WHITE, 180),
+                ColorUtils.setAlphaComponent(outline, 80)
             )
         } else {
             ColorUtils.compositeColors(
@@ -53,10 +53,10 @@ object UiStyle {
                 ColorUtils.setAlphaComponent(outline, 70)
             )
         }
-        val cardAlpha = if (isLight) 235 else alpha.coerceIn(0, 255)
+        val cardAlpha = if (isLight) 160 else alpha.coerceIn(0, 255)
         card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, cardAlpha))
         card.setStrokeColor(glassStroke)
-        card.strokeWidth = dp(context, 1f)
+        card.strokeWidth = dp(context, 1.2f)
         card.setRadius(dp(context, radiusDp).toFloat())
         card.cardElevation = 0f
         card.maxCardElevation = 0f
@@ -67,16 +67,6 @@ object UiStyle {
 
     fun applyDrawerGlass(view: View, alpha: Int = 230) {
         view.setBackgroundColor(ColorUtils.setAlphaComponent(surface(view.context), alpha.coerceIn(0, 255)))
-    }
-
-    fun createTopFadeGradient(context: Context): GradientDrawable {
-        val bg = windowBackground(context)
-        val isLight = ThemePref.isLightTheme(ThemePref.get(context))
-        val startColor = ColorUtils.setAlphaComponent(bg, if (isLight) 235 else 200)
-        return GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(startColor, Color.TRANSPARENT)
-        )
     }
 
     fun roundedBackground(
