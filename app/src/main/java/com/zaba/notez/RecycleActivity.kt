@@ -118,7 +118,7 @@ class RecycleActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(h: Holder, position: Int) {
             val note = items[position]
-            UiStyle.applyGlassCard(h.card, alpha = 160, radiusDp = 16f)
+            UiStyle.applyGlassCard(h.card, alpha = 160, radiusDp = 16f, seed = note.id.hashCode())
             h.card.cardElevation = 0f
 
             val isLight = ThemePref.isLightTheme(ThemePref.get(h.itemView.context))

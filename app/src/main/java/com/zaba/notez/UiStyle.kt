@@ -22,7 +22,8 @@ import com.google.android.material.card.MaterialCardView
 
 /**
  * Theme-aware appearance helpers implementing authentic Auroramorphism & Glassmorphism:
- * - Multi-zone chromatic Aurora glass cards with organic directional blending
+ * - Multi-zone chromatic Aurora glass cards with organic abstract cloud diffusion
+ * - Deterministic procedural seeding per card so every card is unique, living, and anti-slop
  * - Specular hairline rims mimicking real frosted glass edges
  * - High-contrast text legibility with tactile specular light reflection
  * - Zero elevation to keep background aurora rendering smooth and predictable
@@ -69,7 +70,8 @@ object UiStyle {
         card: MaterialCardView,
         alpha: Int = 160,
         radiusDp: Float = 16f,
-        isSelected: Boolean = false
+        isSelected: Boolean = false,
+        seed: Int = card.hashCode()
     ) {
         val context = card.context
         val isLight = ThemePref.isLightTheme(ThemePref.get(context))
@@ -86,7 +88,7 @@ object UiStyle {
         card.strokeColor = Color.TRANSPARENT
         card.strokeWidth = 0
 
-        // 2. Pasang AuroraGlassDrawable dengan 6 zona spektrum aurora abstrak bergelombang
+        // 2. Pasang AuroraGlassDrawable dengan sebaran aurora abstrak organik acak (bukan garis pelangi)
         card.background = AuroraGlassDrawable(
             context = context,
             radiusPx = dp(context, radiusDp).toFloat(),
@@ -95,7 +97,8 @@ object UiStyle {
             primaryColor = primary(context),
             outlineColor = outline(context),
             alpha = alpha,
-            isSelected = isSelected
+            isSelected = isSelected,
+            seed = seed
         )
 
         // 3. Pastikan inner view tidak menumpuk background yang menghalangi
@@ -130,8 +133,8 @@ object UiStyle {
 }
 
 /**
- * Custom glass drawable that renders 6 distinct organic aurora zones
- * via flowing multi-stop linear gradient coupled with organic polar wave hills.
+ * Custom glass drawable that renders procedural, organic, non-linear
+ * aurora blooms with unique abstract asymmetry per card.
  */
 class AuroraGlassDrawable(
     private val context: Context,
@@ -141,13 +144,12 @@ class AuroraGlassDrawable(
     private val primaryColor: Int,
     private val outlineColor: Int,
     private val alpha: Int = 160,
-    private val isSelected: Boolean = false
+    private val isSelected: Boolean = false,
+    private val seed: Int = 0
 ) : Drawable() {
 
     private val basePaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val auroraFlowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val hillAPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val hillBPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val bloomPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glazePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -158,6 +160,17 @@ class AuroraGlassDrawable(
     private val strokeRect = RectF()
 
     private val strokeWidthPx = (if (isSelected) 2f else 1.2f) * context.resources.displayMetrics.density
+
+    private data class OrganicBloom(
+        val relX: Float,
+        val relY: Float,
+        val relRadius: Float,
+        val color: Int,
+        val alpha: Int
+    )
+
+    private var bloomList: List<OrganicBloom> = emptyList()
+    private var bloomShaders: List<RadialGradient> = emptyList()
 
     init {
         strokePaint.strokeWidth = strokeWidthPx
@@ -174,6 +187,49 @@ class AuroraGlassDrawable(
                 ColorUtils.setAlphaComponent(primaryColor, 110)
             )
         }
+
+        setupOrganicBlooms()
+    }
+
+    private fun setupOrganicBlooms() {
+        val opt = ThemePref.optionOf(ThemePref.get(context))
+        val rng = kotlin.random.Random(seed)
+
+        val fullPalette: List<Int> = if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
+            // Palet 6 Warna Aurora Matcha Cream Paper (rekomendasi user + aksen tema)
+            listOf(
+                Color.parseColor("#9ED872"), // Lime Mint
+                Color.parseColor("#8EBEF5"), // Biru Awan Pudar (Rekomendasi User)
+                Color.parseColor("#FCD14D"), // Kuning Pudar (Rekomendasi User)
+                Color.parseColor("#FBAC7A"), // Warm Peach Amber
+                Color.parseColor("#4D8852"), // Matcha Leaf
+                Color.parseColor("#60A370")  // Soft Sage Moss
+            )
+        } else {
+            val accent = UiStyle.accentTint(context)
+            val secondary = UiStyle.secondaryTint(context)
+            val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.35f)
+            val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FCD34D"), 0.40f)
+            val peachShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FB7185"), 0.30f)
+            val deepAccent = ColorUtils.blendARGB(accent, Color.BLACK, 0.20f)
+            listOf(accent, coolShift, warmShift, peachShift, deepAccent, secondary)
+        }
+
+        // Pilih 3 sampai 4 warna secara acak deterministik per kartu agar tidak menumpuk jadi becek
+        val count = rng.nextInt(3, 5)
+        val chosenColors = fullPalette.shuffled(rng).take(count)
+
+        // Sebar titik-titik bukit aurora secara abstrak dan asimetris (bukan garis lurus paralel)
+        val baseAlpha = if (isLight) 140 else 115
+        bloomList = chosenColors.map { color ->
+            OrganicBloom(
+                relX = rng.nextFloat() * 0.82f + 0.09f,
+                relY = rng.nextFloat() * 0.82f + 0.09f,
+                relRadius = rng.nextFloat() * 0.32f + 0.48f,
+                color = color,
+                alpha = baseAlpha + rng.nextInt(-15, 18)
+            )
+        }
     }
 
     override fun onBoundsChange(bounds: Rect) {
@@ -182,6 +238,7 @@ class AuroraGlassDrawable(
 
         val w = bounds.width().toFloat()
         val h = bounds.height().toFloat()
+        val maxDim = w.coerceAtLeast(h)
 
         cardRect.set(bounds)
         val inset = strokeWidthPx / 2f
@@ -190,10 +247,10 @@ class AuroraGlassDrawable(
         clipPath.reset()
         clipPath.addRoundRect(cardRect, radiusPx, radiusPx, Path.Direction.CW)
 
-        // 1. Dasar Frosted Glass Transparan (menjaga kontras teks tanpa menutup warna aurora)
+        // 1. Dasar Frosted Glass Transparan (menjaga keterbacaan teks tanpa memblokir warna)
         val baseColor = if (isLight) Color.WHITE else surfaceColor
-        val topBaseAlpha = if (isLight) 120 else 190
-        val bottomBaseAlpha = if (isLight) 70 else 110
+        val topBaseAlpha = if (isLight) 130 else 195
+        val bottomBaseAlpha = if (isLight) 80 else 115
         basePaint.shader = LinearGradient(
             0f, 0f, w, h,
             intArrayOf(
@@ -204,88 +261,25 @@ class AuroraGlassDrawable(
             Shader.TileMode.CLAMP
         )
 
-        // 2. Aliran 6 Spektrum Warna Aurora (Multi-Stop Linear: setiap warna punya zona tersendiri, blend mulus tanpa bertumpuk jadi becek)
-        val opt = ThemePref.optionOf(ThemePref.get(context))
-        val (auroraColors, cHillA, cHillB) = if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
-            val cLimeMint = Color.parseColor("#9ED872")
-            val cCloudBlue = Color.parseColor("#8EBEF5")
-            val cPaleYellow = Color.parseColor("#FCD14D")
-            val cPeachAmber = Color.parseColor("#FBAC7A")
-            val cMatchaLeaf = Color.parseColor("#4D8852")
-            val cSageMoss = Color.parseColor("#60A370")
-
-            Triple(
+        // 2. Pre-compute Radial Shaders untuk awan-awan aurora abstrak
+        bloomShaders = bloomList.map { b ->
+            val cx = w * b.relX
+            val cy = h * b.relY
+            val radius = maxDim * b.relRadius
+            val a = b.alpha
+            RadialGradient(
+                cx, cy, radius,
                 intArrayOf(
-                    ColorUtils.setAlphaComponent(cLimeMint, 145),   // Stop 0.00: Lime Mint (Kiri-Atas)
-                    ColorUtils.setAlphaComponent(cCloudBlue, 140),  // Stop 0.20: Biru Awan Pudar
-                    ColorUtils.setAlphaComponent(cPaleYellow, 155), // Stop 0.42: Kuning Pudar (Puncak Terang)
-                    ColorUtils.setAlphaComponent(cPeachAmber, 135), // Stop 0.62: Warm Peach Amber
-                    ColorUtils.setAlphaComponent(cMatchaLeaf, 140), // Stop 0.82: Matcha Leaf
-                    ColorUtils.setAlphaComponent(cSageMoss, 130)   // Stop 1.00: Soft Sage (Kanan-Bawah)
+                    ColorUtils.setAlphaComponent(b.color, a),
+                    ColorUtils.setAlphaComponent(b.color, (a * 0.45f).toInt()),
+                    0
                 ),
-                cCloudBlue,
-                cPaleYellow
-            )
-        } else {
-            val accent = UiStyle.accentTint(context)
-            val secondary = UiStyle.secondaryTint(context)
-            val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.35f)
-            val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FCD34D"), 0.40f)
-            val peachShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FB7185"), 0.30f)
-            val deepAccent = ColorUtils.blendARGB(accent, Color.BLACK, 0.20f)
-            val a = if (isLight) 130 else 110
-
-            Triple(
-                intArrayOf(
-                    ColorUtils.setAlphaComponent(accent, a),
-                    ColorUtils.setAlphaComponent(coolShift, a - 5),
-                    ColorUtils.setAlphaComponent(warmShift, a + 10),
-                    ColorUtils.setAlphaComponent(peachShift, a - 10),
-                    ColorUtils.setAlphaComponent(deepAccent, a),
-                    ColorUtils.setAlphaComponent(secondary, a - 15)
-                ),
-                coolShift,
-                warmShift
+                floatArrayOf(0f, 0.48f, 1f),
+                Shader.TileMode.CLAMP
             )
         }
 
-        val auroraPositions = floatArrayOf(0.0f, 0.20f, 0.42f, 0.62f, 0.82f, 1.0f)
-        auroraFlowPaint.shader = LinearGradient(
-            0f, h * 0.15f,
-            w, h * 0.85f,
-            auroraColors,
-            auroraPositions,
-            Shader.TileMode.CLAMP
-        )
-
-        // 3. Kontur Bukit Aurora Organik (Memberi gelombang/lembah alami aurora kutub bergelombang)
-        // Bukit A: Puncak Awan Dingin di atas kiri-tengah
-        val radiusHillA = (h * 1.15f).coerceAtLeast(w * 0.45f)
-        hillAPaint.shader = RadialGradient(
-            w * 0.30f, 0f, radiusHillA,
-            intArrayOf(
-                ColorUtils.setAlphaComponent(cHillA, 115),
-                ColorUtils.setAlphaComponent(cHillA, 55),
-                0
-            ),
-            floatArrayOf(0f, 0.50f, 1f),
-            Shader.TileMode.CLAMP
-        )
-
-        // Bukit B: Punggung Madu Hangat di bawah kanan-tengah
-        val radiusHillB = (h * 1.20f).coerceAtLeast(w * 0.48f)
-        hillBPaint.shader = RadialGradient(
-            w * 0.55f, h, radiusHillB,
-            intArrayOf(
-                ColorUtils.setAlphaComponent(cHillB, 125),
-                ColorUtils.setAlphaComponent(cHillB, 60),
-                0
-            ),
-            floatArrayOf(0f, 0.52f, 1f),
-            Shader.TileMode.CLAMP
-        )
-
-        // 4. Glaze pantulan kaca diagonal 135 derajat
+        // 3. Glaze pantulan kaca diagonal 135 derajat
         val glazeAlpha = if (isLight) 44 else 22
         glazePaint.shader = LinearGradient(
             0f, 0f, w * 0.85f, h * 0.85f,
@@ -307,19 +301,19 @@ class AuroraGlassDrawable(
         // 1. Dasar Frosted Glass
         canvas.drawRect(cardRect, basePaint)
 
-        // 2. Aliran 6 Spektrum Warna Aurora (Linear Multi-Stop, zona warna terdefinisi)
-        canvas.drawRect(cardRect, auroraFlowPaint)
+        // 2. Awan-awan Aurora Abstrak Organik (Setiap kartu punya sebaran unik & hidup)
+        for (shader in bloomShaders) {
+            bloomPaint.shader = shader
+            canvas.drawRect(cardRect, bloomPaint)
+        }
+        bloomPaint.shader = null
 
-        // 3. Kontur Bukit & Ombak Aurora Organik
-        canvas.drawRect(cardRect, hillAPaint)
-        canvas.drawRect(cardRect, hillBPaint)
-
-        // 4. Glaze Pantulan Kaca 135 Derajat
+        // 3. Glaze Pantulan Kaca 135 Derajat
         canvas.drawRect(cardRect, glazePaint)
 
         canvas.restore()
 
-        // 5. Specular Hairline Rim
+        // 4. Specular Hairline Rim
         canvas.drawRoundRect(strokeRect, radiusPx, radiusPx, strokePaint)
     }
 

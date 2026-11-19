@@ -88,7 +88,7 @@ class MarkdownGuideActivity : AppCompatActivity() {
 
                 titleView.text = section.title
                 summaryView.text = section.summary
-                UiStyle.applyGlassCard(cardView, alpha = 160, radiusDp = 16f)
+                UiStyle.applyGlassCard(cardView, alpha = 160, radiusDp = 16f, seed = section.id.hashCode())
 
                 if (isLight) {
                     titleView.setTextColor(android.graphics.Color.parseColor("#1C241E"))
