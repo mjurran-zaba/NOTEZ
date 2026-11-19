@@ -44,8 +44,7 @@ class RecycleActivity : AppCompatActivity() {
         btnClearAll = findViewById(R.id.btn_recycle_clear_all)
 
         val infoCard = findViewById<MaterialCardView>(R.id.recycle_info_card)
-        infoCard.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(this), 224))
-        infoCard.setStrokeColor(ColorUtils.setAlphaComponent(UiStyle.outline(this), 45))
+        UiStyle.applyGlassCard(infoCard, alpha = 185, radiusDp = 14f)
 
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter
@@ -114,9 +113,7 @@ class RecycleActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(h: Holder, position: Int) {
             val note = items[position]
-            val context = h.itemView.context
-            h.card.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(context), 224))
-            h.card.setStrokeColor(ColorUtils.setAlphaComponent(UiStyle.outline(context), 45))
+            UiStyle.applyGlassCard(h.card, alpha = 185, radiusDp = 16f)
 
             h.title.text = note.title.ifBlank { "(tanpa judul)" }
             val deletedDate = note.deletedAt?.let { Date(it) } ?: Date(note.updatedAt)

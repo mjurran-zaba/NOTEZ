@@ -18,6 +18,10 @@ object ThemePref {
     const val TOKYO_NIGHT = 11
     const val KAWAII_CATPUCINN = 12
     const val GLOOME_DARK_SUNSET = 13
+    const val AURORA_BOREALIS = 14
+    const val CYBER_OBSIDIAN = 15
+    const val SUNSET_MIRAGE = 16
+    const val MATCHA_CREAM_PAPER = 17
 
     private const val PREF = "notez"
     private const val KEY = "theme"
@@ -218,6 +222,58 @@ object ThemePref {
             accentColorRes = R.color.cobalt_accent,
             outlineColorRes = R.color.cobalt_outline,
             dangerColorRes = R.color.cobalt_danger
+        ),
+        ThemeOption(
+            value = AURORA_BOREALIS,
+            name = "Aurora Borealis",
+            description = "Hijau zamrud & cyan kosmik dengan kabut kaca imersif.",
+            styleRes = R.style.Theme_Notez_AuroraBorealis,
+            backgroundColorRes = R.color.aurora_borealis_bg,
+            surfaceColorRes = R.color.aurora_borealis_surface,
+            textColorRes = R.color.aurora_borealis_text,
+            secondaryColorRes = R.color.aurora_borealis_secondary,
+            accentColorRes = R.color.aurora_borealis_accent,
+            outlineColorRes = R.color.aurora_borealis_outline,
+            dangerColorRes = R.color.aurora_borealis_danger
+        ),
+        ThemeOption(
+            value = CYBER_OBSIDIAN,
+            name = "Cyber Obsidian",
+            description = "Obsidian pekat dengan aksen ungu neon elektrik.",
+            styleRes = R.style.Theme_Notez_CyberObsidian,
+            backgroundColorRes = R.color.cyber_obsidian_bg,
+            surfaceColorRes = R.color.cyber_obsidian_surface,
+            textColorRes = R.color.cyber_obsidian_text,
+            secondaryColorRes = R.color.cyber_obsidian_secondary,
+            accentColorRes = R.color.cyber_obsidian_accent,
+            outlineColorRes = R.color.cyber_obsidian_outline,
+            dangerColorRes = R.color.cyber_obsidian_danger
+        ),
+        ThemeOption(
+            value = SUNSET_MIRAGE,
+            name = "Sunset Mirage",
+            description = "Senja hangat dengan pantulan amber dan persik.",
+            styleRes = R.style.Theme_Notez_SunsetMirage,
+            backgroundColorRes = R.color.sunset_mirage_bg,
+            surfaceColorRes = R.color.sunset_mirage_surface,
+            textColorRes = R.color.sunset_mirage_text,
+            secondaryColorRes = R.color.sunset_mirage_secondary,
+            accentColorRes = R.color.sunset_mirage_accent,
+            outlineColorRes = R.color.sunset_mirage_outline,
+            dangerColorRes = R.color.sunset_mirage_danger
+        ),
+        ThemeOption(
+            value = MATCHA_CREAM_PAPER,
+            name = "Matcha Cream Paper",
+            description = "Mode siang/kertas teduh dengan aksen daun matcha.",
+            styleRes = R.style.Theme_Notez_MatchaCreamPaper,
+            backgroundColorRes = R.color.matcha_cream_paper_bg,
+            surfaceColorRes = R.color.matcha_cream_paper_surface,
+            textColorRes = R.color.matcha_cream_paper_text,
+            secondaryColorRes = R.color.matcha_cream_paper_secondary,
+            accentColorRes = R.color.matcha_cream_paper_accent,
+            outlineColorRes = R.color.matcha_cream_paper_outline,
+            dangerColorRes = R.color.matcha_cream_paper_danger
         )
     )
 

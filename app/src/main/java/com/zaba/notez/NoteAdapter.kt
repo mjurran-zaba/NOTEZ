@@ -93,7 +93,7 @@ class NoteAdapter(
         val context = h.itemView.context
         val isSelected = selectedIds.contains(n.id)
 
-        h.card.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(context), 224))
+        h.card.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(context), 185))
         h.card.setRadius(UiStyle.dp(context, 16f).toFloat())
         h.card.setCardElevation(UiStyle.dp(context, 1.5f).toFloat())
 
@@ -101,7 +101,13 @@ class NoteAdapter(
             h.card.strokeColor = UiStyle.primary(context)
             h.card.strokeWidth = UiStyle.dp(context, 1.5f)
         } else {
-            h.card.setStrokeColor(ColorUtils.setAlphaComponent(UiStyle.outline(context), 45))
+            val primary = UiStyle.primary(context)
+            val outline = UiStyle.outline(context)
+            val glassStroke = ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(primary, 55),
+                ColorUtils.setAlphaComponent(outline, 70)
+            )
+            h.card.strokeColor = glassStroke
             h.card.strokeWidth = UiStyle.dp(context, 1f)
         }
 

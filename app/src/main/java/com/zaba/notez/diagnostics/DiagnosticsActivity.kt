@@ -3,7 +3,13 @@ package com.zaba.notez.diagnostics
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -12,6 +18,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.ColorUtils
+import com.google.android.material.card.MaterialCardView
 import com.zaba.notez.R
 import com.zaba.notez.ThemePref
 import com.zaba.notez.UiStyle
@@ -20,22 +28,33 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Diagnostics: riwayat sesi performa + breadcrumb global.
- *
- * Riwayat (bukan hanya sesi terakhir) penting karena satu sesi catatan bisa
- * diikuti sesi cache-hit kecil, dan membuka catatan lain membuat tracker baru.
- * Breadcrumb global menampilkan tap dan lifecycle yang terjadi di luar tracker.
+ * Diagnostics Console: Terminal ADB Logcat style emulator with syntax highlighting,
+ * performance trace summaries, multi-tag filtering, and ANR-safe windowing.
  */
 class DiagnosticsActivity : AppCompatActivity() {
 
-    private lateinit var sessionMeta: TextView
-    private lateinit var timelineContainer: LinearLayout
-    private lateinit var breadcrumbLabel: TextView
-    private lateinit var breadcrumbMeta: TextView
-    private lateinit var breadcrumbContainer: LinearLayout
+    enum class LogFilter(val label: String) {
+        ALL("SEMUA"),
+        PERF("PERF"),
+        HOME("HOME"),
+        EDITOR("EDITOR"),
+        MUSIC("MUSIC"),
+        CRASH("CRASH")
+    }
+
+    private lateinit var filterContainer: LinearLayout
+    private lateinit var logEntriesContainer: LinearLayout
+    private lateinit var terminalPrompt: TextView
+    private lateinit var btnLoadMore: TextView
     private lateinit var emptyDiagnostics: TextView
+    private lateinit var logCountMeta: TextView
     private lateinit var btnCopy: Button
+    private lateinit var btnShare: Button
     private lateinit var btnClear: Button
+
+    private var currentFilter = LogFilter.ALL
+    private var renderWindowSize = RENDER_WINDOW_DEFAULT
+    private var cachedFullText: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(ThemePref.styleOf(ThemePref.get(this)))
@@ -45,16 +64,25 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.btn_back).setOnClickListener { finish() }
 
-        sessionMeta = findViewById(R.id.session_meta)
-        timelineContainer = findViewById(R.id.timeline_container)
-        breadcrumbLabel = findViewById(R.id.breadcrumb_label)
-        breadcrumbMeta = findViewById(R.id.breadcrumb_meta)
-        breadcrumbContainer = findViewById(R.id.breadcrumb_container)
+        filterContainer = findViewById(R.id.filter_container)
+        logEntriesContainer = findViewById(R.id.log_entries_container)
+        terminalPrompt = findViewById(R.id.terminal_prompt)
+        btnLoadMore = findViewById(R.id.btn_load_more)
         emptyDiagnostics = findViewById(R.id.empty_diagnostics)
+        logCountMeta = findViewById(R.id.log_count_meta)
         btnCopy = findViewById(R.id.btn_copy)
+        btnShare = findViewById(R.id.btn_share)
         btnClear = findViewById(R.id.btn_clear)
 
-        btnCopy.setOnClickListener { copyBreadcrumbToClipboard() }
+        setupFilterChips()
+
+        btnLoadMore.setOnClickListener {
+            renderWindowSize += RENDER_WINDOW_DEFAULT
+            renderDiagnostics()
+        }
+
+        btnCopy.setOnClickListener { copyToClipboard() }
+        btnShare.setOnClickListener { shareDiagnostics() }
         btnClear.setOnClickListener {
             PerfStore.clear()
             Breadcrumb.clear()
@@ -62,25 +90,24 @@ class DiagnosticsActivity : AppCompatActivity() {
             Toast.makeText(this, "Diagnostics dibersihkan", Toast.LENGTH_SHORT).show()
         }
 
-        Breadcrumb.add("DIAG", "DiagnosticsActivity dibuka")
+        Breadcrumb.add("DIAG", "DiagnosticsActivity dibuka (Logcat Console)")
         renderDiagnostics()
     }
 
     private fun applyScreenPolish() {
         findViewById<View>(R.id.diagnostics_toolbar).background =
             UiStyle.roundedBackground(this, fillAlpha = 78, strokeAlpha = 52, radiusDp = 18f)
-        listOf(R.id.session_meta, R.id.breadcrumb_meta).forEach { id ->
-            findViewById<TextView>(id).background =
-                UiStyle.roundedBackground(this, fillAlpha = 52, strokeAlpha = 42, radiusDp = 16f)
-            findViewById<TextView>(id).setPadding(
-                UiStyle.dp(this, 14f),
-                UiStyle.dp(this, 12f),
-                UiStyle.dp(this, 14f),
-                UiStyle.dp(this, 12f)
-            )
-        }
-        findViewById<TextView>(R.id.empty_diagnostics).background =
-            UiStyle.roundedBackground(this, fillAlpha = 52, strokeAlpha = 42, radiusDp = 18f)
+
+        val terminalCard = findViewById<MaterialCardView>(R.id.terminal_card)
+        terminalCard.setCardBackgroundColor(Color.parseColor("#080C12"))
+        val primary = UiStyle.primary(this)
+        val outline = UiStyle.outline(this)
+        terminalCard.strokeColor = ColorUtils.compositeColors(
+            ColorUtils.setAlphaComponent(primary, 60),
+            ColorUtils.setAlphaComponent(outline, 80)
+        )
+        terminalCard.strokeWidth = UiStyle.dp(this, 1f)
+
         findViewById<View>(R.id.diagnostics_actions).background =
             UiStyle.roundedBackground(this, fillAlpha = 42, strokeAlpha = 34, radiusDp = 16f)
         findViewById<View>(R.id.diagnostics_actions).setPadding(
@@ -89,235 +116,291 @@ class DiagnosticsActivity : AppCompatActivity() {
             UiStyle.dp(this, 10f),
             UiStyle.dp(this, 6f)
         )
-        findViewById<Button>(R.id.btn_copy).text = "SALIN"
-        findViewById<Button>(R.id.btn_clear).text = "BERSIHKAN"
+
+        btnLoadMore.background = UiStyle.roundedBackground(this, fillAlpha = 40, strokeAlpha = 45, radiusDp = 8f)
+    }
+
+    private fun setupFilterChips() {
+        filterContainer.removeAllViews()
+        LogFilter.values().forEach { filter ->
+            val chip = TextView(this).apply {
+                text = filter.label
+                typeface = Typeface.MONOSPACE
+                textSize = 12f
+                setPadding(
+                    UiStyle.dp(this@DiagnosticsActivity, 14f),
+                    UiStyle.dp(this@DiagnosticsActivity, 6f),
+                    UiStyle.dp(this@DiagnosticsActivity, 14f),
+                    UiStyle.dp(this@DiagnosticsActivity, 6f)
+                )
+                val isSelected = filter == currentFilter
+                if (isSelected) {
+                    background = UiStyle.roundedBackground(
+                        this@DiagnosticsActivity,
+                        fillAlpha = 190,
+                        strokeAlpha = 220,
+                        radiusDp = 14f
+                    )
+                    setTextColor(Color.parseColor("#051C12"))
+                } else {
+                    background = UiStyle.roundedBackground(
+                        this@DiagnosticsActivity,
+                        fillAlpha = 40,
+                        strokeAlpha = 50,
+                        radiusDp = 14f
+                    )
+                    setTextColor(UiStyle.resolveColor(this@DiagnosticsActivity, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.LTGRAY))
+                }
+                setOnClickListener {
+                    currentFilter = filter
+                    renderWindowSize = RENDER_WINDOW_DEFAULT
+                    setupFilterChips()
+                    renderDiagnostics()
+                }
+            }
+            val lp = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { marginEnd = UiStyle.dp(this@DiagnosticsActivity, 8f) }
+            filterContainer.addView(chip, lp)
+        }
     }
 
     private fun renderDiagnostics() {
-        val sessions = PerfStore.getSessions()
-        val breadcrumbs = Breadcrumb.snapshot()
-        timelineContainer.removeAllViews()
-        breadcrumbContainer.removeAllViews()
+        logEntriesContainer.removeAllViews()
 
-        if (sessions.isEmpty() && breadcrumbs.isEmpty()) {
-            sessionMeta.visibility = View.GONE
-            timelineContainer.visibility = View.GONE
-            breadcrumbLabel.visibility = View.GONE
-            breadcrumbMeta.visibility = View.GONE
-            breadcrumbContainer.visibility = View.GONE
+        val sessions = PerfStore.getSessions()
+        val allBreadcrumbs = Breadcrumb.snapshot()
+
+        // Filter breadcrumbs
+        val filteredBreadcrumbs = when (currentFilter) {
+            LogFilter.ALL -> allBreadcrumbs
+            LogFilter.PERF -> allBreadcrumbs.filter { it.area.contains("PERF", ignoreCase = true) }
+            LogFilter.HOME -> allBreadcrumbs.filter { it.area.contains("HOME", ignoreCase = true) }
+            LogFilter.EDITOR -> allBreadcrumbs.filter { it.area.contains("EDITOR", ignoreCase = true) }
+            LogFilter.MUSIC -> allBreadcrumbs.filter { it.area.contains("MUSIC", ignoreCase = true) }
+            LogFilter.CRASH -> allBreadcrumbs.filter {
+                val upper = it.message.uppercase(Locale.US)
+                upper.contains("CRASH") || upper.contains("FATAL") || upper.contains("ERROR") ||
+                    upper.contains("FAIL") || upper.contains("EXCEPTION") || upper.contains("THROWABLE")
+            }
+        }
+
+        val showTrace = (currentFilter == LogFilter.ALL || currentFilter == LogFilter.PERF) && sessions.isNotEmpty()
+        val totalCount = filteredBreadcrumbs.size + (if (showTrace) sessions.size else 0)
+
+        if (totalCount == 0) {
             emptyDiagnostics.visibility = View.VISIBLE
+            emptyDiagnostics.text = "(tidak ada rekaman log untuk filter '${currentFilter.label}')"
+            btnLoadMore.visibility = View.GONE
+            logCountMeta.text = "0 events"
             btnCopy.isEnabled = false
-            btnClear.isEnabled = false
+            btnShare.isEnabled = false
+            cachedFullText = ""
             return
         }
 
         emptyDiagnostics.visibility = View.GONE
         btnCopy.isEnabled = true
-        btnClear.isEnabled = true
+        btnShare.isEnabled = true
 
-        if (sessions.isEmpty()) {
-            sessionMeta.visibility = View.GONE
-            timelineContainer.visibility = View.GONE
+        val displayedBreadcrumbs = filteredBreadcrumbs.takeLast(renderWindowSize)
+        val hasMore = filteredBreadcrumbs.size > displayedBreadcrumbs.size
+
+        if (hasMore) {
+            btnLoadMore.visibility = View.VISIBLE
+            btnLoadMore.text = "▲ [ADB BUFFER: Menampilkan ${displayedBreadcrumbs.size} dari ${filteredBreadcrumbs.size} baris — Ketuk untuk muat $RENDER_WINDOW_DEFAULT lebih lama]"
         } else {
-            sessionMeta.visibility = View.VISIBLE
-            timelineContainer.visibility = View.VISIBLE
-            sessionMeta.text = buildString {
-                append("${sessions.size} sesi tersimpan, terbaru di atas")
-                if (sessions.size > MAX_RENDERED_SESSIONS) {
-                    append(" • hanya $MAX_RENDERED_SESSIONS terbaru ditampilkan")
-                }
-            }
-            sessions.take(MAX_RENDERED_SESSIONS).forEachIndexed { index, session ->
-                addSessionHeader(session, index + 1)
-                session.events.forEachIndexed { eventIndex, event ->
-                    val previous = session.events.getOrNull(eventIndex - 1)?.elapsedMs ?: 0L
-                    addRow(
-                        container = timelineContainer,
-                        title = "● ${event.name}",
-                        subtitle = buildString {
-                            append("+${event.elapsedMs} ms")
-                            append(" · Δ ${event.elapsedMs - previous} ms")
-                            if (event.thread != "main") append(" · ${event.thread}")
-                            if (event.detail.isNotBlank()) append(" · ${event.detail}")
-                        },
-                        titleColor = getColor(ThemePref.optionOf(ThemePref.get(this)).textColorRes)
-                    )
-                }
-                if (session.droppedEvents > 0) {
-                    addInfoLine(timelineContainer, "${session.droppedEvents} event dipotong (batas per sesi)")
-                }
-                if (session.events.isEmpty()) {
-                    addInfoLine(timelineContainer, "sesi kosong")
-                }
-            }
+            btnLoadMore.visibility = View.GONE
         }
 
-        if (breadcrumbs.isEmpty()) {
-            breadcrumbLabel.visibility = View.GONE
-            breadcrumbMeta.visibility = View.GONE
-            breadcrumbContainer.visibility = View.GONE
-        } else {
-            breadcrumbLabel.visibility = View.VISIBLE
-            breadcrumbMeta.visibility = View.VISIBLE
-            breadcrumbContainer.visibility = View.VISIBLE
-            breadcrumbMeta.text = buildString {
-                append("${breadcrumbs.size} kejadian terakhir, urut lama → baru")
-                val dropped = Breadcrumb.droppedCount()
-                if (dropped > 0) append(" • $dropped lama dibuang")
-            }
-            breadcrumbs.takeLast(MAX_RENDERED_BREADCRUMBS).forEach { entry ->
-                addRow(
-                    container = breadcrumbContainer,
-                    title = "${clock(entry.wallClockMs)} · ${entry.area}",
-                    subtitle = entry.message + if (entry.thread == "main") "" else " · ${entry.thread}",
-                    titleColor = UiStyle.primary(this)
+        logCountMeta.text = buildString {
+            append("${displayedBreadcrumbs.size} / ${filteredBreadcrumbs.size} events")
+            val dropped = Breadcrumb.droppedCount()
+            if (dropped > 0) append(" ($dropped dropped)")
+        }
+
+        // Build master spannable output for logcat window
+        val spanBuilder = SpannableStringBuilder()
+        val plainBuilder = StringBuilder()
+
+        plainBuilder.appendLine("--------- beginning of NOTEZ logcat (${currentFilter.label})")
+
+        // 1. Render Systrace Summary if applicable
+        if (showTrace) {
+            val traceText = buildTraceSummary(sessions)
+            appendColoredLine(spanBuilder, traceText, Color.parseColor("#38BDF8"))
+            plainBuilder.appendLine(traceText)
+        }
+
+        // 2. Render Logcat lines
+        displayedBreadcrumbs.forEach { entry ->
+            val level = determineLogLevel(entry.area, entry.message)
+            val levelColor = colorForLevel(level, entry.area)
+            val timeStr = clock(entry.wallClockMs)
+            val tagStr = "$level/NOTEZ_${entry.area.uppercase(Locale.US)}"
+            val threadStr = if (entry.thread == "main") "" else " [${entry.thread}]"
+
+            // Plain text line for clipboard/share
+            plainBuilder.appendLine("$timeStr $tagStr: ${entry.message}$threadStr")
+
+            // Spannable formatted line
+            val lineStart = spanBuilder.length
+
+            // Timestamp (gray/teal)
+            spanBuilder.append(timeStr)
+            spanBuilder.setSpan(
+                ForegroundColorSpan(Color.parseColor("#88AAB5")),
+                lineStart,
+                spanBuilder.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+
+            spanBuilder.append(" ")
+
+            // Level and Tag (color coded)
+            val tagStart = spanBuilder.length
+            spanBuilder.append(tagStr)
+            spanBuilder.setSpan(
+                ForegroundColorSpan(levelColor),
+                tagStart,
+                spanBuilder.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+
+            spanBuilder.append(": ")
+
+            // Message body (light frost)
+            val msgStart = spanBuilder.length
+            spanBuilder.append(entry.message)
+            spanBuilder.setSpan(
+                ForegroundColorSpan(Color.parseColor("#E0E6ED")),
+                msgStart,
+                spanBuilder.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+
+            // Thread info if not main
+            if (threadStr.isNotEmpty()) {
+                val threadStart = spanBuilder.length
+                spanBuilder.append(threadStr)
+                spanBuilder.setSpan(
+                    ForegroundColorSpan(Color.parseColor("#667788")),
+                    threadStart,
+                    spanBuilder.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
             }
+
+            spanBuilder.append("\n")
         }
-    }
 
-    private fun addSessionHeader(session: PerfSession, index: Int) {
-        val view = TextView(this)
-        view.text = buildString {
-            append("#$index · ${session.label.uppercase(Locale.US)}")
-            append(" · ${clock(session.startedAtWallClock)}")
-            append(" · note ${session.noteId ?: "N/A"}")
-            append("\n${session.durationMs} ms · ${session.events.size} event")
-            if (session.droppedEvents > 0) append(" (+${session.droppedEvents} dipotong)")
+        cachedFullText = plainBuilder.toString()
+
+        val consoleTextView = TextView(this).apply {
+            typeface = Typeface.MONOSPACE
+            textSize = 11.5f
+            setTextColor(Color.parseColor("#E0E6ED"))
+            setTextIsSelectable(true)
+            setLineSpacing(UiStyle.dp(this@DiagnosticsActivity, 3f).toFloat(), 1f)
+            text = spanBuilder
         }
-        view.setTextColor(UiStyle.primary(this))
-        view.textSize = 14f
-        view.setTypeface(view.typeface, android.graphics.Typeface.BOLD)
-        view.background = UiStyle.roundedBackground(this, fillAlpha = 64, strokeAlpha = 46, radiusDp = 16f)
-        view.setPadding(
-            UiStyle.dp(this, 14f),
-            UiStyle.dp(this, 10f),
-            UiStyle.dp(this, 14f),
-            UiStyle.dp(this, 10f)
-        )
-        timelineContainer.addView(
-            view,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = UiStyle.dp(this@DiagnosticsActivity, if (index == 1) 4f else 20f)
-                bottomMargin = UiStyle.dp(this@DiagnosticsActivity, 8f)
-            }
-        )
+
+        logEntriesContainer.addView(consoleTextView)
     }
 
-    private fun addRow(
-        container: LinearLayout,
-        title: String,
-        subtitle: String,
-        titleColor: Int
-    ) {
-        val itemView = layoutInflater.inflate(
-            android.R.layout.simple_list_item_2,
-            container,
-            false
-        )
-        val text1 = itemView.findViewById<TextView>(android.R.id.text1)
-        val text2 = itemView.findViewById<TextView>(android.R.id.text2)
-
-        text1.text = title
-        text1.setTextColor(titleColor)
-        text1.textSize = 15f
-
-        text2.text = subtitle
-        text2.setTextColor(UiStyle.primary(this))
-        text2.textSize = 12f
-        text2.setTextIsSelectable(true)
-
-        itemView.background = UiStyle.roundedBackground(
-            this,
-            fillAlpha = 42,
-            strokeAlpha = 34,
-            radiusDp = 14f
-        )
-        itemView.setPadding(
-            UiStyle.dp(this, 14f),
-            UiStyle.dp(this, 8f),
-            UiStyle.dp(this, 14f),
-            UiStyle.dp(this, 8f)
-        )
-        container.addView(
-            itemView,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = UiStyle.dp(this@DiagnosticsActivity, 6f) }
-        )
-    }
-
-    private fun addInfoLine(container: LinearLayout, text: String) {
-        val view = TextView(this)
-        view.text = text
-        view.setTextColor(getColor(ThemePref.optionOf(ThemePref.get(this)).secondaryColorRes))
-        view.textSize = 12f
-        view.setPadding(
-            UiStyle.dp(this, 14f),
-            UiStyle.dp(this, 2f),
-            UiStyle.dp(this, 14f),
-            UiStyle.dp(this, 6f)
-        )
-        container.addView(view)
-    }
-
-    private fun copyBreadcrumbToClipboard() {
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("NOTEZ Diagnostics", buildPlainText())
-        clipboard.setPrimaryClip(clip)
-        Toast.makeText(this, "Diagnostics tersalin ke clipboard", Toast.LENGTH_SHORT).show()
-    }
-
-    /** Format teks yang sama dengan tampilan, supaya bisa ditempel ke chat. */
-    private fun buildPlainText(): String {
-        val sb = StringBuilder()
-        sb.appendLine("NOTEZ Diagnostics")
-        sb.appendLine()
-
-        PerfStore.getSessions().forEachIndexed { index, session ->
-            sb.appendLine(
+    private fun buildTraceSummary(sessions: List<PerfSession>): String = buildString {
+        appendLine("================ PERFORMANCE TRACE SUMMARY ================")
+        sessions.take(MAX_SESSIONS_SUMMARY).forEachIndexed { index, session ->
+            appendLine(
                 "#${index + 1} ${session.label.uppercase(Locale.US)} · " +
                     "${clock(session.startedAtWallClock)} · " +
                     "note ${session.noteId ?: "N/A"} · " +
                     "${session.durationMs}ms · ${session.events.size} event" +
-                    (if (session.droppedEvents > 0) " (+${session.droppedEvents} dipotong)" else "")
+                    (if (session.droppedEvents > 0) " (+${session.droppedEvents} dropped)" else "")
             )
             session.events.forEachIndexed { eventIndex, event ->
-                val previous = session.events.getOrNull(eventIndex - 1)?.elapsedMs ?: 0L
-                sb.appendLine(
-                    buildString {
-                        append("${event.name} +${event.elapsedMs}ms")
-                        append(" Δ${event.elapsedMs - previous}")
-                        if (event.thread != "main") append(" [${event.thread}]")
-                        if (event.detail.isNotBlank()) append(" · ${event.detail}")
-                    }
+                val prev = session.events.getOrNull(eventIndex - 1)?.elapsedMs ?: 0L
+                val isLast = eventIndex == session.events.lastIndex
+                val treePrefix = if (isLast) "   └─ " else "   ├─ "
+                appendLine(
+                    String.format(
+                        Locale.US,
+                        "%s%-24s +%4dms (Δ%4dms)%s%s",
+                        treePrefix,
+                        event.name,
+                        event.elapsedMs,
+                        event.elapsedMs - prev,
+                        if (event.thread != "main") " [${event.thread}]" else "",
+                        if (event.detail.isNotBlank()) " · ${event.detail}" else ""
+                    )
                 )
             }
-            sb.appendLine()
+            if (index < sessions.take(MAX_SESSIONS_SUMMARY).lastIndex) {
+                appendLine("-----------------------------------------------------------")
+            }
         }
+        appendLine("===========================================================")
+    }
 
-        val breadcrumbs = Breadcrumb.snapshot()
-        if (breadcrumbs.isNotEmpty()) {
-            sb.appendLine("Breadcrumb Global (${breadcrumbs.size} kejadian)")
-            breadcrumbs.forEach { entry ->
-                sb.appendLine(
-                    "${clock(entry.wallClockMs)} [${entry.area}] ${entry.message}" +
-                        (if (entry.thread == "main") "" else " (${entry.thread})")
-                )
-            }
+    private fun determineLogLevel(area: String, message: String): String {
+        val upper = message.uppercase(Locale.US)
+        return when {
+            upper.contains("CRASH") || upper.contains("FATAL") || upper.contains("ERROR") ||
+                upper.contains("FAIL") || upper.contains("EXCEPTION") || upper.contains("THROWABLE") -> "E"
+            upper.contains("WARN") || upper.contains("SLOW") || upper.contains("DROP") ||
+                upper.contains("ANR") -> "W"
+            upper.contains("PAINT_REAL") || upper.contains("READY") || upper.contains("SUCCESS") ||
+                upper.contains("INIT") -> "I"
+            area.equals("MUSIC", ignoreCase = true) -> "D"
+            else -> "V"
         }
-        return sb.toString()
+    }
+
+    private fun colorForLevel(level: String, area: String): Int = when (level) {
+        "E" -> Color.parseColor("#FF6B6B") // Coral Red
+        "W" -> Color.parseColor("#FFC600") // Amber
+        "I" -> Color.parseColor("#39FF14") // Neon Green
+        "D" -> if (area.equals("MUSIC", ignoreCase = true)) Color.parseColor("#38BDF8") else Color.parseColor("#7AA2F7")
+        else -> Color.parseColor("#A8E6CF") // Mint
+    }
+
+    private fun appendColoredLine(builder: SpannableStringBuilder, text: String, color: Int) {
+        val start = builder.length
+        builder.append(text)
+        if (!text.endsWith("\n")) builder.append("\n")
+        builder.setSpan(
+            ForegroundColorSpan(color),
+            start,
+            builder.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+    }
+
+    private fun copyToClipboard() {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("NOTEZ Logcat Diagnostics", cachedFullText)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(this, "Logcat diagnostics disalin ke clipboard", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun shareDiagnostics() {
+        if (cachedFullText.isBlank()) return
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, cachedFullText)
+            putExtra(Intent.EXTRA_TITLE, "NOTEZ Logcat Diagnostics")
+            type = "text/plain"
+        }
+        val chooser = Intent.createChooser(sendIntent, "Bagikan NOTEZ Diagnostics")
+        startActivity(chooser)
     }
 
     private fun clock(wallClockMs: Long): String =
         SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date(wallClockMs))
 
     private companion object {
-        const val MAX_RENDERED_SESSIONS = 15
-        const val MAX_RENDERED_BREADCRUMBS = 300
+        const val RENDER_WINDOW_DEFAULT = 500
+        const val MAX_SESSIONS_SUMMARY = 10
     }
 }

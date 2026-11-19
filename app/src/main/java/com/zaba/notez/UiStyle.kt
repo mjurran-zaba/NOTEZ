@@ -36,17 +36,24 @@ object UiStyle {
     fun windowBackground(context: Context): Int =
         resolveColor(context, android.R.attr.windowBackground, surface(context))
 
-    fun applyGlassCard(card: MaterialCardView, alpha: Int = 224, radiusDp: Float = 18f) {
+    fun applyGlassCard(card: MaterialCardView, alpha: Int = 185, radiusDp: Float = 18f) {
         val context = card.context
-        card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface(context), alpha.coerceIn(0, 255)))
-        card.setStrokeColor(ColorUtils.setAlphaComponent(primary(context), 70))
+        val surface = surface(context)
+        val primary = primary(context)
+        val outline = outline(context)
+        val glassStroke = ColorUtils.compositeColors(
+            ColorUtils.setAlphaComponent(primary, 55),
+            ColorUtils.setAlphaComponent(outline, 70)
+        )
+        card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, alpha.coerceIn(0, 255)))
+        card.setStrokeColor(glassStroke)
         card.strokeWidth = dp(context, 1f)
         card.setRadius(dp(context, radiusDp).toFloat())
         card.setCardElevation(dp(context, 2f).toFloat())
         card.setContentPadding(0, 0, 0, 0)
     }
 
-    fun applyDrawerGlass(view: View, alpha: Int = 242) {
+    fun applyDrawerGlass(view: View, alpha: Int = 230) {
         view.setBackgroundColor(ColorUtils.setAlphaComponent(surface(view.context), alpha.coerceIn(0, 255)))
     }
 

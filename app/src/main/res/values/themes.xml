@@ -200,4 +200,61 @@
         <item name="colorOutline">@color/gloome_dark_sunset_outline</item>
         <item name="colorError">@color/gloome_dark_sunset_danger</item>
     </style>
+
+    <!-- Theme System v3: Curated Glass & Immersive Themes -->
+    <style name="Theme.Notez.AuroraBorealis" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/aurora_borealis_accent</item>
+        <item name="colorOnPrimary">@color/aurora_borealis_on_accent</item>
+        <item name="colorPrimaryContainer">@color/aurora_borealis_accent</item>
+        <item name="colorOnPrimaryContainer">@color/aurora_borealis_on_accent</item>
+        <item name="android:windowBackground">@color/aurora_borealis_bg</item>
+        <item name="colorSurface">@color/aurora_borealis_surface</item>
+        <item name="colorOnSurface">@color/aurora_borealis_text</item>
+        <item name="colorSurfaceVariant">@color/aurora_borealis_surface</item>
+        <item name="colorOnSurfaceVariant">@color/aurora_borealis_secondary</item>
+        <item name="colorOutline">@color/aurora_borealis_outline</item>
+        <item name="colorError">@color/aurora_borealis_danger</item>
+    </style>
+
+    <style name="Theme.Notez.CyberObsidian" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/cyber_obsidian_accent</item>
+        <item name="colorOnPrimary">@color/cyber_obsidian_on_accent</item>
+        <item name="colorPrimaryContainer">@color/cyber_obsidian_accent</item>
+        <item name="colorOnPrimaryContainer">@color/cyber_obsidian_on_accent</item>
+        <item name="android:windowBackground">@color/cyber_obsidian_bg</item>
+        <item name="colorSurface">@color/cyber_obsidian_surface</item>
+        <item name="colorOnSurface">@color/cyber_obsidian_text</item>
+        <item name="colorSurfaceVariant">@color/cyber_obsidian_surface</item>
+        <item name="colorOnSurfaceVariant">@color/cyber_obsidian_secondary</item>
+        <item name="colorOutline">@color/cyber_obsidian_outline</item>
+        <item name="colorError">@color/cyber_obsidian_danger</item>
+    </style>
+
+    <style name="Theme.Notez.SunsetMirage" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/sunset_mirage_accent</item>
+        <item name="colorOnPrimary">@color/sunset_mirage_on_accent</item>
+        <item name="colorPrimaryContainer">@color/sunset_mirage_accent</item>
+        <item name="colorOnPrimaryContainer">@color/sunset_mirage_on_accent</item>
+        <item name="android:windowBackground">@color/sunset_mirage_bg</item>
+        <item name="colorSurface">@color/sunset_mirage_surface</item>
+        <item name="colorOnSurface">@color/sunset_mirage_text</item>
+        <item name="colorSurfaceVariant">@color/sunset_mirage_surface</item>
+        <item name="colorOnSurfaceVariant">@color/sunset_mirage_secondary</item>
+        <item name="colorOutline">@color/sunset_mirage_outline</item>
+        <item name="colorError">@color/sunset_mirage_danger</item>
+    </style>
+
+    <style name="Theme.Notez.MatchaCreamPaper" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/matcha_cream_paper_accent</item>
+        <item name="colorOnPrimary">@color/matcha_cream_paper_on_accent</item>
+        <item name="colorPrimaryContainer">@color/matcha_cream_paper_accent</item>
+        <item name="colorOnPrimaryContainer">@color/matcha_cream_paper_on_accent</item>
+        <item name="android:windowBackground">@color/matcha_cream_paper_bg</item>
+        <item name="colorSurface">@color/matcha_cream_paper_surface</item>
+        <item name="colorOnSurface">@color/matcha_cream_paper_text</item>
+        <item name="colorSurfaceVariant">@color/matcha_cream_paper_surface</item>
+        <item name="colorOnSurfaceVariant">@color/matcha_cream_paper_secondary</item>
+        <item name="colorOutline">@color/matcha_cream_paper_outline</item>
+        <item name="colorError">@color/matcha_cream_paper_danger</item>
+    </style>
 </resources>

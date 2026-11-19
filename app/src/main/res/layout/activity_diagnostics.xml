@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -14,137 +15,176 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@android:color/transparent"
-        android:padding="16dp">
-
-    <LinearLayout
-        android:id="@+id/diagnostics_toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <ImageButton
-            android:id="@+id/btn_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Kembali"
-            android:padding="8dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_lucide_arrow_left"
-            android:tint="?attr/colorOnSurface" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:text="NOTEZ Diagnostics"
-            android:textColor="?attr/colorOnSurface"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <ScrollView
-        android:id="@+id/diagnostics_scroll"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="12dp"
-        android:fillViewport="true">
+        android:padding="12dp">
 
         <LinearLayout
-            android:id="@+id/session_container"
+            android:id="@+id/diagnostics_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp">
+
+            <ImageButton
+                android:id="@+id/btn_back"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Kembali"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_lucide_arrow_left"
+                android:tint="?attr/colorOnSurface" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="NOTEZ Logcat"
+                android:typeface="monospace"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/status_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="adb online"
+                android:typeface="monospace"
+                android:textColor="#39FF14"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:background="@drawable/bg_diag_badge" />
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:id="@+id/filter_scroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingBottom="20dp">
-
-            <TextView
-                android:id="@+id/session_meta"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="13sp"
-                android:layout_marginBottom="16dp" />
-
-            <TextView
-                android:id="@+id/diagnostics_section_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Performance Timeline"
-                android:textColor="?attr/colorPrimary"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:scrollbars="none">
 
             <LinearLayout
-                android:id="@+id/timeline_container"
-                android:layout_width="match_parent"
+                android:id="@+id/filter_container"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/terminal_card"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
+
+            <ScrollView
+                android:id="@+id/diagnostics_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true">
+
+                <LinearLayout
+                    android:id="@+id/terminal_body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:id="@+id/terminal_prompt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:typeface="monospace"
+                        android:textSize="11sp"
+                        android:textColor="#88AAB5"
+                        android:text="$ adb logcat -v time -s NOTEZ:V\n--------- beginning of system &amp; diagnostics" />
+
+                    <TextView
+                        android:id="@+id/btn_load_more"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="10dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginBottom="4dp"
+                        android:typeface="monospace"
+                        android:textSize="11sp"
+                        android:textColor="?attr/colorPrimary"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/log_entries_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="6dp" />
+
+                    <TextView
+                        android:id="@+id/empty_diagnostics"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:paddingTop="36dp"
+                        android:paddingBottom="36dp"
+                        android:typeface="monospace"
+                        android:text="(tidak ada rekaman log untuk filter ini)"
+                        android:textColor="#667788"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </ScrollView>
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:id="@+id/diagnostics_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical">
 
             <TextView
-                android:id="@+id/breadcrumb_label"
-                android:layout_width="match_parent"
+                android:id="@+id/log_count_meta"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Breadcrumb Global"
-                android:textColor="?attr/colorPrimary"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/breadcrumb_meta"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:typeface="monospace"
+                android:textSize="11sp"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="13sp"
-                android:layout_marginBottom="12dp" />
+                android:text="0 events" />
 
-            <LinearLayout
-                android:id="@+id/breadcrumb_container"
-                android:layout_width="match_parent"
+            <Button
+                android:id="@+id/btn_copy"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:text="SALIN"
+                android:layout_marginEnd="6dp" />
 
-            <TextView
-                android:id="@+id/empty_diagnostics"
-                android:layout_width="match_parent"
+            <Button
+                android:id="@+id/btn_share"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:paddingTop="48dp"
-                android:paddingBottom="48dp"
-                android:text="Belum ada data performance diagnostic.\nBuka catatan untuk mengukur cold-open."
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="14sp"
-                android:visibility="gone" />
+                android:text="BAGIKAN"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/btn_clear"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BERSIHKAN" />
         </LinearLayout>
-    </ScrollView>
-
-    <LinearLayout
-        android:id="@+id/diagnostics_actions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="12dp"
-        android:gravity="end">
-
-        <Button
-            android:id="@+id/btn_copy"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="COPY"
-            android:layout_marginEnd="12dp" />
-
-        <Button
-            android:id="@+id/btn_clear"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="CLEAR" />
-    </LinearLayout>
     </LinearLayout>
 </FrameLayout>

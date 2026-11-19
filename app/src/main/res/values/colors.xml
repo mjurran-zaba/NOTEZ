@@ -119,6 +119,48 @@
     <color name="gloome_dark_sunset_on_accent">#2B1006</color>
     <color name="gloome_dark_sunset_danger">#FFB4AB</color>
     <color name="gloome_dark_sunset_outline">#443034</color>
+
+    <!-- Curated Glass & Immersive Themes (Theme System v3) -->
+    <!-- Aurora Borealis (Cosmic Emerald & Teal Glass) -->
+    <color name="aurora_borealis_bg">#080C14</color>
+    <color name="aurora_borealis_surface">#111824</color>
+    <color name="aurora_borealis_text">#E8F8F5</color>
+    <color name="aurora_borealis_secondary">#88AAB5</color>
+    <color name="aurora_borealis_accent">#00F5A0</color>
+    <color name="aurora_borealis_on_accent">#051C12</color>
+    <color name="aurora_borealis_danger">#FFB4AB</color>
+    <color name="aurora_borealis_outline">#233845</color>
+
+    <!-- Cyber Obsidian (Deep Velvet & Neon Violet) -->
+    <color name="cyber_obsidian_bg">#0A0A0F</color>
+    <color name="cyber_obsidian_surface">#14141F</color>
+    <color name="cyber_obsidian_text">#F0EEF8</color>
+    <color name="cyber_obsidian_secondary">#9A94B8</color>
+    <color name="cyber_obsidian_accent">#8B5CF6</color>
+    <color name="cyber_obsidian_on_accent">#160B29</color>
+    <color name="cyber_obsidian_danger">#FFB4AB</color>
+    <color name="cyber_obsidian_outline">#2E2A42</color>
+
+    <!-- Sunset Mirage (Warm Amber Dusk Glass) -->
+    <color name="sunset_mirage_bg">#120B0E</color>
+    <color name="sunset_mirage_surface">#1F1418</color>
+    <color name="sunset_mirage_text">#FBECE8</color>
+    <color name="sunset_mirage_secondary">#BA9B95</color>
+    <color name="sunset_mirage_accent">#FF7E5F</color>
+    <color name="sunset_mirage_on_accent">#2B0E07</color>
+    <color name="sunset_mirage_danger">#FFB4AB</color>
+    <color name="sunset_mirage_outline">#402830</color>
+
+    <!-- Matcha Cream Paper (Teduh Day / Paper Mode) -->
+    <color name="matcha_cream_paper_bg">#F6F4ED</color>
+    <color name="matcha_cream_paper_surface">#FFFFFF</color>
+    <color name="matcha_cream_paper_text">#1C241E</color>
+    <color name="matcha_cream_paper_secondary">#5A6B5F</color>
+    <color name="matcha_cream_paper_accent">#386B42</color>
+    <color name="matcha_cream_paper_on_accent">#FFFFFF</color>
+    <color name="matcha_cream_paper_danger">#BA1A1A</color>
+    <color name="matcha_cream_paper_outline">#D5DDD4</color>
+
     <!-- Alias lama (kompatibilitas) -->
     <color name="bg_page">#050806</color>
     <color name="bg_surface">#101410</color>

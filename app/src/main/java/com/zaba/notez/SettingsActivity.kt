@@ -31,6 +31,15 @@ class SettingsActivity : AppCompatActivity() {
 
     private val themeGroups = listOf(
         ThemeGroup(
+            title = "IMMERSIVE & GLASS",
+            values = listOf(
+                ThemePref.AURORA_BOREALIS,
+                ThemePref.CYBER_OBSIDIAN,
+                ThemePref.SUNSET_MIRAGE,
+                ThemePref.MATCHA_CREAM_PAPER
+            )
+        ),
+        ThemeGroup(
             title = "NOTEZ SIGNATURE",
             values = listOf(ThemePref.OLED, ThemePref.NOTEZ_YOU_DARK, ThemePref.COBALT2, ThemePref.NOTEZ_YOU_WARM)
         ),
