@@ -10,11 +10,10 @@ import com.google.android.material.R as MaterialR
 import com.google.android.material.card.MaterialCardView
 
 /**
- * Theme-aware appearance helpers implementing Auroramorphism & Glassmorphism:
- * - Directly tints card surfaces with curated theme pastels/accents
- * - Specular hairline rims mimicking real frosted glass edges
- * - Diagonal specular light reflection overlay (135 deg)
- * - Zero elevation to keep scrolling and background aurora rendering predictable
+ * Theme-aware appearance helpers implementing authentic Auroramorphism & Glassmorphism:
+ * - Translucent frosted glass card body (alpha 145) allowing Aurora backdrop to glow through
+ * - Crisp specular white hairline rim (1.2dp) for optical glass definition
+ * - Zero elevation to keep background aurora rendering smooth and predictable
  */
 object UiStyle {
     fun resolveColor(context: Context, attr: Int, fallback: Int): Int {
@@ -36,65 +35,45 @@ object UiStyle {
     fun windowBackground(context: Context): Int =
         resolveColor(context, android.R.attr.windowBackground, surface(context))
 
-    fun applyGlassCard(card: MaterialCardView, alpha: Int = 185, radiusDp: Float = 18f) {
+    fun applyGlassCard(card: MaterialCardView, alpha: Int = 145, radiusDp: Float = 16f) {
         val context = card.context
         val isLight = ThemePref.isLightTheme(ThemePref.get(context))
         val surface = surface(context)
-        val opt = ThemePref.optionOf(ThemePref.get(context))
-        val accent = runCatching { context.getColor(opt.accentColorRes) }.getOrDefault(primary(context))
+        val primary = primary(context)
+        val outline = outline(context)
 
-        if (isLight) {
-            // Light mode: Tint card body directly with theme pastel (14% accent blend)
-            val tintedSurface = ColorUtils.blendARGB(surface, accent, 0.14f)
-            card.setCardBackgroundColor(ColorUtils.setAlphaComponent(tintedSurface, 218))
-
-            // Specular rim: crisp white reflection with subtle accent hue
-            val glassStroke = ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 205),
-                ColorUtils.setAlphaComponent(accent, 70)
+        val glassStroke = if (isLight) {
+            ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(Color.WHITE, 195),
+                ColorUtils.setAlphaComponent(outline, 65)
             )
-            card.setStrokeColor(glassStroke)
-            card.strokeWidth = dp(context, 1.2f)
         } else {
-            // Dark mode: Deep glass body with subtle theme tint (10% accent blend)
-            val tintedSurface = ColorUtils.blendARGB(surface, accent, 0.10f)
-            val darkAlpha = alpha.coerceIn(165, 225)
-            card.setCardBackgroundColor(ColorUtils.setAlphaComponent(tintedSurface, darkAlpha))
-
-            // Specular rim: translucent white highlight + neon accent
-            val glassStroke = ColorUtils.compositeColors(
+            ColorUtils.compositeColors(
                 ColorUtils.setAlphaComponent(Color.WHITE, 65),
-                ColorUtils.setAlphaComponent(accent, 110)
+                ColorUtils.setAlphaComponent(primary, 100)
             )
-            card.setStrokeColor(glassStroke)
-            card.strokeWidth = dp(context, 1.2f)
         }
 
+        val cardAlpha = if (isLight) 145 else alpha.coerceIn(160, 220)
+        card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, cardAlpha))
+        card.setStrokeColor(glassStroke)
+        card.strokeWidth = dp(context, 1.2f)
         card.setRadius(dp(context, radiusDp).toFloat())
         card.cardElevation = 0f
         card.maxCardElevation = 0f
         card.preventCornerOverlap = false
         card.useCompatPadding = false
 
-        // Specular light reflection on card container (diagonal sheen 135 deg)
         if (card.childCount > 0) {
             val inner = card.getChildAt(0)
-            val sheenAlpha = if (isLight) 48 else 22
-            val specularGradient = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(
-                    ColorUtils.setAlphaComponent(Color.WHITE, sheenAlpha),
-                    Color.TRANSPARENT
-                )
-            ).apply {
-                cornerRadius = dp(context, radiusDp).toFloat()
+            if (inner.background is GradientDrawable) {
+                val pStart = inner.paddingStart
+                val pTop = inner.paddingTop
+                val pEnd = inner.paddingEnd
+                val pBottom = inner.paddingBottom
+                inner.background = null
+                inner.setPaddingRelative(pStart, pTop, pEnd, pBottom)
             }
-            val pStart = inner.paddingStart
-            val pTop = inner.paddingTop
-            val pEnd = inner.paddingEnd
-            val pBottom = inner.paddingBottom
-            inner.background = specularGradient
-            inner.setPaddingRelative(pStart, pTop, pEnd, pBottom)
         }
     }
 

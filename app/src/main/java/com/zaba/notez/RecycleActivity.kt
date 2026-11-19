@@ -45,7 +45,7 @@ class RecycleActivity : AppCompatActivity() {
         btnClearAll = findViewById(R.id.btn_recycle_clear_all)
 
         val infoCard = findViewById<MaterialCardView>(R.id.recycle_info_card)
-        UiStyle.applyGlassCard(infoCard, alpha = 185, radiusDp = 14f)
+        UiStyle.applyGlassCard(infoCard, alpha = 145, radiusDp = 14f)
         val infoText = findViewById<TextView>(R.id.recycle_info_text)
         if (ThemePref.isLightTheme(ThemePref.get(this))) {
             infoText?.setTextColor(Color.parseColor("#2E3A31"))
@@ -118,7 +118,7 @@ class RecycleActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(h: Holder, position: Int) {
             val note = items[position]
-            UiStyle.applyGlassCard(h.card, alpha = 185, radiusDp = 16f)
+            UiStyle.applyGlassCard(h.card, alpha = 145, radiusDp = 16f)
 
             val isLight = ThemePref.isLightTheme(ThemePref.get(h.itemView.context))
             if (isLight) {
