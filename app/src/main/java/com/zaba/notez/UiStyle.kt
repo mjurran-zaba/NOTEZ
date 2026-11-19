@@ -1,7 +1,18 @@
 package com.zaba.notez
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PixelFormat
+import android.graphics.RadialGradient
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.View
@@ -11,8 +22,9 @@ import com.google.android.material.card.MaterialCardView
 
 /**
  * Theme-aware appearance helpers implementing authentic Auroramorphism & Glassmorphism:
- * - Translucent frosted glass card body (alpha 145) allowing Aurora backdrop to glow through
- * - Crisp specular white hairline rim (1.2dp) for optical glass definition
+ * - Multi-zone chromatic Aurora glass cards with organic directional blending
+ * - Specular hairline rims mimicking real frosted glass edges
+ * - High-contrast text legibility with tactile specular light reflection
  * - Zero elevation to keep background aurora rendering smooth and predictable
  */
 object UiStyle {
@@ -35,6 +47,24 @@ object UiStyle {
     fun windowBackground(context: Context): Int =
         resolveColor(context, android.R.attr.windowBackground, surface(context))
 
+    fun accentTint(context: Context): Int {
+        val opt = ThemePref.optionOf(ThemePref.get(context))
+        return if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
+            Color.parseColor("#A8C686")
+        } else {
+            runCatching { context.getColor(opt.accentColorRes) }.getOrDefault(primary(context))
+        }
+    }
+
+    fun secondaryTint(context: Context): Int {
+        val opt = ThemePref.optionOf(ThemePref.get(context))
+        return if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
+            Color.parseColor("#F5E6B8")
+        } else {
+            runCatching { context.getColor(opt.secondaryColorRes) }.getOrDefault(accentTint(context))
+        }
+    }
+
     fun applyGlassCard(
         card: MaterialCardView,
         alpha: Int = 160,
@@ -45,7 +75,7 @@ object UiStyle {
         val isLight = ThemePref.isLightTheme(ThemePref.get(context))
         val surface = surface(context)
 
-        // 1. Matikan background solid MaterialCardView agar GradientDrawable kaca yang aktif
+        // 1. Matikan background solid MaterialCardView agar custom AuroraGlassDrawable aktif
         card.setCardBackgroundColor(Color.TRANSPARENT)
         card.cardElevation = 0f
         card.maxCardElevation = 0f
@@ -56,72 +86,19 @@ object UiStyle {
         card.strokeColor = Color.TRANSPARENT
         card.strokeWidth = 0
 
-        // 2. Gradien Diagonal 135° (TL_BR) + Tint Wash Organik
-        val glassColors = if (isLight) {
-            val opt = ThemePref.optionOf(ThemePref.get(context))
-            val accentTint = if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
-                Color.parseColor("#A8C686")
-            } else {
-                runCatching { context.getColor(opt.accentColorRes) }.getOrDefault(primary(context))
-            }
-            val secondaryTint = if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
-                Color.parseColor("#F5E6B8")
-            } else {
-                runCatching { context.getColor(opt.secondaryColorRes) }.getOrDefault(accentTint)
-            }
-            intArrayOf(
-                // Start (kiri-atas): putih 75% + tint matcha 12%
-                ColorUtils.compositeColors(
-                    ColorUtils.setAlphaComponent(Color.WHITE, 190),
-                    ColorUtils.setAlphaComponent(accentTint, 30)
-                ),
-                // Tengah: putih 55% + tint honey 12%
-                ColorUtils.compositeColors(
-                    ColorUtils.setAlphaComponent(Color.WHITE, 140),
-                    ColorUtils.setAlphaComponent(secondaryTint, 30)
-                ),
-                // End (kanan-bawah): putih 40% + transparan, membiarkan aurora mekar tembus
-                ColorUtils.setAlphaComponent(Color.WHITE, 100)
-            )
-        } else {
-            val topAlpha = (alpha + 50).coerceIn(0, 255)
-            val bottomAlpha = (alpha - 50).coerceIn(0, 255)
-            intArrayOf(
-                ColorUtils.compositeColors(
-                    ColorUtils.setAlphaComponent(surface, topAlpha),
-                    ColorUtils.setAlphaComponent(Color.WHITE, 25)
-                ),
-                ColorUtils.setAlphaComponent(surface, alpha),
-                ColorUtils.setAlphaComponent(surface, bottomAlpha)
-            )
-        }
+        // 2. Pasang AuroraGlassDrawable dengan 6 zona spektrum aurora abstrak bergelombang
+        card.background = AuroraGlassDrawable(
+            context = context,
+            radiusPx = dp(context, radiusDp).toFloat(),
+            isLight = isLight,
+            surfaceColor = surface,
+            primaryColor = primary(context),
+            outlineColor = outline(context),
+            alpha = alpha,
+            isSelected = isSelected
+        )
 
-        // 3. Specular rim hairline border (putih berkilau atau warna seleksi)
-        val strokeColor = if (isSelected) {
-            primary(context)
-        } else if (isLight) {
-            ColorUtils.setAlphaComponent(Color.WHITE, 180)
-        } else {
-            ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 65),
-                ColorUtils.setAlphaComponent(primary(context), 100)
-            )
-        }
-        val strokeWidth = if (isSelected) dp(context, 2f) else dp(context, 1.2f)
-
-        val glass = GradientDrawable(
-            GradientDrawable.Orientation.TL_BR,
-            glassColors
-        ).apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(context, radiusDp).toFloat()
-            setStroke(strokeWidth, strokeColor)
-        }
-
-        // 4. Pasang sebagai background view langsung
-        card.background = glass
-
-        // 5. Pastikan inner view tidak menumpuk background yang menghalangi
+        // 3. Pastikan inner view tidak menumpuk background yang menghalangi
         if (card.childCount > 0) {
             val inner = card.getChildAt(0)
             inner.background = null
@@ -150,4 +127,207 @@ object UiStyle {
 
     fun dp(context: Context, value: Float): Int =
         (value * context.resources.displayMetrics.density + 0.5f).toInt()
+}
+
+/**
+ * Custom glass drawable that renders 6 abstract organic aurora zones
+ * with smooth radial feathering & refraction over translucent frosted glass.
+ */
+class AuroraGlassDrawable(
+    private val context: Context,
+    private val radiusPx: Float,
+    private val isLight: Boolean,
+    private val surfaceColor: Int,
+    private val primaryColor: Int,
+    private val outlineColor: Int,
+    private val alpha: Int = 160,
+    private val isSelected: Boolean = false
+) : Drawable() {
+
+    private val basePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val bloomPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val glazePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+    }
+
+    private val clipPath = Path()
+    private val cardRect = RectF()
+    private val strokeRect = RectF()
+
+    private val strokeWidthPx = (if (isSelected) 2f else 1.2f) * context.resources.displayMetrics.density
+
+    private data class Bloom(
+        val relX: Float,
+        val relY: Float,
+        val relRadius: Float,
+        val color: Int,
+        val alpha: Int
+    )
+
+    private var bloomList: List<Bloom> = emptyList()
+    private var radialShaders: List<RadialGradient> = emptyList()
+
+    init {
+        strokePaint.strokeWidth = strokeWidthPx
+        strokePaint.color = if (isSelected) {
+            primaryColor
+        } else if (isLight) {
+            ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(Color.WHITE, 190),
+                ColorUtils.setAlphaComponent(outlineColor, 60)
+            )
+        } else {
+            ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(Color.WHITE, 65),
+                ColorUtils.setAlphaComponent(primaryColor, 100)
+            )
+        }
+
+        setupBlooms()
+    }
+
+    private fun setupBlooms() {
+        val opt = ThemePref.optionOf(ThemePref.get(context))
+        if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
+            // Palet 6 Warna Aurora Matcha Cream Paper (rekomendasi user + aksen tema)
+            // 1. Fresh Lime Mint: #A8C686
+            // 2. Biru Awan Pudar (Rekomendasi User): #A2C2E8
+            // 3. Kuning Pudar (Rekomendasi User): #F7E1A0
+            // 4. Warm Peach Amber: #F8CCA8
+            // 5. Matcha Leaf: #5E8C61
+            // 6. Soft Sage Moss: #729B79
+            val cLimeMint = Color.parseColor("#A8C686")
+            val cCloudBlue = Color.parseColor("#A2C2E8")
+            val cPaleYellow = Color.parseColor("#F7E1A0")
+            val cPeachAmber = Color.parseColor("#F8CCA8")
+            val cMatchaLeaf = Color.parseColor("#5E8C61")
+            val cSageMoss = Color.parseColor("#729B79")
+
+            bloomList = listOf(
+                // 1. Fresh Lime Mint - Bukit Kiri-Atas (pucuk bercahaya)
+                Bloom(0.12f, 0.16f, 0.70f, cLimeMint, 88),
+                // 2. Biru Awan Pudar - Lembah Kabut Dingin Kanan-Atas (kontras es)
+                Bloom(0.88f, 0.14f, 0.65f, cCloudBlue, 82),
+                // 3. Kuning Pudar - Punggung Bukit Hangat Kanan-Tengah (pendaran madu)
+                Bloom(0.82f, 0.60f, 0.62f, cPaleYellow, 90),
+                // 4. Warm Peach Amber - Pusaran Lembut Tengah-Kiri
+                Bloom(0.30f, 0.54f, 0.55f, cPeachAmber, 72),
+                // 5. Matcha Leaf - Jangkar Daun Bawah-Kiri
+                Bloom(0.18f, 0.90f, 0.58f, cMatchaLeaf, 78),
+                // 6. Soft Sage Moss - Kabut Teduh Bawah-Kanan
+                Bloom(0.72f, 0.92f, 0.52f, cSageMoss, 68)
+            )
+        } else {
+            val accent = UiStyle.accentTint(context)
+            val secondary = UiStyle.secondaryTint(context)
+            val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.35f)
+            val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FCD34D"), 0.40f)
+            val peachShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FB7185"), 0.30f)
+            val deepAccent = ColorUtils.blendARGB(accent, Color.BLACK, 0.20f)
+
+            val baseAlpha = if (isLight) 78 else 58
+            bloomList = listOf(
+                Bloom(0.12f, 0.16f, 0.70f, accent, baseAlpha + 10),
+                Bloom(0.88f, 0.14f, 0.65f, coolShift, baseAlpha),
+                Bloom(0.82f, 0.60f, 0.62f, warmShift, baseAlpha + 12),
+                Bloom(0.30f, 0.54f, 0.55f, peachShift, baseAlpha - 5),
+                Bloom(0.18f, 0.90f, 0.58f, deepAccent, baseAlpha),
+                Bloom(0.72f, 0.92f, 0.52f, secondary, baseAlpha - 10)
+            )
+        }
+    }
+
+    override fun onBoundsChange(bounds: Rect) {
+        super.onBoundsChange(bounds)
+        if (bounds.width() <= 0 || bounds.height() <= 0) return
+
+        val w = bounds.width().toFloat()
+        val h = bounds.height().toFloat()
+        val maxDim = w.coerceAtLeast(h)
+
+        cardRect.set(bounds)
+        val inset = strokeWidthPx / 2f
+        strokeRect.set(bounds.left + inset, bounds.top + inset, bounds.right - inset, bounds.bottom - inset)
+
+        clipPath.reset()
+        clipPath.addRoundRect(cardRect, radiusPx, radiusPx, Path.Direction.CW)
+
+        val baseColor = if (isLight) Color.WHITE else surfaceColor
+        val topBaseAlpha = if (isLight) 185 else 210
+        val bottomBaseAlpha = if (isLight) 115 else 125
+        basePaint.shader = LinearGradient(
+            0f, 0f, w, h,
+            intArrayOf(
+                ColorUtils.setAlphaComponent(baseColor, topBaseAlpha),
+                ColorUtils.setAlphaComponent(baseColor, bottomBaseAlpha)
+            ),
+            floatArrayOf(0f, 1f),
+            Shader.TileMode.CLAMP
+        )
+
+        radialShaders = bloomList.map { b ->
+            val cx = w * b.relX
+            val cy = h * b.relY
+            val radius = maxDim * b.relRadius
+            val a = b.alpha
+            RadialGradient(
+                cx, cy, radius,
+                intArrayOf(
+                    ColorUtils.setAlphaComponent(b.color, a),
+                    ColorUtils.setAlphaComponent(b.color, (a * 0.48f).toInt()),
+                    ColorUtils.setAlphaComponent(b.color, 0)
+                ),
+                floatArrayOf(0f, 0.46f, 1f),
+                Shader.TileMode.CLAMP
+            )
+        }
+
+        val glazeAlpha = if (isLight) 48 else 24
+        glazePaint.shader = LinearGradient(
+            0f, 0f, w * 0.85f, h * 0.85f,
+            intArrayOf(
+                ColorUtils.setAlphaComponent(Color.WHITE, glazeAlpha),
+                Color.TRANSPARENT
+            ),
+            floatArrayOf(0f, 1f),
+            Shader.TileMode.CLAMP
+        )
+    }
+
+    override fun draw(canvas: Canvas) {
+        if (cardRect.isEmpty) return
+
+        canvas.save()
+        canvas.clipPath(clipPath)
+
+        // 1. Dasar Frosted Glass
+        canvas.drawRect(cardRect, basePaint)
+
+        // 2. 6 Zona Spektrum Aurora Abstrak
+        for (shader in radialShaders) {
+            bloomPaint.shader = shader
+            canvas.drawRect(cardRect, bloomPaint)
+        }
+        bloomPaint.shader = null
+
+        // 3. Glaze Specular Kaca 135 Derajat
+        canvas.drawRect(cardRect, glazePaint)
+
+        canvas.restore()
+
+        // 4. Specular Hairline Rim
+        canvas.drawRoundRect(strokeRect, radiusPx, radiusPx, strokePaint)
+    }
+
+    override fun setAlpha(alpha: Int) {
+        basePaint.alpha = alpha
+    }
+
+    override fun setColorFilter(colorFilter: ColorFilter?) {
+        basePaint.colorFilter = colorFilter
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }
