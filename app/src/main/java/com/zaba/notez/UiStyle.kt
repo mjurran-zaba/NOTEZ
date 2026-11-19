@@ -84,13 +84,15 @@ object UiStyle {
                 ColorUtils.setAlphaComponent(Color.WHITE, 100)
             )
         } else {
+            val topAlpha = (alpha + 50).coerceIn(0, 255)
+            val bottomAlpha = (alpha - 50).coerceIn(0, 255)
             intArrayOf(
                 ColorUtils.compositeColors(
-                    ColorUtils.setAlphaComponent(surface, 210),
+                    ColorUtils.setAlphaComponent(surface, topAlpha),
                     ColorUtils.setAlphaComponent(Color.WHITE, 25)
                 ),
-                ColorUtils.setAlphaComponent(surface, 160),
-                ColorUtils.setAlphaComponent(surface, 110)
+                ColorUtils.setAlphaComponent(surface, alpha),
+                ColorUtils.setAlphaComponent(surface, bottomAlpha)
             )
         }
 

@@ -97,11 +97,6 @@ class NoteAdapter(
         UiStyle.applyGlassCard(h.card, alpha = 160, radiusDp = 16f, isSelected = isSelected)
         h.card.cardElevation = 0f
 
-        if (isSelected) {
-            h.card.strokeColor = UiStyle.primary(context)
-            h.card.strokeWidth = UiStyle.dp(context, 2f)
-        }
-
         val isLight = ThemePref.isLightTheme(ThemePref.get(context))
         if (isLight) {
             h.title.setTextColor(Color.parseColor("#1C241E"))
