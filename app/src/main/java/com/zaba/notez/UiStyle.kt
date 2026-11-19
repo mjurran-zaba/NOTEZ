@@ -108,6 +108,42 @@ object UiStyle {
         }
     }
 
+    /**
+     * Terapkan Glassmorphism + 3D Clay pada mini player mengambang.
+     * Menggunakan volume pill halus, inner highlight top-left, dan inner shadow bottom-right
+     * yang lembut dan tidak mencolok ("tidak terlalu menonjol").
+     */
+    fun applyMiniPlayerGlass(card: MaterialCardView, seed: Int = 0x4D494E49) {
+        val context = card.context
+        val isLight = ThemePref.isLightTheme(ThemePref.get(context))
+        val radiusPx = dp(context, 28f).toFloat()
+
+        card.setCardBackgroundColor(Color.TRANSPARENT)
+        card.strokeColor = Color.TRANSPARENT
+        card.strokeWidth = 0
+        card.cardElevation = dp(context, 4f).toFloat()
+        card.maxCardElevation = dp(context, 6f).toFloat()
+        card.preventCornerOverlap = false
+
+        card.background = AuroraGlassDrawable(
+            context = context,
+            radiusPx = radiusPx,
+            isLight = isLight,
+            surfaceColor = surface(context),
+            primaryColor = primary(context),
+            outlineColor = outline(context),
+            alpha = if (isLight) 175 else 205,
+            isSelected = false,
+            seed = seed,
+            isClay = true
+        )
+
+        if (card.childCount > 0) {
+            val inner = card.getChildAt(0)
+            inner.background = null
+        }
+    }
+
     fun applyDrawerGlass(view: View, alpha: Int = 230) {
         view.setBackgroundColor(ColorUtils.setAlphaComponent(surface(view.context), alpha.coerceIn(0, 255)))
     }
@@ -134,7 +170,8 @@ object UiStyle {
 
 /**
  * Custom glass drawable that renders procedural, organic, non-linear
- * aurora blooms with unique abstract asymmetry per card.
+ * aurora blooms with unique abstract asymmetry per card,
+ * with optional subtle 3D clay volumetric pill bevels.
  */
 class AuroraGlassDrawable(
     private val context: Context,
@@ -145,13 +182,17 @@ class AuroraGlassDrawable(
     private val outlineColor: Int,
     private val alpha: Int = 160,
     private val isSelected: Boolean = false,
-    private val seed: Int = 0
+    private val seed: Int = 0,
+    private val isClay: Boolean = false
 ) : Drawable() {
 
     private val basePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bloomPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glazePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val innerBevelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+    }
+    private val innerShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
     }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -181,6 +222,9 @@ class AuroraGlassDrawable(
     init {
         strokePaint.strokeWidth = strokeWidthPx
         innerBevelPaint.strokeWidth = innerBevelWidthPx
+        if (isClay) {
+            innerShadowPaint.strokeWidth = innerBevelWidthPx * 1.5f
+        }
         setupOrganicBlooms()
     }
 
@@ -188,24 +232,146 @@ class AuroraGlassDrawable(
         val opt = ThemePref.optionOf(ThemePref.get(context))
         val rng = kotlin.random.Random(seed)
 
-        val fullPalette: List<Int> = if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
-            // Palet 6 Warna Aurora Matcha Cream Paper (rekomendasi user + aksen tema)
-            listOf(
+        // Opsi 2: Adaptive Harmonic 6-Color Aurora Palette untuk 21 tema (Light & Dark)
+        val fullPalette: List<Int> = when (opt.value) {
+            ThemePref.MATCHA_CREAM_PAPER -> listOf(
                 Color.parseColor("#9ED872"), // Lime Mint
-                Color.parseColor("#8EBEF5"), // Biru Awan Pudar (Rekomendasi User)
-                Color.parseColor("#FCD14D"), // Kuning Pudar (Rekomendasi User)
+                Color.parseColor("#8EBEF5"), // Biru Awan Pudar
+                Color.parseColor("#FCD14D"), // Kuning Pudar
                 Color.parseColor("#FBAC7A"), // Warm Peach Amber
                 Color.parseColor("#4D8852"), // Matcha Leaf
                 Color.parseColor("#60A370")  // Soft Sage Moss
             )
-        } else {
-            val accent = UiStyle.accentTint(context)
-            val secondary = UiStyle.secondaryTint(context)
-            val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.35f)
-            val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FCD34D"), 0.40f)
-            val peachShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FB7185"), 0.30f)
-            val deepAccent = ColorUtils.blendARGB(accent, Color.BLACK, 0.20f)
-            listOf(accent, coolShift, warmShift, peachShift, deepAccent, secondary)
+            ThemePref.AURORA_BOREALIS -> listOf(
+                Color.parseColor("#00F5A0"), // Bioluminescent Emerald
+                Color.parseColor("#38BDF8"), // Arctic Celestial Cyan
+                Color.parseColor("#8B5CF6"), // Cosmic Amethyst
+                Color.parseColor("#F472B6"), // Solar Flare Berry
+                Color.parseColor("#FBBF24"), // Starlight Amber
+                Color.parseColor("#0D9488")  // Deep Abyssal Marine
+            )
+            ThemePref.OLED -> listOf(
+                Color.parseColor("#39FF14"), // OLED Neon Lime
+                Color.parseColor("#00E5FF"), // Cyber Cyan
+                Color.parseColor("#A855F7"), // Electric Purple
+                Color.parseColor("#FFD600"), // Solar Gold
+                Color.parseColor("#00B359"), // Deep Emerald
+                Color.parseColor("#38BDF8")  // Ice Blue
+            )
+            ThemePref.GITHUB_DARK -> listOf(
+                Color.parseColor("#58A6FF"), // GitHub Accent Blue
+                Color.parseColor("#F85149"), // Coral Red
+                Color.parseColor("#BC8CFF"), // Neon Violet
+                Color.parseColor("#3FB950"), // Mint Green
+                Color.parseColor("#D29922"), // Golden Ochre
+                Color.parseColor("#79C0FF")  // Cyan Light
+            )
+            ThemePref.TOKYO_NIGHT -> listOf(
+                Color.parseColor("#7AA2F7"), // Tokyo Neon Blue
+                Color.parseColor("#F7768E"), // Tokyo Magenta
+                Color.parseColor("#7DCFFF"), // Cyber Cyan
+                Color.parseColor("#BB9AF7"), // Neon Violet
+                Color.parseColor("#FF9E64"), // Tokyo Amber Glow
+                Color.parseColor("#3D59A1")  // Deep Indigo
+            )
+            ThemePref.RASPBERRY_NIGHT -> listOf(
+                Color.parseColor("#FF5C8A"), // Ruby Accent
+                Color.parseColor("#F48FB1"), // Soft Rose
+                Color.parseColor("#FFB74D"), // Amber Sunset
+                Color.parseColor("#BA68C8"), // Velvet Violet
+                Color.parseColor("#9C27B0"), // Deep Wine
+                Color.parseColor("#E91E63")  // Berry Flare
+            )
+            ThemePref.DARK_FOREST -> listOf(
+                Color.parseColor("#66BB6A"), // Forest Green
+                Color.parseColor("#A8C66C"), // Fresh Lime
+                Color.parseColor("#E6C657"), // Amber Moss
+                Color.parseColor("#2E7D32"), // Deep Pine
+                Color.parseColor("#81C784"), // Sage Mist
+                Color.parseColor("#38BDF8")  // Celestial Frost
+            )
+            ThemePref.COBALT2 -> listOf(
+                Color.parseColor("#FFC600"), // Cobalt Yellow
+                Color.parseColor("#00E5FF"), // Turquoise Cyan
+                Color.parseColor("#FF5147"), // Bubblegum Red
+                Color.parseColor("#15B8EC"), // Electric Blue
+                Color.parseColor("#38DEB3"), // Fresh Mint
+                Color.parseColor("#FFA000")  // Warm Orange
+            )
+            ThemePref.BLUE_MOON_CHEESE -> listOf(
+                Color.parseColor("#FFD166"), // Cheese Glow
+                Color.parseColor("#4A90E2"), // Moon Blue
+                Color.parseColor("#70B8FF"), // Sky Azure
+                Color.parseColor("#FFA726"), // Warm Cheddar
+                Color.parseColor("#9575CD"), // Mystic Lavender
+                Color.parseColor("#38BDF8")  // Ice Cyan
+            )
+            ThemePref.KAWAII_CATPUCINN -> listOf(
+                Color.parseColor("#F5A3D7"), // Pastel Pink
+                Color.parseColor("#BDAED1"), // Mocha Foam
+                Color.parseColor("#FFE0B2"), // Cream Amber
+                Color.parseColor("#A5D6A7"), // Soft Mint
+                Color.parseColor("#CE93D8"), // Lilac Dream
+                Color.parseColor("#FF80AB")  // Berry Milk
+            )
+            ThemePref.GLOOME_DARK_SUNSET -> listOf(
+                Color.parseColor("#FF8A65"), // Sunset Coral
+                Color.parseColor("#FFCA28"), // Golden Sun
+                Color.parseColor("#7E57C2"), // Twilight Violet
+                Color.parseColor("#EC407A"), // Rose Dusk
+                Color.parseColor("#D32F2F"), // Deep Crimson
+                Color.parseColor("#FFA726")  // Warm Orange
+            )
+            ThemePref.CYBER_OBSIDIAN -> listOf(
+                Color.parseColor("#8B5CF6"), // Neon Violet
+                Color.parseColor("#06B6D4"), // Cyber Cyan
+                Color.parseColor("#D946EF"), // Fuchsia Pink
+                Color.parseColor("#10B981"), // Matrix Green
+                Color.parseColor("#3B82F6"), // Electric Blue
+                Color.parseColor("#F59E0B")  // Amber Pulse
+            )
+            ThemePref.SUNSET_MIRAGE -> listOf(
+                Color.parseColor("#FF7E5F"), // Terracotta Sunset
+                Color.parseColor("#8A2387"), // Dusk Purple
+                Color.parseColor("#FEB47B"), // Golden Mirage
+                Color.parseColor("#E94057"), // Crimson Rose
+                Color.parseColor("#7028E4"), // Velvet Violet
+                Color.parseColor("#FFA07A")  // Peach Glow
+            )
+            ThemePref.PARCHMENT_AMBER -> listOf(
+                Color.parseColor("#D97706"), // Terracotta Amber
+                Color.parseColor("#FBBF24"), // Warm Honey
+                Color.parseColor("#A16207"), // Classic Leather
+                Color.parseColor("#F59E0B"), // Golden Ink
+                Color.parseColor("#78350F"), // Aged Oak
+                Color.parseColor("#CA8A04")  // Parchment Sun
+            )
+            ThemePref.ROSE_PINE_DAWN -> listOf(
+                Color.parseColor("#B4637A"), // Dusty Rose
+                Color.parseColor("#EA9D34"), // Soft Gold
+                Color.parseColor("#56949F"), // Pine Teal
+                Color.parseColor("#907AA9"), // Iris Violet
+                Color.parseColor("#D7827E"), // Blush Dawn
+                Color.parseColor("#286983")  // Deep Pine
+            )
+            ThemePref.NORD_POLAR_MIST -> listOf(
+                Color.parseColor("#38BDF8"), // Polar Cyan
+                Color.parseColor("#81A1C1"), // Arctic Blue
+                Color.parseColor("#88C0D0"), // Frost Teal
+                Color.parseColor("#B48EAD"), // Aurora Purple
+                Color.parseColor("#EBCB8B"), // Winter Sun
+                Color.parseColor("#A3BE8C")  // Polar Aurora Green
+            )
+            else -> {
+                // Adaptive Harmonic fallback via HSL transformation of theme's accent & secondary
+                val accent = UiStyle.accentTint(context)
+                val secondary = UiStyle.secondaryTint(context)
+                val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.40f)
+                val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FBBF24"), 0.45f)
+                val violetShift = ColorUtils.blendARGB(accent, Color.parseColor("#A855F7"), 0.35f)
+                val deepShift = ColorUtils.blendARGB(accent, Color.BLACK, 0.25f)
+                listOf(accent, coolShift, warmShift, violetShift, deepShift, secondary)
+            }
         }
 
         // Pilih 3 sampai 4 warna secara acak deterministik per kartu agar tidak menumpuk jadi becek
@@ -213,7 +379,7 @@ class AuroraGlassDrawable(
         chosenColors = fullPalette.shuffled(rng).take(count)
 
         // Sebar titik-titik bukit aurora secara abstrak dan asimetris (bukan garis lurus paralel)
-        val baseAlpha = if (isLight) 140 else 115
+        val baseAlpha = if (isLight) 140 else 125
         bloomList = chosenColors.map { color ->
             OrganicBloom(
                 relX = rng.nextFloat() * 0.82f + 0.09f,
@@ -245,8 +411,8 @@ class AuroraGlassDrawable(
 
         // 1. Dasar Frosted Glass Transparan (menjaga keterbacaan teks tanpa memblokir warna)
         val baseColor = if (isLight) Color.WHITE else surfaceColor
-        val topBaseAlpha = if (isLight) 130 else 195
-        val bottomBaseAlpha = if (isLight) 80 else 115
+        val topBaseAlpha = if (isLight) (if (isClay) 150 else 130) else (if (isClay) 210 else 195)
+        val bottomBaseAlpha = if (isLight) (if (isClay) 100 else 80) else (if (isClay) 130 else 115)
         basePaint.shader = LinearGradient(
             0f, 0f, w, h,
             intArrayOf(
@@ -276,7 +442,7 @@ class AuroraGlassDrawable(
         }
 
         // 3. Glaze pantulan kilap kaca diagonal 135 derajat
-        val glazeAlpha = if (isLight) 44 else 22
+        val glazeAlpha = if (isLight) 44 else 24
         glazePaint.shader = LinearGradient(
             0f, 0f, w * 0.85f, h * 0.85f,
             intArrayOf(
@@ -287,8 +453,8 @@ class AuroraGlassDrawable(
             Shader.TileMode.CLAMP
         )
 
-        // 4. Inner Bevel Highlight (Refleksi Sudut Dalam Kaca Fisik)
-        val bevelTopAlpha = if (isLight) 85 else 50
+        // 4. Inner Bevel Highlight (Refleksi Sudut Dalam Kaca Fisik & 3D Clay)
+        val bevelTopAlpha = if (isLight) (if (isClay) 95 else 85) else (if (isClay) 65 else 50)
         innerBevelPaint.shader = LinearGradient(
             0f, 0f, w * 0.70f, h * 0.70f,
             intArrayOf(
@@ -298,6 +464,22 @@ class AuroraGlassDrawable(
             floatArrayOf(0f, 1f),
             Shader.TileMode.CLAMP
         )
+
+        // 4b. 3D Clay Inner Shadow (Gradasi Sudut Bawah-Kanan, sentuhan lembut 3D clay)
+        if (isClay) {
+            val shadowColor = if (isLight) Color.parseColor("#261B12") else Color.BLACK
+            val shadowAlpha = if (isLight) 36 else 55
+            innerShadowPaint.shader = LinearGradient(
+                w * 0.35f, h * 0.35f, w, h,
+                intArrayOf(
+                    Color.TRANSPARENT,
+                    ColorUtils.setAlphaComponent(shadowColor, (shadowAlpha * 0.35f).toInt()),
+                    ColorUtils.setAlphaComponent(shadowColor, shadowAlpha)
+                ),
+                floatArrayOf(0f, 0.65f, 1f),
+                Shader.TileMode.CLAMP
+            )
+        }
 
         // 5. Dynamic Prism Rim (Specular Refraction Border)
         val refractColor = if (isSelected) primaryColor else (chosenColors.firstOrNull() ?: primaryColor)
@@ -356,10 +538,13 @@ class AuroraGlassDrawable(
         // 3. Glaze Pantulan Kaca 135 Derajat
         canvas.drawRect(cardRect, glazePaint)
 
-        // 4. Inner Bevel Highlight (Efek Sudut Kaca Fisik)
+        // 4. Inner Bevel Highlight (Efek Sudut Kaca Fisik & 3D Clay)
         val innerRadius = (radiusPx - strokeWidthPx).coerceAtLeast(0f)
         if (innerRadius > 0f) {
             canvas.drawRoundRect(innerBevelRect, innerRadius, innerRadius, innerBevelPaint)
+            if (isClay) {
+                canvas.drawRoundRect(innerBevelRect, innerRadius, innerRadius, innerShadowPaint)
+            }
         }
 
         canvas.restore()

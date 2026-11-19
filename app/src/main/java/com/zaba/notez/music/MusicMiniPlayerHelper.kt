@@ -67,18 +67,7 @@ class MusicMiniPlayerHelper(
 
     init {
         card?.let { c ->
-            val surface = UiStyle.surface(activity)
-            val primary = UiStyle.primary(activity)
-            val outline = UiStyle.outline(activity)
-            val glassStroke = ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(primary, 65),
-                ColorUtils.setAlphaComponent(outline, 80)
-            )
-            c.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, 185))
-            c.setStrokeColor(glassStroke)
-            c.strokeWidth = UiStyle.dp(activity, 1.2f)
-            c.setRadius(UiStyle.dp(activity, 28f).toFloat())
-            c.setCardElevation(UiStyle.dp(activity, 4f).toFloat())
+            UiStyle.applyMiniPlayerGlass(c)
         }
 
         playPause?.setOnClickListener { togglePlayPause() }
@@ -90,6 +79,9 @@ class MusicMiniPlayerHelper(
     }
 
     fun refresh() {
+        card?.let { c ->
+            UiStyle.applyMiniPlayerGlass(c)
+        }
         updateUi()
     }
 
