@@ -1,6 +1,7 @@
 package com.zaba.notez
 
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
@@ -267,7 +268,7 @@ class SettingsActivity : AppCompatActivity() {
                     addView(
                         TextView(this@SettingsActivity).apply {
                             text = option.name
-                            setTextColor(getColor(option.textColorRes))
+                            setTextColor(UiStyle.resolveColor(this@SettingsActivity, com.google.android.material.R.attr.colorOnSurface, Color.BLACK))
                             textSize = 14f
                             typeface = Typeface.DEFAULT_BOLD
                         }
@@ -275,7 +276,7 @@ class SettingsActivity : AppCompatActivity() {
                     addView(
                         TextView(this@SettingsActivity).apply {
                             text = option.description
-                            setTextColor(getColor(option.secondaryColorRes))
+                            setTextColor(UiStyle.resolveColor(this@SettingsActivity, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.DKGRAY))
                             textSize = 11f
                         }
                     )

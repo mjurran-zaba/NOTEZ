@@ -74,6 +74,7 @@
         app:cardBackgroundColor="@android:color/transparent"
         app:cardCornerRadius="14dp"
         app:cardElevation="0dp"
+        app:cardPreventCornerOverlap="false"
         app:strokeColor="?attr/colorOutline"
         app:strokeWidth="1dp">
 

@@ -113,10 +113,10 @@ class DiagnosticsActivity : AppCompatActivity() {
         findViewById<View>(R.id.diagnostics_actions)?.let { actions ->
             actions.background = UiStyle.roundedBackground(this, fillAlpha = 42, strokeAlpha = 34, radiusDp = 16f)
             actions.setPadding(
-                UiStyle.dp(this, 10f),
-                UiStyle.dp(this, 6f),
-                UiStyle.dp(this, 10f),
-                UiStyle.dp(this, 6f)
+                UiStyle.dp(this, 12f),
+                UiStyle.dp(this, 8f),
+                UiStyle.dp(this, 12f),
+                UiStyle.dp(this, 8f)
             )
         }
 
@@ -139,13 +139,19 @@ class DiagnosticsActivity : AppCompatActivity() {
                 )
                 val isSelected = filter == currentFilter
                 if (isSelected) {
-                    background = UiStyle.roundedBackground(
+                    val primaryColor = UiStyle.primary(this@DiagnosticsActivity)
+                    val onPrimaryColor = UiStyle.resolveColor(
                         this@DiagnosticsActivity,
-                        fillAlpha = 190,
-                        strokeAlpha = 220,
-                        radiusDp = 14f
+                        com.google.android.material.R.attr.colorOnPrimary,
+                        Color.WHITE
                     )
-                    setTextColor(UiStyle.resolveColor(this@DiagnosticsActivity, com.google.android.material.R.attr.colorOnPrimary, Color.parseColor("#051C12")))
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                        cornerRadius = UiStyle.dp(this@DiagnosticsActivity, 14f).toFloat()
+                        setColor(primaryColor)
+                    }
+                    setTextColor(onPrimaryColor)
+                    setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
                 } else {
                     background = UiStyle.roundedBackground(
                         this@DiagnosticsActivity,
@@ -153,7 +159,14 @@ class DiagnosticsActivity : AppCompatActivity() {
                         strokeAlpha = 50,
                         radiusDp = 14f
                     )
-                    setTextColor(UiStyle.resolveColor(this@DiagnosticsActivity, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.LTGRAY))
+                    setTextColor(
+                        UiStyle.resolveColor(
+                            this@DiagnosticsActivity,
+                            com.google.android.material.R.attr.colorOnSurfaceVariant,
+                            Color.LTGRAY
+                        )
+                    )
+                    setTypeface(Typeface.MONOSPACE, Typeface.NORMAL)
                 }
                 setOnClickListener {
                     currentFilter = filter

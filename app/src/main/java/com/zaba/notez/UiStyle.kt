@@ -49,7 +49,10 @@ object UiStyle {
         card.setStrokeColor(glassStroke)
         card.strokeWidth = dp(context, 1f)
         card.setRadius(dp(context, radiusDp).toFloat())
-        card.setCardElevation(dp(context, 2f).toFloat())
+        card.cardElevation = 0f
+        card.maxCardElevation = 0f
+        card.preventCornerOverlap = false
+        card.useCompatPadding = false
         card.setContentPadding(0, 0, 0, 0)
     }
 

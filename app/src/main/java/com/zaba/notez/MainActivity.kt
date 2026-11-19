@@ -170,7 +170,7 @@ class MainActivity : AppCompatActivity() {
         UiStyle.applyGlassCard(btnSpeedOpenFile, alpha = 224, radiusDp = 22f)
 
         findViewById<View>(R.id.empty_about_link)?.setOnClickListener {
-            startActivity(Intent(this, AboutNotezActivity::class.java))
+            startActivity(Intent(this, MarkdownGuideActivity::class.java))
         }
     }
 
@@ -567,7 +567,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupDrawer() {
         val versionName = runCatching { getString(R.string.notez_version_name) }.getOrDefault("0.1.9")
-        findViewById<TextView>(R.id.drawer_footer_version)?.text = "NOTEZ v$versionName"
+        findViewById<TextView>(R.id.drawer_footer_version)?.text = "v$versionName"
 
         findViewById<View>(R.id.menu_markdown_guide)?.setOnClickListener {
             Breadcrumb.add("HOME", "TAP_MENU_MARKDOWN_GUIDE")

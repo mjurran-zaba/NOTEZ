@@ -95,7 +95,10 @@ class NoteAdapter(
 
         h.card.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(context), 185))
         h.card.setRadius(UiStyle.dp(context, 16f).toFloat())
-        h.card.setCardElevation(UiStyle.dp(context, 1.5f).toFloat())
+        h.card.cardElevation = 0f
+        h.card.maxCardElevation = 0f
+        h.card.preventCornerOverlap = false
+        h.card.useCompatPadding = false
 
         if (isSelected) {
             h.card.strokeColor = UiStyle.primary(context)

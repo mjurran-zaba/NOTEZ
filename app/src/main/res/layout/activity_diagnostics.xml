@@ -52,10 +52,10 @@
                 android:id="@+id/status_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="adb online"
+                android:text="not interactive terminal"
                 android:typeface="monospace"
-                android:textColor="#39FF14"
-                android:textSize="11sp"
+                android:textColor="#88AAB5"
+                android:textSize="10.5sp"
                 android:textStyle="bold"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
@@ -70,6 +70,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
+            android:clipToPadding="false"
+            android:paddingStart="2dp"
+            android:paddingEnd="8dp"
             android:scrollbars="none">
 
             <LinearLayout
@@ -154,42 +157,68 @@
             android:id="@+id/diagnostics_actions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="8dp"
-            android:gravity="center_vertical">
+            android:orientation="vertical"
+            android:layout_marginTop="8dp">
 
             <TextView
                 android:id="@+id/log_count_meta"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="6dp"
                 android:typeface="monospace"
-                android:textSize="11sp"
+                android:textSize="11.5sp"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:text="0 events" />
 
-            <Button
-                android:id="@+id/btn_copy"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="SALIN"
-                android:layout_marginEnd="6dp" />
+                android:gravity="center"
+                android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btn_share"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="BAGIKAN"
-                android:layout_marginEnd="6dp" />
+                <Button
+                    android:id="@+id/btn_copy"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="SALIN"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="6dp" />
 
-            <Button
-                android:id="@+id/btn_clear"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="BERSIHKAN" />
+                <Button
+                    android:id="@+id/btn_share"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="BAGIKAN"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="6dp" />
+
+                <Button
+                    android:id="@+id/btn_clear"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="BERSIHKAN"
+                    android:textSize="12sp" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

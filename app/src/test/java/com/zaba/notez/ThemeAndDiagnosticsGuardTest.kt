@@ -99,4 +99,74 @@ class ThemeAndDiagnosticsGuardTest {
             indexOfApplyScreenPolishCall > indexOfFindBtnLoadMore
         )
     }
+
+    @Test
+    fun glassCardsElevationZeroAndNoCornerOverlapGuard() {
+        val itemNote = SourceScan.readRes("layout/item_note.xml")
+        val itemNoteGrid = SourceScan.readRes("layout/item_note_grid.xml")
+        val itemRecycleNote = SourceScan.readRes("layout/item_recycle_note.xml")
+        val activityRecycle = SourceScan.readRes("layout/activity_recycle.xml")
+        val uiStyleSource = SourceScan.readMainFile("java/com/zaba/notez/UiStyle.kt")
+        val noteAdapterSource = SourceScan.readMainFile("java/com/zaba/notez/NoteAdapter.kt")
+
+        assertTrue("item_note.xml must have cardElevation 0dp", itemNote.contains("app:cardElevation=\"0dp\""))
+        assertTrue("item_note.xml must have cardPreventCornerOverlap false", itemNote.contains("app:cardPreventCornerOverlap=\"false\""))
+
+        assertTrue("item_note_grid.xml must have cardElevation 0dp", itemNoteGrid.contains("app:cardElevation=\"0dp\""))
+        assertTrue("item_note_grid.xml must have cardPreventCornerOverlap false", itemNoteGrid.contains("app:cardPreventCornerOverlap=\"false\""))
+
+        assertTrue("item_recycle_note.xml must have cardElevation 0dp", itemRecycleNote.contains("app:cardElevation=\"0dp\""))
+        assertTrue("item_recycle_note.xml must have cardPreventCornerOverlap false", itemRecycleNote.contains("app:cardPreventCornerOverlap=\"false\""))
+
+        assertTrue("activity_recycle.xml recycle_info_card must have cardElevation 0dp", activityRecycle.contains("app:cardElevation=\"0dp\""))
+        assertTrue("activity_recycle.xml recycle_info_card must have cardPreventCornerOverlap false", activityRecycle.contains("app:cardPreventCornerOverlap=\"false\""))
+
+        assertTrue("UiStyle.applyGlassCard must set cardElevation to 0f", uiStyleSource.contains("card.cardElevation = 0f"))
+        assertTrue("NoteAdapter must set cardElevation to 0f", noteAdapterSource.contains("h.card.cardElevation = 0f"))
+    }
+
+    @Test
+    fun themeDialogContrastGuard() {
+        val settingsSource = SourceScan.readMainFile("java/com/zaba/notez/SettingsActivity.kt")
+        assertTrue(
+            "SettingsActivity themeOptionRow must use colorOnSurface for theme title",
+            settingsSource.contains("com.google.android.material.R.attr.colorOnSurface")
+        )
+        assertTrue(
+            "SettingsActivity themeOptionRow must use colorOnSurfaceVariant for theme description",
+            settingsSource.contains("com.google.android.material.R.attr.colorOnSurfaceVariant")
+        )
+    }
+
+    @Test
+    fun diagnosticsTerminalStatusBadgeAndChipContrastGuard() {
+        val diagLayout = SourceScan.readRes("layout/activity_diagnostics.xml")
+        val diagSource = SourceScan.readMainFile("java/com/zaba/notez/diagnostics/DiagnosticsActivity.kt")
+
+        assertTrue(
+            "activity_diagnostics.xml status_badge text must be 'not interactive terminal'",
+            diagLayout.contains("android:text=\"not interactive terminal\"")
+        )
+        assertTrue(
+            "DiagnosticsActivity selected chip must use solid primaryColor",
+            diagSource.contains("val primaryColor = UiStyle.primary(this@DiagnosticsActivity)")
+        )
+        assertTrue(
+            "DiagnosticsActivity selected chip must use onPrimaryColor text",
+            diagSource.contains("setTextColor(onPrimaryColor)")
+        )
+    }
+
+    @Test
+    fun homeEmptyStateDeduplicationGuard() {
+        val mainLayout = SourceScan.readRes("layout/activity_main.xml")
+        assertTrue(
+            "activity_main.xml empty state header must be 'Belum ada catatan' instead of repeating app_name",
+            mainLayout.contains("android:text=\"Belum ada catatan\"")
+        )
+        assertTrue(
+            "activity_main.xml empty state guide link must be 'Panduan Markdown'",
+            mainLayout.contains("android:text=\"Panduan Markdown\"")
+        )
+    }
 }
