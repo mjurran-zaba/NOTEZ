@@ -94,7 +94,7 @@ class NoteAdapter(
         val context = h.itemView.context
         val isSelected = selectedIds.contains(n.id)
 
-        UiStyle.applyGlassCard(h.card, alpha = 160, radiusDp = 16f)
+        UiStyle.applyGlassCard(h.card, alpha = 160, radiusDp = 16f, isSelected = isSelected)
         h.card.cardElevation = 0f
 
         if (isSelected) {

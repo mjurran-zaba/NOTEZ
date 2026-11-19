@@ -35,46 +35,94 @@ object UiStyle {
     fun windowBackground(context: Context): Int =
         resolveColor(context, android.R.attr.windowBackground, surface(context))
 
-    fun applyGlassCard(card: MaterialCardView, alpha: Int = 160, radiusDp: Float = 16f) {
+    fun applyGlassCard(
+        card: MaterialCardView,
+        alpha: Int = 160,
+        radiusDp: Float = 16f,
+        isSelected: Boolean = false
+    ) {
         val context = card.context
         val isLight = ThemePref.isLightTheme(ThemePref.get(context))
         val surface = surface(context)
-        val primary = primary(context)
-        val outline = outline(context)
 
-        val glassStroke = if (isLight) {
-            ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 190),
-                ColorUtils.setAlphaComponent(outline, 70)
-            )
-        } else {
-            ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 65),
-                ColorUtils.setAlphaComponent(primary, 100)
-            )
-        }
-
-        val cardAlpha = if (isLight) alpha.coerceIn(140, 185) else alpha.coerceIn(160, 225)
-        card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, cardAlpha))
-        card.setStrokeColor(glassStroke)
-        card.strokeWidth = dp(context, 1.2f)
-        card.setRadius(dp(context, radiusDp).toFloat())
+        // 1. Matikan background solid MaterialCardView agar GradientDrawable kaca yang aktif
+        card.setCardBackgroundColor(Color.TRANSPARENT)
         card.cardElevation = 0f
         card.maxCardElevation = 0f
         card.preventCornerOverlap = false
         card.useCompatPadding = false
         card.setContentPadding(0, 0, 0, 0)
+        card.setRadius(dp(context, radiusDp).toFloat())
+        card.strokeColor = Color.TRANSPARENT
+        card.strokeWidth = 0
 
+        // 2. Gradien Diagonal 135° (TL_BR) + Tint Wash Organik
+        val glassColors = if (isLight) {
+            val opt = ThemePref.optionOf(ThemePref.get(context))
+            val accentTint = if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
+                Color.parseColor("#A8C686")
+            } else {
+                runCatching { context.getColor(opt.accentColorRes) }.getOrDefault(primary(context))
+            }
+            val secondaryTint = if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
+                Color.parseColor("#F5E6B8")
+            } else {
+                runCatching { context.getColor(opt.secondaryColorRes) }.getOrDefault(accentTint)
+            }
+            intArrayOf(
+                // Start (kiri-atas): putih 75% + tint matcha 12%
+                ColorUtils.compositeColors(
+                    ColorUtils.setAlphaComponent(Color.WHITE, 190),
+                    ColorUtils.setAlphaComponent(accentTint, 30)
+                ),
+                // Tengah: putih 55% + tint honey 12%
+                ColorUtils.compositeColors(
+                    ColorUtils.setAlphaComponent(Color.WHITE, 140),
+                    ColorUtils.setAlphaComponent(secondaryTint, 30)
+                ),
+                // End (kanan-bawah): putih 40% + transparan, membiarkan aurora mekar tembus
+                ColorUtils.setAlphaComponent(Color.WHITE, 100)
+            )
+        } else {
+            intArrayOf(
+                ColorUtils.compositeColors(
+                    ColorUtils.setAlphaComponent(surface, 210),
+                    ColorUtils.setAlphaComponent(Color.WHITE, 25)
+                ),
+                ColorUtils.setAlphaComponent(surface, 160),
+                ColorUtils.setAlphaComponent(surface, 110)
+            )
+        }
+
+        // 3. Specular rim hairline border (putih berkilau atau warna seleksi)
+        val strokeColor = if (isSelected) {
+            primary(context)
+        } else if (isLight) {
+            ColorUtils.setAlphaComponent(Color.WHITE, 180)
+        } else {
+            ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(Color.WHITE, 65),
+                ColorUtils.setAlphaComponent(primary(context), 100)
+            )
+        }
+        val strokeWidth = if (isSelected) dp(context, 2f) else dp(context, 1.2f)
+
+        val glass = GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            glassColors
+        ).apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(context, radiusDp).toFloat()
+            setStroke(strokeWidth, strokeColor)
+        }
+
+        // 4. Pasang sebagai background view langsung
+        card.background = glass
+
+        // 5. Pastikan inner view tidak menumpuk background yang menghalangi
         if (card.childCount > 0) {
             val inner = card.getChildAt(0)
-            if (inner.background is GradientDrawable) {
-                val pStart = inner.paddingStart
-                val pTop = inner.paddingTop
-                val pEnd = inner.paddingEnd
-                val pBottom = inner.paddingBottom
-                inner.background = null
-                inner.setPaddingRelative(pStart, pTop, pEnd, pBottom)
-            }
+            inner.background = null
         }
     }
 
