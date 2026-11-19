@@ -174,13 +174,13 @@ class AuroraGlassDrawable(
             primaryColor
         } else if (isLight) {
             ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 190),
-                ColorUtils.setAlphaComponent(outlineColor, 60)
+                ColorUtils.setAlphaComponent(Color.WHITE, 205),
+                ColorUtils.setAlphaComponent(outlineColor, 45)
             )
         } else {
             ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 65),
-                ColorUtils.setAlphaComponent(primaryColor, 100)
+                ColorUtils.setAlphaComponent(Color.WHITE, 75),
+                ColorUtils.setAlphaComponent(primaryColor, 110)
             )
         }
 
@@ -191,32 +191,27 @@ class AuroraGlassDrawable(
         val opt = ThemePref.optionOf(ThemePref.get(context))
         if (opt.value == ThemePref.MATCHA_CREAM_PAPER) {
             // Palet 6 Warna Aurora Matcha Cream Paper (rekomendasi user + aksen tema)
-            // 1. Fresh Lime Mint: #A8C686
-            // 2. Biru Awan Pudar (Rekomendasi User): #A2C2E8
-            // 3. Kuning Pudar (Rekomendasi User): #F7E1A0
-            // 4. Warm Peach Amber: #F8CCA8
-            // 5. Matcha Leaf: #5E8C61
-            // 6. Soft Sage Moss: #729B79
-            val cLimeMint = Color.parseColor("#A8C686")
-            val cCloudBlue = Color.parseColor("#A2C2E8")
-            val cPaleYellow = Color.parseColor("#F7E1A0")
-            val cPeachAmber = Color.parseColor("#F8CCA8")
-            val cMatchaLeaf = Color.parseColor("#5E8C61")
-            val cSageMoss = Color.parseColor("#729B79")
+            // Ditingkatkan saturasi & ke-jreng-annya agar berpendar mewah dan nyata
+            val cLimeMint = Color.parseColor("#9ED872")
+            val cCloudBlue = Color.parseColor("#8EBEF5")
+            val cPaleYellow = Color.parseColor("#FCD14D")
+            val cPeachAmber = Color.parseColor("#FBAC7A")
+            val cMatchaLeaf = Color.parseColor("#4D8852")
+            val cSageMoss = Color.parseColor("#60A370")
 
             bloomList = listOf(
                 // 1. Fresh Lime Mint - Bukit Kiri-Atas (pucuk bercahaya)
-                Bloom(0.12f, 0.16f, 0.70f, cLimeMint, 88),
+                Bloom(0.10f, 0.14f, 0.72f, cLimeMint, 145),
                 // 2. Biru Awan Pudar - Lembah Kabut Dingin Kanan-Atas (kontras es)
-                Bloom(0.88f, 0.14f, 0.65f, cCloudBlue, 82),
-                // 3. Kuning Pudar - Punggung Bukit Hangat Kanan-Tengah (pendaran madu)
-                Bloom(0.82f, 0.60f, 0.62f, cPaleYellow, 90),
+                Bloom(0.90f, 0.12f, 0.68f, cCloudBlue, 140),
+                // 3. Kuning Pudar - Punggung Bukit Hangat Kanan-Tengah (pendaran madu cerah)
+                Bloom(0.85f, 0.58f, 0.65f, cPaleYellow, 150),
                 // 4. Warm Peach Amber - Pusaran Lembut Tengah-Kiri
-                Bloom(0.30f, 0.54f, 0.55f, cPeachAmber, 72),
+                Bloom(0.25f, 0.52f, 0.58f, cPeachAmber, 130),
                 // 5. Matcha Leaf - Jangkar Daun Bawah-Kiri
-                Bloom(0.18f, 0.90f, 0.58f, cMatchaLeaf, 78),
+                Bloom(0.15f, 0.90f, 0.60f, cMatchaLeaf, 135),
                 // 6. Soft Sage Moss - Kabut Teduh Bawah-Kanan
-                Bloom(0.72f, 0.92f, 0.52f, cSageMoss, 68)
+                Bloom(0.75f, 0.92f, 0.55f, cSageMoss, 125)
             )
         } else {
             val accent = UiStyle.accentTint(context)
@@ -226,14 +221,14 @@ class AuroraGlassDrawable(
             val peachShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FB7185"), 0.30f)
             val deepAccent = ColorUtils.blendARGB(accent, Color.BLACK, 0.20f)
 
-            val baseAlpha = if (isLight) 78 else 58
+            val baseAlpha = if (isLight) 125 else 105
             bloomList = listOf(
-                Bloom(0.12f, 0.16f, 0.70f, accent, baseAlpha + 10),
-                Bloom(0.88f, 0.14f, 0.65f, coolShift, baseAlpha),
-                Bloom(0.82f, 0.60f, 0.62f, warmShift, baseAlpha + 12),
-                Bloom(0.30f, 0.54f, 0.55f, peachShift, baseAlpha - 5),
-                Bloom(0.18f, 0.90f, 0.58f, deepAccent, baseAlpha),
-                Bloom(0.72f, 0.92f, 0.52f, secondary, baseAlpha - 10)
+                Bloom(0.10f, 0.14f, 0.72f, accent, baseAlpha + 15),
+                Bloom(0.90f, 0.12f, 0.68f, coolShift, baseAlpha + 10),
+                Bloom(0.85f, 0.58f, 0.65f, warmShift, baseAlpha + 18),
+                Bloom(0.25f, 0.52f, 0.58f, peachShift, baseAlpha),
+                Bloom(0.15f, 0.90f, 0.60f, deepAccent, baseAlpha + 8),
+                Bloom(0.75f, 0.92f, 0.55f, secondary, baseAlpha - 5)
             )
         }
     }
@@ -254,8 +249,8 @@ class AuroraGlassDrawable(
         clipPath.addRoundRect(cardRect, radiusPx, radiusPx, Path.Direction.CW)
 
         val baseColor = if (isLight) Color.WHITE else surfaceColor
-        val topBaseAlpha = if (isLight) 185 else 210
-        val bottomBaseAlpha = if (isLight) 115 else 125
+        val topBaseAlpha = if (isLight) 140 else 200
+        val bottomBaseAlpha = if (isLight) 80 else 115
         basePaint.shader = LinearGradient(
             0f, 0f, w, h,
             intArrayOf(
@@ -275,10 +270,10 @@ class AuroraGlassDrawable(
                 cx, cy, radius,
                 intArrayOf(
                     ColorUtils.setAlphaComponent(b.color, a),
-                    ColorUtils.setAlphaComponent(b.color, (a * 0.48f).toInt()),
+                    ColorUtils.setAlphaComponent(b.color, (a * 0.55f).toInt()),
                     ColorUtils.setAlphaComponent(b.color, 0)
                 ),
-                floatArrayOf(0f, 0.46f, 1f),
+                floatArrayOf(0f, 0.52f, 1f),
                 Shader.TileMode.CLAMP
             )
         }
