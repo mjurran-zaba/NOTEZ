@@ -43,7 +43,7 @@ class DiagnosticsActivity : AppCompatActivity() {
     }
 
     private lateinit var filterContainer: LinearLayout
-    private lateinit var logEntriesContainer: LinearLayout
+    private lateinit var terminalConsoleText: TextView
     private lateinit var terminalPrompt: TextView
     private lateinit var btnLoadMore: TextView
     private lateinit var emptyDiagnostics: TextView
@@ -60,12 +60,11 @@ class DiagnosticsActivity : AppCompatActivity() {
         setTheme(ThemePref.styleOf(ThemePref.get(this)))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_diagnostics)
-        applyScreenPolish()
 
-        findViewById<ImageButton>(R.id.btn_back).setOnClickListener { finish() }
+        findViewById<ImageButton>(R.id.btn_back)?.setOnClickListener { finish() }
 
         filterContainer = findViewById(R.id.filter_container)
-        logEntriesContainer = findViewById(R.id.log_entries_container)
+        terminalConsoleText = findViewById(R.id.terminal_console_text)
         terminalPrompt = findViewById(R.id.terminal_prompt)
         btnLoadMore = findViewById(R.id.btn_load_more)
         emptyDiagnostics = findViewById(R.id.empty_diagnostics)
@@ -74,6 +73,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         btnShare = findViewById(R.id.btn_share)
         btnClear = findViewById(R.id.btn_clear)
 
+        applyScreenPolish()
         setupFilterChips()
 
         btnLoadMore.setOnClickListener {
@@ -95,29 +95,33 @@ class DiagnosticsActivity : AppCompatActivity() {
     }
 
     private fun applyScreenPolish() {
-        findViewById<View>(R.id.diagnostics_toolbar).background =
+        findViewById<View>(R.id.diagnostics_toolbar)?.background =
             UiStyle.roundedBackground(this, fillAlpha = 78, strokeAlpha = 52, radiusDp = 18f)
 
         val terminalCard = findViewById<MaterialCardView>(R.id.terminal_card)
-        terminalCard.setCardBackgroundColor(Color.parseColor("#080C12"))
-        val primary = UiStyle.primary(this)
-        val outline = UiStyle.outline(this)
-        terminalCard.strokeColor = ColorUtils.compositeColors(
-            ColorUtils.setAlphaComponent(primary, 60),
-            ColorUtils.setAlphaComponent(outline, 80)
-        )
-        terminalCard.strokeWidth = UiStyle.dp(this, 1f)
+        if (terminalCard != null) {
+            terminalCard.setCardBackgroundColor(Color.parseColor("#080C12"))
+            val primary = UiStyle.primary(this)
+            val outline = UiStyle.outline(this)
+            terminalCard.strokeColor = ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(primary, 60),
+                ColorUtils.setAlphaComponent(outline, 80)
+            )
+            terminalCard.strokeWidth = UiStyle.dp(this, 1f)
+        }
 
-        findViewById<View>(R.id.diagnostics_actions).background =
-            UiStyle.roundedBackground(this, fillAlpha = 42, strokeAlpha = 34, radiusDp = 16f)
-        findViewById<View>(R.id.diagnostics_actions).setPadding(
-            UiStyle.dp(this, 10f),
-            UiStyle.dp(this, 6f),
-            UiStyle.dp(this, 10f),
-            UiStyle.dp(this, 6f)
-        )
+        findViewById<View>(R.id.diagnostics_actions)?.let { actions ->
+            actions.background = UiStyle.roundedBackground(this, fillAlpha = 42, strokeAlpha = 34, radiusDp = 16f)
+            actions.setPadding(
+                UiStyle.dp(this, 10f),
+                UiStyle.dp(this, 6f),
+                UiStyle.dp(this, 10f),
+                UiStyle.dp(this, 6f)
+            )
+        }
 
-        btnLoadMore.background = UiStyle.roundedBackground(this, fillAlpha = 40, strokeAlpha = 45, radiusDp = 8f)
+        findViewById<View>(R.id.btn_load_more)?.background =
+            UiStyle.roundedBackground(this, fillAlpha = 40, strokeAlpha = 45, radiusDp = 8f)
     }
 
     private fun setupFilterChips() {
@@ -141,7 +145,7 @@ class DiagnosticsActivity : AppCompatActivity() {
                         strokeAlpha = 220,
                         radiusDp = 14f
                     )
-                    setTextColor(Color.parseColor("#051C12"))
+                    setTextColor(UiStyle.resolveColor(this@DiagnosticsActivity, com.google.android.material.R.attr.colorOnPrimary, Color.parseColor("#051C12")))
                 } else {
                     background = UiStyle.roundedBackground(
                         this@DiagnosticsActivity,
@@ -167,8 +171,6 @@ class DiagnosticsActivity : AppCompatActivity() {
     }
 
     private fun renderDiagnostics() {
-        logEntriesContainer.removeAllViews()
-
         val sessions = PerfStore.getSessions()
         val allBreadcrumbs = Breadcrumb.snapshot()
 
@@ -190,6 +192,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val totalCount = filteredBreadcrumbs.size + (if (showTrace) sessions.size else 0)
 
         if (totalCount == 0) {
+            terminalConsoleText.visibility = View.GONE
             emptyDiagnostics.visibility = View.VISIBLE
             emptyDiagnostics.text = "(tidak ada rekaman log untuk filter '${currentFilter.label}')"
             btnLoadMore.visibility = View.GONE
@@ -200,6 +203,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             return
         }
 
+        terminalConsoleText.visibility = View.VISIBLE
         emptyDiagnostics.visibility = View.GONE
         btnCopy.isEnabled = true
         btnShare.isEnabled = true
@@ -296,17 +300,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
 
         cachedFullText = plainBuilder.toString()
-
-        val consoleTextView = TextView(this).apply {
-            typeface = Typeface.MONOSPACE
-            textSize = 11.5f
-            setTextColor(Color.parseColor("#E0E6ED"))
-            setTextIsSelectable(true)
-            setLineSpacing(UiStyle.dp(this@DiagnosticsActivity, 3f).toFloat(), 1f)
-            text = spanBuilder
-        }
-
-        logEntriesContainer.addView(consoleTextView)
+        terminalConsoleText.text = spanBuilder
     }
 
     private fun buildTraceSummary(sessions: List<PerfSession>): String = buildString {

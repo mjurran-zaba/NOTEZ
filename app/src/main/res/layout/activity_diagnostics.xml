@@ -34,8 +34,8 @@
                 android:contentDescription="Kembali"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_lucide_arrow_left"
-                android:tint="?attr/colorOnSurface" />
+                app:srcCompat="@drawable/ic_lucide_arrow_left"
+                app:tint="?attr/colorOnSurface" />
 
             <TextView
                 android:layout_width="0dp"
@@ -85,7 +85,10 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             app:cardCornerRadius="14dp"
-            app:cardElevation="2dp">
+            app:cardElevation="2dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="#080C12">
 
             <ScrollView
                 android:id="@+id/diagnostics_scroll"
@@ -122,11 +125,13 @@
                         android:textColor="?attr/colorPrimary"
                         android:visibility="gone" />
 
-                    <LinearLayout
-                        android:id="@+id/log_entries_container"
+                    <TextView
+                        android:id="@+id/terminal_console_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
+                        android:typeface="monospace"
+                        android:textSize="11.5sp"
+                        android:textColor="#E0E6ED"
                         android:layout_marginTop="6dp" />
 
                     <TextView

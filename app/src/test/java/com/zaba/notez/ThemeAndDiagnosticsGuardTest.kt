@@ -86,4 +86,17 @@ class ThemeAndDiagnosticsGuardTest {
         assertTrue("DiagnosticsActivity must have LogFilter enum", diagSource.contains("enum class LogFilter"))
         assertTrue("DiagnosticsActivity must format as adb logcat tag", diagSource.contains("\$level/NOTEZ_"))
     }
+
+    @Test
+    fun diagnosticsActivityLifecycleInitializationOrderGuard() {
+        val diagSource = SourceScan.readMainFile("java/com/zaba/notez/diagnostics/DiagnosticsActivity.kt")
+        val indexOfFindBtnLoadMore = diagSource.indexOf("btnLoadMore = findViewById")
+        val indexOfApplyScreenPolishCall = diagSource.indexOf("applyScreenPolish()")
+        assertTrue("btnLoadMore must be found in onCreate", indexOfFindBtnLoadMore > 0)
+        assertTrue("applyScreenPolish must be called in onCreate", indexOfApplyScreenPolishCall > 0)
+        assertTrue(
+            "applyScreenPolish() must be called AFTER btnLoadMore initialization to prevent UninitializedPropertyAccessException",
+            indexOfApplyScreenPolishCall > indexOfFindBtnLoadMore
+        )
+    }
 }
