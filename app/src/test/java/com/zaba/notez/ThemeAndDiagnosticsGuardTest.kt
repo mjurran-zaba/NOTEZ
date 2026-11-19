@@ -30,13 +30,19 @@ class ThemeAndDiagnosticsGuardTest {
         assertEquals("CYBER_OBSIDIAN must be 15", 15, ThemePref.CYBER_OBSIDIAN)
         assertEquals("SUNSET_MIRAGE must be 16", 16, ThemePref.SUNSET_MIRAGE)
         assertEquals("MATCHA_CREAM_PAPER must be 17", 17, ThemePref.MATCHA_CREAM_PAPER)
+        assertEquals("PARCHMENT_AMBER must be 18", 18, ThemePref.PARCHMENT_AMBER)
+        assertEquals("ROSE_PINE_DAWN must be 19", 19, ThemePref.ROSE_PINE_DAWN)
+        assertEquals("NORD_POLAR_MIST must be 20", 20, ThemePref.NORD_POLAR_MIST)
 
         val optionValues = ThemePref.OPTIONS.map { it.value }
         assertTrue("ThemePref.OPTIONS must contain AURORA_BOREALIS", optionValues.contains(14))
         assertTrue("ThemePref.OPTIONS must contain CYBER_OBSIDIAN", optionValues.contains(15))
         assertTrue("ThemePref.OPTIONS must contain SUNSET_MIRAGE", optionValues.contains(16))
         assertTrue("ThemePref.OPTIONS must contain MATCHA_CREAM_PAPER", optionValues.contains(17))
-        assertEquals("Total theme options must be 18", 18, ThemePref.OPTIONS.size)
+        assertTrue("ThemePref.OPTIONS must contain PARCHMENT_AMBER", optionValues.contains(18))
+        assertTrue("ThemePref.OPTIONS must contain ROSE_PINE_DAWN", optionValues.contains(19))
+        assertTrue("ThemePref.OPTIONS must contain NORD_POLAR_MIST", optionValues.contains(20))
+        assertEquals("Total theme options must be 21", 21, ThemePref.OPTIONS.size)
     }
 
     @Test
@@ -48,7 +54,10 @@ class ThemeAndDiagnosticsGuardTest {
             "aurora_borealis",
             "cyber_obsidian",
             "sunset_mirage",
-            "matcha_cream_paper"
+            "matcha_cream_paper",
+            "parchment_amber",
+            "rose_pine_dawn",
+            "nord_polar_mist"
         )
 
         for (theme in expectedThemes) {
@@ -61,6 +70,9 @@ class ThemeAndDiagnosticsGuardTest {
         assertTrue("themes.xml must define Theme.Notez.CyberObsidian", themes.contains("name=\"Theme.Notez.CyberObsidian\""))
         assertTrue("themes.xml must define Theme.Notez.SunsetMirage", themes.contains("name=\"Theme.Notez.SunsetMirage\""))
         assertTrue("themes.xml must define Theme.Notez.MatchaCreamPaper", themes.contains("name=\"Theme.Notez.MatchaCreamPaper\""))
+        assertTrue("themes.xml must define Theme.Notez.ParchmentAmber", themes.contains("name=\"Theme.Notez.ParchmentAmber\""))
+        assertTrue("themes.xml must define Theme.Notez.RosePineDawn", themes.contains("name=\"Theme.Notez.RosePineDawn\""))
+        assertTrue("themes.xml must define Theme.Notez.NordPolarMist", themes.contains("name=\"Theme.Notez.NordPolarMist\""))
     }
 
     @Test

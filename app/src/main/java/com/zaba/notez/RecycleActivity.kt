@@ -45,6 +45,7 @@ class RecycleActivity : AppCompatActivity() {
 
         val infoCard = findViewById<MaterialCardView>(R.id.recycle_info_card)
         UiStyle.applyGlassCard(infoCard, alpha = 185, radiusDp = 14f)
+        findViewById<View>(R.id.recycle_top_fade)?.background = UiStyle.createTopFadeGradient(this)
 
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter

@@ -32,12 +32,20 @@ class SettingsActivity : AppCompatActivity() {
 
     private val themeGroups = listOf(
         ThemeGroup(
+            title = "DAY & PAPER (MODE TERANG)",
+            values = listOf(
+                ThemePref.MATCHA_CREAM_PAPER,
+                ThemePref.PARCHMENT_AMBER,
+                ThemePref.ROSE_PINE_DAWN,
+                ThemePref.NORD_POLAR_MIST
+            )
+        ),
+        ThemeGroup(
             title = "IMMERSIVE & GLASS",
             values = listOf(
                 ThemePref.AURORA_BOREALIS,
                 ThemePref.CYBER_OBSIDIAN,
-                ThemePref.SUNSET_MIRAGE,
-                ThemePref.MATCHA_CREAM_PAPER
+                ThemePref.SUNSET_MIRAGE
             )
         ),
         ThemeGroup(

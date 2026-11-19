@@ -161,6 +161,36 @@
     <color name="matcha_cream_paper_danger">#BA1A1A</color>
     <color name="matcha_cream_paper_outline">#D5DDD4</color>
 
+    <!-- Parchment Amber (Classic Editorial / Warm Book Paper) -->
+    <color name="parchment_amber_bg">#F7F2E8</color>
+    <color name="parchment_amber_surface">#FFFDF8</color>
+    <color name="parchment_amber_text">#28231D</color>
+    <color name="parchment_amber_secondary">#6E6255</color>
+    <color name="parchment_amber_accent">#8C531B</color>
+    <color name="parchment_amber_on_accent">#FFFFFF</color>
+    <color name="parchment_amber_danger">#B3261E</color>
+    <color name="parchment_amber_outline">#E2D9CB</color>
+
+    <!-- Rosé Pine Dawn (Cozy Coffeehouse Pastel) -->
+    <color name="rose_pine_dawn_bg">#FAF4ED</color>
+    <color name="rose_pine_dawn_surface">#FFFDFB</color>
+    <color name="rose_pine_dawn_text">#575279</color>
+    <color name="rose_pine_dawn_secondary">#797593</color>
+    <color name="rose_pine_dawn_accent">#B4637A</color>
+    <color name="rose_pine_dawn_on_accent">#FFFFFF</color>
+    <color name="rose_pine_dawn_danger">#B4637A</color>
+    <color name="rose_pine_dawn_outline">#DFDAD5</color>
+
+    <!-- Nord Polar Mist (Arctic Minimalist / Cool Clean Light) -->
+    <color name="nord_polar_mist_bg">#F0F4F8</color>
+    <color name="nord_polar_mist_surface">#FFFFFF</color>
+    <color name="nord_polar_mist_text">#1E293B</color>
+    <color name="nord_polar_mist_secondary">#64748B</color>
+    <color name="nord_polar_mist_accent">#2563EB</color>
+    <color name="nord_polar_mist_on_accent">#FFFFFF</color>
+    <color name="nord_polar_mist_danger">#DC2626</color>
+    <color name="nord_polar_mist_outline">#D0DCE7</color>
+
     <!-- Alias lama (kompatibilitas) -->
     <color name="bg_page">#050806</color>
     <color name="bg_surface">#101410</color>

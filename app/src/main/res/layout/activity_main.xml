@@ -217,6 +217,13 @@
                     android:paddingEnd="8dp"
                     android:paddingBottom="92dp" />
 
+                <View
+                    android:id="@+id/home_top_fade"
+                    android:layout_width="match_parent"
+                    android:layout_height="14dp"
+                    android:layout_gravity="top"
+                    android:importantForAccessibility="no" />
+
                 <LinearLayout
                     android:id="@+id/empty_welcome"
                     android:layout_width="match_parent"

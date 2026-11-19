@@ -93,25 +93,12 @@ class NoteAdapter(
         val context = h.itemView.context
         val isSelected = selectedIds.contains(n.id)
 
-        h.card.setCardBackgroundColor(ColorUtils.setAlphaComponent(UiStyle.surface(context), 185))
-        h.card.setRadius(UiStyle.dp(context, 16f).toFloat())
+        UiStyle.applyGlassCard(h.card, alpha = 185, radiusDp = 16f)
         h.card.cardElevation = 0f
-        h.card.maxCardElevation = 0f
-        h.card.preventCornerOverlap = false
-        h.card.useCompatPadding = false
 
         if (isSelected) {
             h.card.strokeColor = UiStyle.primary(context)
             h.card.strokeWidth = UiStyle.dp(context, 1.5f)
-        } else {
-            val primary = UiStyle.primary(context)
-            val outline = UiStyle.outline(context)
-            val glassStroke = ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(primary, 55),
-                ColorUtils.setAlphaComponent(outline, 70)
-            )
-            h.card.strokeColor = glassStroke
-            h.card.strokeWidth = UiStyle.dp(context, 1f)
         }
 
         h.title.text = n.title.ifBlank { "(tanpa judul)" }

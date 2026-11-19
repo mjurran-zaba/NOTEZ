@@ -22,6 +22,9 @@ object ThemePref {
     const val CYBER_OBSIDIAN = 15
     const val SUNSET_MIRAGE = 16
     const val MATCHA_CREAM_PAPER = 17
+    const val PARCHMENT_AMBER = 18
+    const val ROSE_PINE_DAWN = 19
+    const val NORD_POLAR_MIST = 20
 
     private const val PREF = "notez"
     private const val KEY = "theme"
@@ -274,11 +277,53 @@ object ThemePref {
             accentColorRes = R.color.matcha_cream_paper_accent,
             outlineColorRes = R.color.matcha_cream_paper_outline,
             dangerColorRes = R.color.matcha_cream_paper_danger
+        ),
+        ThemeOption(
+            value = PARCHMENT_AMBER,
+            name = "Parchment Amber",
+            description = "Kertas buku klasik hangat dengan aksen kulit terracotta.",
+            styleRes = R.style.Theme_Notez_ParchmentAmber,
+            backgroundColorRes = R.color.parchment_amber_bg,
+            surfaceColorRes = R.color.parchment_amber_surface,
+            textColorRes = R.color.parchment_amber_text,
+            secondaryColorRes = R.color.parchment_amber_secondary,
+            accentColorRes = R.color.parchment_amber_accent,
+            outlineColorRes = R.color.parchment_amber_outline,
+            dangerColorRes = R.color.parchment_amber_danger
+        ),
+        ThemeOption(
+            value = ROSE_PINE_DAWN,
+            name = "Rosé Pine Dawn",
+            description = "Nuansa kedai kopi sore yang aesthetic, blush, dan dusty rose.",
+            styleRes = R.style.Theme_Notez_RosePineDawn,
+            backgroundColorRes = R.color.rose_pine_dawn_bg,
+            surfaceColorRes = R.color.rose_pine_dawn_surface,
+            textColorRes = R.color.rose_pine_dawn_text,
+            secondaryColorRes = R.color.rose_pine_dawn_secondary,
+            accentColorRes = R.color.rose_pine_dawn_accent,
+            outlineColorRes = R.color.rose_pine_dawn_outline,
+            dangerColorRes = R.color.rose_pine_dawn_danger
+        ),
+        ThemeOption(
+            value = NORD_POLAR_MIST,
+            name = "Nord Polar Mist",
+            description = "Kebiruan kabut salju Skandinavia yang dingin, bersih, dan segar.",
+            styleRes = R.style.Theme_Notez_NordPolarMist,
+            backgroundColorRes = R.color.nord_polar_mist_bg,
+            surfaceColorRes = R.color.nord_polar_mist_surface,
+            textColorRes = R.color.nord_polar_mist_text,
+            secondaryColorRes = R.color.nord_polar_mist_secondary,
+            accentColorRes = R.color.nord_polar_mist_accent,
+            outlineColorRes = R.color.nord_polar_mist_outline,
+            dangerColorRes = R.color.nord_polar_mist_danger
         )
     )
 
     val NAMES: Array<String>
         get() = OPTIONS.map { it.name }.toTypedArray()
+
+    fun isLightTheme(value: Int): Boolean =
+        value in setOf(MATCHA_CREAM_PAPER, PARCHMENT_AMBER, ROSE_PINE_DAWN, NORD_POLAR_MIST)
 
     fun get(context: Context): Int =
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE).getInt(KEY, GITHUB_DARK)

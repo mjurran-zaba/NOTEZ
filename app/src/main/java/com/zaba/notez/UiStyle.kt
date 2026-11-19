@@ -38,14 +38,23 @@ object UiStyle {
 
     fun applyGlassCard(card: MaterialCardView, alpha: Int = 185, radiusDp: Float = 18f) {
         val context = card.context
+        val isLight = ThemePref.isLightTheme(ThemePref.get(context))
         val surface = surface(context)
         val primary = primary(context)
         val outline = outline(context)
-        val glassStroke = ColorUtils.compositeColors(
-            ColorUtils.setAlphaComponent(primary, 55),
-            ColorUtils.setAlphaComponent(outline, 70)
-        )
-        card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, alpha.coerceIn(0, 255)))
+        val glassStroke = if (isLight) {
+            ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(primary, 45),
+                ColorUtils.setAlphaComponent(outline, 85)
+            )
+        } else {
+            ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(primary, 55),
+                ColorUtils.setAlphaComponent(outline, 70)
+            )
+        }
+        val cardAlpha = if (isLight) 235 else alpha.coerceIn(0, 255)
+        card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, cardAlpha))
         card.setStrokeColor(glassStroke)
         card.strokeWidth = dp(context, 1f)
         card.setRadius(dp(context, radiusDp).toFloat())
@@ -60,16 +69,30 @@ object UiStyle {
         view.setBackgroundColor(ColorUtils.setAlphaComponent(surface(view.context), alpha.coerceIn(0, 255)))
     }
 
+    fun createTopFadeGradient(context: Context): GradientDrawable {
+        val bg = windowBackground(context)
+        val isLight = ThemePref.isLightTheme(ThemePref.get(context))
+        val startColor = ColorUtils.setAlphaComponent(bg, if (isLight) 235 else 200)
+        return GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(startColor, Color.TRANSPARENT)
+        )
+    }
+
     fun roundedBackground(
         context: Context,
         fillAlpha: Int = 94,
         strokeAlpha: Int = 72,
         radiusDp: Float = 14f
-    ): GradientDrawable = GradientDrawable().apply {
-        shape = GradientDrawable.RECTANGLE
-        cornerRadius = dp(context, radiusDp).toFloat()
-        setColor(ColorUtils.setAlphaComponent(surface(context), fillAlpha.coerceIn(0, 255)))
-        setStroke(dp(context, 1f), ColorUtils.setAlphaComponent(primary(context), strokeAlpha.coerceIn(0, 255)))
+    ): GradientDrawable {
+        val isLight = ThemePref.isLightTheme(ThemePref.get(context))
+        val actualFillAlpha = if (isLight) (fillAlpha * 1.35f).toInt().coerceIn(0, 240) else fillAlpha.coerceIn(0, 255)
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(context, radiusDp).toFloat()
+            setColor(ColorUtils.setAlphaComponent(surface(context), actualFillAlpha))
+            setStroke(dp(context, 1f), ColorUtils.setAlphaComponent(primary(context), strokeAlpha.coerceIn(0, 255)))
+        }
     }
 
     fun dp(context: Context, value: Float): Int =

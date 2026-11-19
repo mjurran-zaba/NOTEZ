@@ -168,6 +168,7 @@ class MainActivity : AppCompatActivity() {
 
         UiStyle.applyGlassCard(btnSpeedNewNote, alpha = 224, radiusDp = 22f)
         UiStyle.applyGlassCard(btnSpeedOpenFile, alpha = 224, radiusDp = 22f)
+        findViewById<View>(R.id.home_top_fade)?.background = UiStyle.createTopFadeGradient(this)
 
         findViewById<View>(R.id.empty_about_link)?.setOnClickListener {
             startActivity(Intent(this, MarkdownGuideActivity::class.java))

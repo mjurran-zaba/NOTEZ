@@ -1548,15 +1548,55 @@ class MarkdownPreviewRenderer(
         return html
     }
 
-    private fun css(colors: PreviewColors): String = """
+    private fun css(colors: PreviewColors): String {
+        val border = if (colors.isLight) "rgba(0, 0, 0, 0.12)" else "rgba(255, 255, 255, 0.16)"
+        val soft = if (colors.isLight) "rgba(0, 0, 0, 0.04)" else "rgba(255, 255, 255, 0.06)"
+        val codeCardBg = if (colors.isLight) "#FAF8F3" else "#0D1117"
+        val codeHeaderBg = if (colors.isLight) "#F0ECE1" else "#161B22"
+        val codeHeaderBorder = if (colors.isLight) "rgba(0, 0, 0, 0.08)" else "rgba(255, 255, 255, 0.08)"
+        val codeTextColor = if (colors.isLight) "#24292F" else "#C9D1D9"
+        val codeLabelColor = if (colors.isLight) colors.accent else colors.muted
+        val codeLabelBg = if (colors.isLight) "rgba(255, 255, 255, 0.85)" else "rgba(0, 0, 0, 0.18)"
+        val tableWrapBg = if (colors.isLight) "rgba(0, 0, 0, 0.015)" else "rgba(255, 255, 255, 0.025)"
+        val tableThBg = if (colors.isLight) "rgba(0, 0, 0, 0.04)" else "var(--notez-soft)"
+        val tableEvenRowBg = if (colors.isLight) "rgba(0, 0, 0, 0.02)" else "rgba(255, 255, 255, 0.025)"
+        val calloutBg = if (colors.isLight) "rgba(0, 0, 0, 0.03)" else "rgba(255, 255, 255, 0.05)"
+        val preBg = if (colors.isLight) "#FAF8F3" else "linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035))"
+        val syntaxCss = if (colors.isLight) """
+        .notez-code-highlighted .ntz-syntax-comment { color: #6E7781; font-style: italic; }
+        .notez-code-highlighted .ntz-syntax-keyword { color: #CF222E; font-weight: 700; }
+        .notez-code-highlighted .ntz-syntax-string { color: #0A3069; }
+        .notez-code-highlighted .ntz-syntax-number { color: #0550AE; }
+        .notez-code-highlighted .ntz-syntax-function { color: #8250DF; }
+        .notez-code-highlighted .ntz-syntax-type { color: #953800; }
+        .notez-code-highlighted .ntz-syntax-operator { color: #CF222E; }
+        .notez-code-highlighted .ntz-syntax-variable { color: #953800; }
+        .notez-code-highlighted .ntz-syntax-key { color: #116329; }
+        .notez-code-highlighted .ntz-syntax-tag { color: #116329; }
+        .notez-code-highlighted .ntz-syntax-entity { color: #8250DF; }
+        """ else """
+        .notez-code-highlighted .ntz-syntax-comment { color: #8B949E; font-style: italic; }
+        .notez-code-highlighted .ntz-syntax-keyword { color: #FF7B72; font-weight: 700; }
+        .notez-code-highlighted .ntz-syntax-string { color: #A5D6FF; }
+        .notez-code-highlighted .ntz-syntax-number { color: #79C0FF; }
+        .notez-code-highlighted .ntz-syntax-function { color: #D2A8FF; }
+        .notez-code-highlighted .ntz-syntax-type { color: #FFA657; }
+        .notez-code-highlighted .ntz-syntax-operator { color: #FF7B72; }
+        .notez-code-highlighted .ntz-syntax-variable { color: #FFA657; }
+        .notez-code-highlighted .ntz-syntax-key { color: #7EE787; }
+        .notez-code-highlighted .ntz-syntax-tag { color: #7EE787; }
+        .notez-code-highlighted .ntz-syntax-entity { color: #D2A8FF; }
+        """
+
+        return """
         :root {
           --notez-text: ${colors.text};
           --notez-muted: ${colors.muted};
           --notez-surface: ${colors.surface};
           --notez-accent: ${colors.accent};
           --notez-danger: ${colors.danger};
-          --notez-border: rgba(255, 255, 255, 0.16);
-          --notez-soft: rgba(255, 255, 255, 0.06);
+          --notez-border: $border;
+          --notez-soft: $soft;
         }
         html {
           scroll-behavior: smooth;
@@ -1605,7 +1645,7 @@ class MarkdownPreviewRenderer(
         pre {
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
-          background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+          background: $preBg;
           border: 1px solid var(--notez-border);
           border-radius: 14px;
           padding: 12px;
@@ -1614,18 +1654,19 @@ class MarkdownPreviewRenderer(
         .notez-code-card {
           max-width: 100%;
           overflow: hidden;
-          background: #0D1117;
+          background: $codeCardBg;
           border: 1px solid var(--notez-border);
           border-radius: 12px;
           margin: 1em 0;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
         .notez-code-header {
           display: flex;
           justify-content: flex-end;
           align-items: center;
-          background: #161B22;
+          background: $codeHeaderBg;
           padding: 6px 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid $codeHeaderBorder;
         }
         .notez-code-scroll {
           max-width: 100%;
@@ -1633,8 +1674,8 @@ class MarkdownPreviewRenderer(
           overflow-x: auto;
           overflow-y: hidden;
           -webkit-overflow-scrolling: touch;
-          background: #0D1117;
-          color: #C9D1D9;
+          background: $codeCardBg;
+          color: $codeTextColor;
           border: 0;
           border-radius: 0;
           padding: 12px 14px;
@@ -1646,7 +1687,7 @@ class MarkdownPreviewRenderer(
           background: transparent;
           border-radius: 0;
           white-space: pre;
-          color: #C9D1D9;
+          color: $codeTextColor;
         }
         .notez-code-label {
           display: inline-flex;
@@ -1655,27 +1696,17 @@ class MarkdownPreviewRenderer(
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          color: var(--notez-muted);
+          color: $codeLabelColor;
           border: 1px solid var(--notez-border);
           border-radius: 999px;
-          background: rgba(0, 0, 0, 0.18);
+          background: $codeLabelBg;
           padding: 2px 8px;
           font-size: .68em;
           font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
           font-weight: 800;
           letter-spacing: .06em;
         }
-        .notez-code-highlighted .ntz-syntax-comment { color: #8B949E; font-style: italic; }
-        .notez-code-highlighted .ntz-syntax-keyword { color: #FF7B72; font-weight: 700; }
-        .notez-code-highlighted .ntz-syntax-string { color: #A5D6FF; }
-        .notez-code-highlighted .ntz-syntax-number { color: #79C0FF; }
-        .notez-code-highlighted .ntz-syntax-function { color: #D2A8FF; }
-        .notez-code-highlighted .ntz-syntax-type { color: #FFA657; }
-        .notez-code-highlighted .ntz-syntax-operator { color: #FF7B72; }
-        .notez-code-highlighted .ntz-syntax-variable { color: #FFA657; }
-        .notez-code-highlighted .ntz-syntax-key { color: #7EE787; }
-        .notez-code-highlighted .ntz-syntax-tag { color: #7EE787; }
-        .notez-code-highlighted .ntz-syntax-entity { color: #D2A8FF; }
+        $syntaxCss
         blockquote {
           border-left: 4px solid var(--notez-border);
           color: var(--notez-muted);
@@ -1686,7 +1717,7 @@ class MarkdownPreviewRenderer(
           -webkit-overflow-scrolling: touch;
           border: 1px solid var(--notez-border);
           border-radius: 12px;
-          background: rgba(255, 255, 255, 0.025);
+          background: $tableWrapBg;
         }
         table {
           border-collapse: separate;
@@ -1704,10 +1735,10 @@ class MarkdownPreviewRenderer(
         th:last-child, td:last-child { border-right: 0; }
         tr:last-child td { border-bottom: 0; }
         th {
-          background: var(--notez-soft);
+          background: $tableThBg;
           font-weight: 800;
         }
-        tr:nth-child(even) td { background: rgba(255, 255, 255, 0.025); }
+        tr:nth-child(even) td { background: $tableEvenRowBg; }
         .task-list-item {
           list-style-type: none;
           margin-left: -1.2em;
@@ -1723,7 +1754,7 @@ class MarkdownPreviewRenderer(
           border-radius: 12px;
           padding: 12px 14px;
           color: var(--notez-text);
-          background: rgba(255, 255, 255, 0.05);
+          background: $calloutBg;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
           margin: 1em 0;
         }
@@ -1899,6 +1930,7 @@ class MarkdownPreviewRenderer(
           margin: 1.35em 0;
         }
     """
+    }
 
 
     private fun cachedImagesJson(markdown: String): String {
@@ -2003,6 +2035,7 @@ class MarkdownPreviewRenderer(
     )
 
     private data class PreviewColors(
+        val isLight: Boolean,
         val surface: String,
         val text: String,
         val muted: String,
@@ -2011,8 +2044,10 @@ class MarkdownPreviewRenderer(
     ) {
         companion object {
             fun from(activity: Activity): PreviewColors {
-                val option = ThemePref.optionOf(ThemePref.get(activity))
+                val themeVal = ThemePref.get(activity)
+                val option = ThemePref.optionOf(themeVal)
                 return PreviewColors(
+                    isLight = ThemePref.isLightTheme(themeVal),
                     surface = activity.colorResource(option.surfaceColorRes),
                     text = activity.colorResource(option.textColorRes),
                     muted = activity.colorResource(option.secondaryColorRes),

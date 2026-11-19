@@ -95,23 +95,34 @@ class DiagnosticsActivity : AppCompatActivity() {
     }
 
     private fun applyScreenPolish() {
+        val isLight = ThemePref.isLightTheme(ThemePref.get(this))
         findViewById<View>(R.id.diagnostics_toolbar)?.background =
-            UiStyle.roundedBackground(this, fillAlpha = 78, strokeAlpha = 52, radiusDp = 18f)
+            UiStyle.roundedBackground(this, fillAlpha = if (isLight) 40 else 78, strokeAlpha = if (isLight) 30 else 52, radiusDp = 18f)
 
         val terminalCard = findViewById<MaterialCardView>(R.id.terminal_card)
         if (terminalCard != null) {
-            terminalCard.setCardBackgroundColor(Color.parseColor("#080C12"))
+            val cardBg = if (isLight) Color.parseColor("#FAF8F3") else Color.parseColor("#080C12")
+            terminalCard.setCardBackgroundColor(cardBg)
             val primary = UiStyle.primary(this)
             val outline = UiStyle.outline(this)
             terminalCard.strokeColor = ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(primary, 60),
-                ColorUtils.setAlphaComponent(outline, 80)
+                ColorUtils.setAlphaComponent(primary, if (isLight) 35 else 60),
+                ColorUtils.setAlphaComponent(outline, if (isLight) 50 else 80)
             )
             terminalCard.strokeWidth = UiStyle.dp(this, 1f)
         }
 
+        findViewById<TextView>(R.id.terminal_prompt)?.setTextColor(
+            if (isLight) Color.parseColor("#5A6B5F") else Color.parseColor("#88AAB5")
+        )
+
+        findViewById<TextView>(R.id.status_badge)?.let { badge ->
+            badge.setTextColor(if (isLight) Color.parseColor("#5A6B5F") else Color.parseColor("#88AAB5"))
+            badge.background = UiStyle.roundedBackground(this, fillAlpha = if (isLight) 25 else 50, strokeAlpha = if (isLight) 35 else 60, radiusDp = 6f)
+        }
+
         findViewById<View>(R.id.diagnostics_actions)?.let { actions ->
-            actions.background = UiStyle.roundedBackground(this, fillAlpha = 42, strokeAlpha = 34, radiusDp = 16f)
+            actions.background = UiStyle.roundedBackground(this, fillAlpha = if (isLight) 25 else 42, strokeAlpha = if (isLight) 25 else 34, radiusDp = 16f)
             actions.setPadding(
                 UiStyle.dp(this, 12f),
                 UiStyle.dp(this, 8f),
@@ -237,6 +248,12 @@ class DiagnosticsActivity : AppCompatActivity() {
             if (dropped > 0) append(" ($dropped dropped)")
         }
 
+        val isLight = ThemePref.isLightTheme(ThemePref.get(this))
+        val timestampColor = if (isLight) Color.parseColor("#6E6255") else Color.parseColor("#88AAB5")
+        val messageColor = if (isLight) Color.parseColor("#1C241E") else Color.parseColor("#E0E6ED")
+        val threadColor = if (isLight) Color.parseColor("#8C7E72") else Color.parseColor("#667788")
+        val traceColor = if (isLight) Color.parseColor("#0284C7") else Color.parseColor("#38BDF8")
+
         // Build master spannable output for logcat window
         val spanBuilder = SpannableStringBuilder()
         val plainBuilder = StringBuilder()
@@ -246,14 +263,14 @@ class DiagnosticsActivity : AppCompatActivity() {
         // 1. Render Systrace Summary if applicable
         if (showTrace) {
             val traceText = buildTraceSummary(sessions)
-            appendColoredLine(spanBuilder, traceText, Color.parseColor("#38BDF8"))
+            appendColoredLine(spanBuilder, traceText, traceColor)
             plainBuilder.appendLine(traceText)
         }
 
         // 2. Render Logcat lines
         displayedBreadcrumbs.forEach { entry ->
             val level = determineLogLevel(entry.area, entry.message)
-            val levelColor = colorForLevel(level, entry.area)
+            val levelColor = colorForLevel(level, entry.area, isLight)
             val timeStr = clock(entry.wallClockMs)
             val tagStr = "$level/NOTEZ_${entry.area.uppercase(Locale.US)}"
             val threadStr = if (entry.thread == "main") "" else " [${entry.thread}]"
@@ -267,7 +284,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             // Timestamp (gray/teal)
             spanBuilder.append(timeStr)
             spanBuilder.setSpan(
-                ForegroundColorSpan(Color.parseColor("#88AAB5")),
+                ForegroundColorSpan(timestampColor),
                 lineStart,
                 spanBuilder.length,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -287,11 +304,11 @@ class DiagnosticsActivity : AppCompatActivity() {
 
             spanBuilder.append(": ")
 
-            // Message body (light frost)
+            // Message body (light frost / deep charcoal)
             val msgStart = spanBuilder.length
             spanBuilder.append(entry.message)
             spanBuilder.setSpan(
-                ForegroundColorSpan(Color.parseColor("#E0E6ED")),
+                ForegroundColorSpan(messageColor),
                 msgStart,
                 spanBuilder.length,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -302,7 +319,7 @@ class DiagnosticsActivity : AppCompatActivity() {
                 val threadStart = spanBuilder.length
                 spanBuilder.append(threadStr)
                 spanBuilder.setSpan(
-                    ForegroundColorSpan(Color.parseColor("#667788")),
+                    ForegroundColorSpan(threadColor),
                     threadStart,
                     spanBuilder.length,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -364,12 +381,22 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
     }
 
-    private fun colorForLevel(level: String, area: String): Int = when (level) {
-        "E" -> Color.parseColor("#FF6B6B") // Coral Red
-        "W" -> Color.parseColor("#FFC600") // Amber
-        "I" -> Color.parseColor("#39FF14") // Neon Green
-        "D" -> if (area.equals("MUSIC", ignoreCase = true)) Color.parseColor("#38BDF8") else Color.parseColor("#7AA2F7")
-        else -> Color.parseColor("#A8E6CF") // Mint
+    private fun colorForLevel(level: String, area: String, isLight: Boolean): Int = if (isLight) {
+        when (level) {
+            "E" -> Color.parseColor("#BA1A1A") // Deep Crimson Red
+            "W" -> Color.parseColor("#B45309") // Deep Terracotta / Amber
+            "I" -> Color.parseColor("#15803D") // Deep Matcha Forest Green
+            "D" -> if (area.equals("MUSIC", ignoreCase = true)) Color.parseColor("#0284C7") else Color.parseColor("#4338CA")
+            else -> Color.parseColor("#475569") // Slate Charcoal
+        }
+    } else {
+        when (level) {
+            "E" -> Color.parseColor("#FF6B6B") // Coral Red
+            "W" -> Color.parseColor("#FFC600") // Amber
+            "I" -> Color.parseColor("#39FF14") // Neon Green
+            "D" -> if (area.equals("MUSIC", ignoreCase = true)) Color.parseColor("#38BDF8") else Color.parseColor("#7AA2F7")
+            else -> Color.parseColor("#A8E6CF") // Mint
+        }
     }
 
     private fun appendColoredLine(builder: SpannableStringBuilder, text: String, color: Int) {

@@ -257,4 +257,46 @@
         <item name="colorOutline">@color/matcha_cream_paper_outline</item>
         <item name="colorError">@color/matcha_cream_paper_danger</item>
     </style>
+
+    <style name="Theme.Notez.ParchmentAmber" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/parchment_amber_accent</item>
+        <item name="colorOnPrimary">@color/parchment_amber_on_accent</item>
+        <item name="colorPrimaryContainer">@color/parchment_amber_accent</item>
+        <item name="colorOnPrimaryContainer">@color/parchment_amber_on_accent</item>
+        <item name="android:windowBackground">@color/parchment_amber_bg</item>
+        <item name="colorSurface">@color/parchment_amber_surface</item>
+        <item name="colorOnSurface">@color/parchment_amber_text</item>
+        <item name="colorSurfaceVariant">@color/parchment_amber_surface</item>
+        <item name="colorOnSurfaceVariant">@color/parchment_amber_secondary</item>
+        <item name="colorOutline">@color/parchment_amber_outline</item>
+        <item name="colorError">@color/parchment_amber_danger</item>
+    </style>
+
+    <style name="Theme.Notez.RosePineDawn" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/rose_pine_dawn_accent</item>
+        <item name="colorOnPrimary">@color/rose_pine_dawn_on_accent</item>
+        <item name="colorPrimaryContainer">@color/rose_pine_dawn_accent</item>
+        <item name="colorOnPrimaryContainer">@color/rose_pine_dawn_on_accent</item>
+        <item name="android:windowBackground">@color/rose_pine_dawn_bg</item>
+        <item name="colorSurface">@color/rose_pine_dawn_surface</item>
+        <item name="colorOnSurface">@color/rose_pine_dawn_text</item>
+        <item name="colorSurfaceVariant">@color/rose_pine_dawn_surface</item>
+        <item name="colorOnSurfaceVariant">@color/rose_pine_dawn_secondary</item>
+        <item name="colorOutline">@color/rose_pine_dawn_outline</item>
+        <item name="colorError">@color/rose_pine_dawn_danger</item>
+    </style>
+
+    <style name="Theme.Notez.NordPolarMist" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/nord_polar_mist_accent</item>
+        <item name="colorOnPrimary">@color/nord_polar_mist_on_accent</item>
+        <item name="colorPrimaryContainer">@color/nord_polar_mist_accent</item>
+        <item name="colorOnPrimaryContainer">@color/nord_polar_mist_on_accent</item>
+        <item name="android:windowBackground">@color/nord_polar_mist_bg</item>
+        <item name="colorSurface">@color/nord_polar_mist_surface</item>
+        <item name="colorOnSurface">@color/nord_polar_mist_text</item>
+        <item name="colorSurfaceVariant">@color/nord_polar_mist_surface</item>
+        <item name="colorOnSurfaceVariant">@color/nord_polar_mist_secondary</item>
+        <item name="colorOutline">@color/nord_polar_mist_outline</item>
+        <item name="colorError">@color/nord_polar_mist_danger</item>
+    </style>
 </resources>

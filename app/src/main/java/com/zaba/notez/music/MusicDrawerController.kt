@@ -51,6 +51,7 @@ class MusicDrawerController(
     private val modeLabel: TextView = root.findViewById(R.id.music_mode_label)
     private val addMusic: TextView = root.findViewById(R.id.music_add)
     private val empty: TextView = root.findViewById(R.id.music_empty)
+    private val libraryScroll: androidx.core.widget.NestedScrollView? = root.findViewById(R.id.music_library_scroll)
     private val libraryList: LinearLayout = root.findViewById(R.id.music_library_list)
     private val libraryLabel: TextView = root.findViewById(R.id.music_library_label)
 
@@ -264,6 +265,11 @@ class MusicDrawerController(
             )
         }
         empty.isVisible = snapshot.tracks.isEmpty()
+        val scrollLp = libraryScroll?.layoutParams
+        if (scrollLp != null) {
+            scrollLp.height = if (snapshot.tracks.size > 4) dp(220) else android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            libraryScroll?.layoutParams = scrollLp
+        }
     }
 
     private fun updateUi() {

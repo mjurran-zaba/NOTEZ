@@ -47,6 +47,8 @@ class MarkdownGuideActivity : AppCompatActivity() {
         val webView = findViewById<WebView>(R.id.guide_body_web)
         markdownPreview = MarkdownPreviewRenderer(this, webView)
 
+        findViewById<View>(R.id.guide_top_fade)?.background = UiStyle.createTopFadeGradient(this)
+
         val guideMarkdown = assets.open("help/markdown_guide.md").bufferedReader().use { it.readText() }
         sections = MarkdownGuideParser.parse(guideMarkdown)
 
