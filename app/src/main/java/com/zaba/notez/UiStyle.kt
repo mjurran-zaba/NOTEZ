@@ -35,7 +35,7 @@ object UiStyle {
     fun windowBackground(context: Context): Int =
         resolveColor(context, android.R.attr.windowBackground, surface(context))
 
-    fun applyGlassCard(card: MaterialCardView, alpha: Int = 145, radiusDp: Float = 16f) {
+    fun applyGlassCard(card: MaterialCardView, alpha: Int = 160, radiusDp: Float = 16f) {
         val context = card.context
         val isLight = ThemePref.isLightTheme(ThemePref.get(context))
         val surface = surface(context)
@@ -44,8 +44,8 @@ object UiStyle {
 
         val glassStroke = if (isLight) {
             ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 195),
-                ColorUtils.setAlphaComponent(outline, 65)
+                ColorUtils.setAlphaComponent(Color.WHITE, 190),
+                ColorUtils.setAlphaComponent(outline, 70)
             )
         } else {
             ColorUtils.compositeColors(
@@ -54,7 +54,7 @@ object UiStyle {
             )
         }
 
-        val cardAlpha = if (isLight) 145 else alpha.coerceIn(160, 220)
+        val cardAlpha = if (isLight) alpha.coerceIn(140, 185) else alpha.coerceIn(160, 225)
         card.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, cardAlpha))
         card.setStrokeColor(glassStroke)
         card.strokeWidth = dp(context, 1.2f)
@@ -63,6 +63,7 @@ object UiStyle {
         card.maxCardElevation = 0f
         card.preventCornerOverlap = false
         card.useCompatPadding = false
+        card.setContentPadding(0, 0, 0, 0)
 
         if (card.childCount > 0) {
             val inner = card.getChildAt(0)
