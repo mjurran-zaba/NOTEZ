@@ -151,6 +151,9 @@ class AuroraGlassDrawable(
     private val basePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bloomPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glazePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val innerBevelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+    }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
     }
@@ -158,8 +161,10 @@ class AuroraGlassDrawable(
     private val clipPath = Path()
     private val cardRect = RectF()
     private val strokeRect = RectF()
+    private val innerBevelRect = RectF()
 
     private val strokeWidthPx = (if (isSelected) 2f else 1.2f) * context.resources.displayMetrics.density
+    private val innerBevelWidthPx = 1.0f * context.resources.displayMetrics.density
 
     private data class OrganicBloom(
         val relX: Float,
@@ -169,25 +174,13 @@ class AuroraGlassDrawable(
         val alpha: Int
     )
 
+    private var chosenColors: List<Int> = emptyList()
     private var bloomList: List<OrganicBloom> = emptyList()
     private var bloomShaders: List<RadialGradient> = emptyList()
 
     init {
         strokePaint.strokeWidth = strokeWidthPx
-        strokePaint.color = if (isSelected) {
-            primaryColor
-        } else if (isLight) {
-            ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 205),
-                ColorUtils.setAlphaComponent(outlineColor, 45)
-            )
-        } else {
-            ColorUtils.compositeColors(
-                ColorUtils.setAlphaComponent(Color.WHITE, 75),
-                ColorUtils.setAlphaComponent(primaryColor, 110)
-            )
-        }
-
+        innerBevelPaint.strokeWidth = innerBevelWidthPx
         setupOrganicBlooms()
     }
 
@@ -217,7 +210,7 @@ class AuroraGlassDrawable(
 
         // Pilih 3 sampai 4 warna secara acak deterministik per kartu agar tidak menumpuk jadi becek
         val count = rng.nextInt(3, 5)
-        val chosenColors = fullPalette.shuffled(rng).take(count)
+        chosenColors = fullPalette.shuffled(rng).take(count)
 
         // Sebar titik-titik bukit aurora secara abstrak dan asimetris (bukan garis lurus paralel)
         val baseAlpha = if (isLight) 140 else 115
@@ -243,6 +236,9 @@ class AuroraGlassDrawable(
         cardRect.set(bounds)
         val inset = strokeWidthPx / 2f
         strokeRect.set(bounds.left + inset, bounds.top + inset, bounds.right - inset, bounds.bottom - inset)
+
+        val bevelInset = strokeWidthPx + (innerBevelWidthPx / 2f)
+        innerBevelRect.set(bounds.left + bevelInset, bounds.top + bevelInset, bounds.right - bevelInset, bounds.bottom - bevelInset)
 
         clipPath.reset()
         clipPath.addRoundRect(cardRect, radiusPx, radiusPx, Path.Direction.CW)
@@ -279,7 +275,7 @@ class AuroraGlassDrawable(
             )
         }
 
-        // 3. Glaze pantulan kaca diagonal 135 derajat
+        // 3. Glaze pantulan kilap kaca diagonal 135 derajat
         val glazeAlpha = if (isLight) 44 else 22
         glazePaint.shader = LinearGradient(
             0f, 0f, w * 0.85f, h * 0.85f,
@@ -288,6 +284,55 @@ class AuroraGlassDrawable(
                 Color.TRANSPARENT
             ),
             floatArrayOf(0f, 1f),
+            Shader.TileMode.CLAMP
+        )
+
+        // 4. Inner Bevel Highlight (Refleksi Sudut Dalam Kaca Fisik)
+        val bevelTopAlpha = if (isLight) 85 else 50
+        innerBevelPaint.shader = LinearGradient(
+            0f, 0f, w * 0.70f, h * 0.70f,
+            intArrayOf(
+                ColorUtils.setAlphaComponent(Color.WHITE, bevelTopAlpha),
+                Color.TRANSPARENT
+            ),
+            floatArrayOf(0f, 1f),
+            Shader.TileMode.CLAMP
+        )
+
+        // 5. Dynamic Prism Rim (Specular Refraction Border)
+        val refractColor = if (isSelected) primaryColor else (chosenColors.firstOrNull() ?: primaryColor)
+        val prismColors = if (isSelected) {
+            intArrayOf(
+                primaryColor,
+                ColorUtils.setAlphaComponent(Color.WHITE, 240),
+                primaryColor,
+                ColorUtils.setAlphaComponent(primaryColor, 160)
+            )
+        } else if (isLight) {
+            val specularWhite = ColorUtils.setAlphaComponent(Color.WHITE, 235)
+            val chromaticEdge = ColorUtils.blendARGB(Color.WHITE, refractColor, 0.35f)
+            val subtleFrost = ColorUtils.setAlphaComponent(Color.WHITE, 95)
+            intArrayOf(
+                specularWhite,
+                ColorUtils.setAlphaComponent(chromaticEdge, 210),
+                ColorUtils.setAlphaComponent(chromaticEdge, 140),
+                subtleFrost
+            )
+        } else {
+            val specularWhite = ColorUtils.setAlphaComponent(Color.WHITE, 180)
+            val chromaticEdge = ColorUtils.blendARGB(primaryColor, Color.WHITE, 0.40f)
+            val subtleFrost = ColorUtils.setAlphaComponent(Color.WHITE, 45)
+            intArrayOf(
+                specularWhite,
+                ColorUtils.setAlphaComponent(chromaticEdge, 170),
+                ColorUtils.setAlphaComponent(chromaticEdge, 110),
+                subtleFrost
+            )
+        }
+        strokePaint.shader = LinearGradient(
+            0f, 0f, w, h,
+            prismColors,
+            floatArrayOf(0f, 0.28f, 0.72f, 1f),
             Shader.TileMode.CLAMP
         )
     }
@@ -311,9 +356,15 @@ class AuroraGlassDrawable(
         // 3. Glaze Pantulan Kaca 135 Derajat
         canvas.drawRect(cardRect, glazePaint)
 
+        // 4. Inner Bevel Highlight (Efek Sudut Kaca Fisik)
+        val innerRadius = (radiusPx - strokeWidthPx).coerceAtLeast(0f)
+        if (innerRadius > 0f) {
+            canvas.drawRoundRect(innerBevelRect, innerRadius, innerRadius, innerBevelPaint)
+        }
+
         canvas.restore()
 
-        // 4. Specular Hairline Rim
+        // 5. Dynamic Prism Specular Hairline Rim
         canvas.drawRoundRect(strokeRect, radiusPx, radiusPx, strokePaint)
     }
 
