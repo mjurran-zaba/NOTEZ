@@ -3,7 +3,6 @@ package com.zaba.notez
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.os.Build
 import android.util.TypedValue
 import android.view.View
 import androidx.core.graphics.ColorUtils
@@ -15,7 +14,7 @@ import com.google.android.material.card.MaterialCardView
  * - Directly tints card surfaces with curated theme pastels/accents
  * - Specular hairline rims mimicking real frosted glass edges
  * - Diagonal specular light reflection overlay (135 deg)
- * - Subtle ambient depth & colored shadow glow (Android P+)
+ * - Zero elevation to keep scrolling and background aurora rendering predictable
  */
 object UiStyle {
     fun resolveColor(context: Context, attr: Int, fallback: Int): Int {
@@ -56,15 +55,6 @@ object UiStyle {
             )
             card.setStrokeColor(glassStroke)
             card.strokeWidth = dp(context, 1.2f)
-
-            // Elevation and colored ambient shadow glow
-            card.cardElevation = dp(context, 1.5f).toFloat()
-            card.maxCardElevation = dp(context, 2.5f).toFloat()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val glow = ColorUtils.blendARGB(Color.DKGRAY, accent, 0.35f)
-                card.outlineAmbientShadowColor = glow
-                card.outlineSpotShadowColor = glow
-            }
         } else {
             // Dark mode: Deep glass body with subtle theme tint (10% accent blend)
             val tintedSurface = ColorUtils.blendARGB(surface, accent, 0.10f)
@@ -78,18 +68,11 @@ object UiStyle {
             )
             card.setStrokeColor(glassStroke)
             card.strokeWidth = dp(context, 1.2f)
-
-            // Elevation and glowing neon ambient shadow
-            card.cardElevation = dp(context, 1.5f).toFloat()
-            card.maxCardElevation = dp(context, 2.5f).toFloat()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val glow = ColorUtils.setAlphaComponent(accent, 140)
-                card.outlineAmbientShadowColor = glow
-                card.outlineSpotShadowColor = glow
-            }
         }
 
         card.setRadius(dp(context, radiusDp).toFloat())
+        card.cardElevation = 0f
+        card.maxCardElevation = 0f
         card.preventCornerOverlap = false
         card.useCompatPadding = false
 
