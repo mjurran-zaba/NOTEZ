@@ -232,92 +232,77 @@ class AuroraGlassDrawable(
         val opt = ThemePref.optionOf(ThemePref.get(context))
         val rng = kotlin.random.Random(seed)
 
-        if (opt.value == ThemePref.GITHUB_DARK) {
-            // Khusus GitHub Dark: Monochromatic Slate Dev Glass (tanpa spektrum aurora warna-warni ramai)
-            val ghAccent = Color.parseColor("#58A6FF")
-            chosenColors = listOf(ghAccent)
+        if (!isLight) {
+            // Universal Slate Dev Glass untuk seluruh tema gelap (anti-kolintang / bebas pelangi acak)
+            // Setiap tema gelap memakai satu micro-glow aksen khas tema: sedikit lebih jreng namun fade smooth
+            val themeAccent = UiStyle.primary(context)
+            chosenColors = listOf(themeAccent)
             bloomList = listOf(
                 OrganicBloom(
-                    relX = 0.85f,
-                    relY = 0.18f,
-                    relRadius = 0.45f,
-                    color = ghAccent,
-                    alpha = 60
+                    relX = 0.86f,
+                    relY = 0.16f,
+                    relRadius = 0.52f,
+                    color = themeAccent,
+                    alpha = 100 // Lebih jreng dan hidup, tapi menyatu lembut
                 )
             )
             return
         }
 
-        val fullPalette: List<Int> = if (isLight) {
-            when (opt.value) {
-                ThemePref.MATCHA_CREAM_PAPER -> listOf(
-                    Color.parseColor("#9ED872"), // Lime Mint
-                    Color.parseColor("#8EBEF5"), // Biru Awan Pudar
-                    Color.parseColor("#FCD14D"), // Kuning Pudar
-                    Color.parseColor("#FBAC7A"), // Warm Peach Amber
-                    Color.parseColor("#4D8852"), // Matcha Leaf
-                    Color.parseColor("#60A370")  // Soft Sage Moss
-                )
-                ThemePref.PARCHMENT_AMBER -> listOf(
-                    Color.parseColor("#D97706"), // Terracotta Amber
-                    Color.parseColor("#FBBF24"), // Warm Honey
-                    Color.parseColor("#A16207"), // Classic Leather
-                    Color.parseColor("#F59E0B"), // Golden Ink
-                    Color.parseColor("#78350F"), // Aged Oak
-                    Color.parseColor("#CA8A04")  // Parchment Sun
-                )
-                ThemePref.ROSE_PINE_DAWN -> listOf(
-                    Color.parseColor("#B4637A"), // Dusty Rose
-                    Color.parseColor("#EA9D34"), // Soft Gold
-                    Color.parseColor("#56949F"), // Pine Teal
-                    Color.parseColor("#907AA9"), // Iris Violet
-                    Color.parseColor("#D7827E"), // Blush Dawn
-                    Color.parseColor("#286983")  // Deep Pine
-                )
-                ThemePref.NORD_POLAR_MIST -> listOf(
-                    Color.parseColor("#38BDF8"), // Polar Cyan
-                    Color.parseColor("#81A1C1"), // Arctic Blue
-                    Color.parseColor("#88C0D0"), // Frost Teal
-                    Color.parseColor("#B48EAD"), // Aurora Purple
-                    Color.parseColor("#EBCB8B"), // Winter Sun
-                    Color.parseColor("#A3BE8C")  // Polar Aurora Green
-                )
-                else -> {
-                    val accent = UiStyle.accentTint(context)
-                    val secondary = UiStyle.secondaryTint(context)
-                    val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.40f)
-                    val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FBBF24"), 0.45f)
-                    val violetShift = ColorUtils.blendARGB(accent, Color.parseColor("#A855F7"), 0.35f)
-                    val deepShift = ColorUtils.blendARGB(accent, Color.BLACK, 0.25f)
-                    listOf(accent, coolShift, warmShift, violetShift, deepShift, secondary)
-                }
-            }
-        } else {
-            // Opsi 1: Universal Cosmic Polar Aurora (Mellow & Tenang, anti-kolintang) untuk semua tema gelap
-            listOf(
-                Color.parseColor("#00F5A0"), // Bioluminescent Emerald
-                Color.parseColor("#38BDF8"), // Arctic Celestial Cyan
-                Color.parseColor("#8B5CF6"), // Cosmic Amethyst
-                Color.parseColor("#4F46E5"), // Deep Twilight Indigo
-                Color.parseColor("#F472B6"), // Subtle Solar Flare Pink
-                Color.parseColor("#FBBF24")  // Starlight Amber
+        val fullPalette: List<Int> = when (opt.value) {
+            ThemePref.MATCHA_CREAM_PAPER -> listOf(
+                Color.parseColor("#9ED872"), // Lime Mint
+                Color.parseColor("#8EBEF5"), // Biru Awan Pudar
+                Color.parseColor("#FCD14D"), // Kuning Pudar
+                Color.parseColor("#FBAC7A"), // Warm Peach Amber
+                Color.parseColor("#4D8852"), // Matcha Leaf
+                Color.parseColor("#60A370")  // Soft Sage Moss
             )
+            ThemePref.PARCHMENT_AMBER -> listOf(
+                Color.parseColor("#D97706"), // Terracotta Amber
+                Color.parseColor("#FBBF24"), // Warm Honey
+                Color.parseColor("#A16207"), // Classic Leather
+                Color.parseColor("#F59E0B"), // Golden Ink
+                Color.parseColor("#78350F"), // Aged Oak
+                Color.parseColor("#CA8A04")  // Parchment Sun
+            )
+            ThemePref.ROSE_PINE_DAWN -> listOf(
+                Color.parseColor("#B4637A"), // Dusty Rose
+                Color.parseColor("#EA9D34"), // Soft Gold
+                Color.parseColor("#56949F"), // Pine Teal
+                Color.parseColor("#907AA9"), // Iris Violet
+                Color.parseColor("#D7827E"), // Blush Dawn
+                Color.parseColor("#286983")  // Deep Pine
+            )
+            ThemePref.NORD_POLAR_MIST -> listOf(
+                Color.parseColor("#38BDF8"), // Polar Cyan
+                Color.parseColor("#81A1C1"), // Arctic Blue
+                Color.parseColor("#88C0D0"), // Frost Teal
+                Color.parseColor("#B48EAD"), // Aurora Purple
+                Color.parseColor("#EBCB8B"), // Winter Sun
+                Color.parseColor("#A3BE8C")  // Polar Aurora Green
+            )
+            else -> {
+                val accent = UiStyle.accentTint(context)
+                val secondary = UiStyle.secondaryTint(context)
+                val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.40f)
+                val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FBBF24"), 0.45f)
+                val violetShift = ColorUtils.blendARGB(accent, Color.parseColor("#A855F7"), 0.35f)
+                val deepShift = ColorUtils.blendARGB(accent, Color.BLACK, 0.25f)
+                listOf(accent, coolShift, warmShift, violetShift, deepShift, secondary)
+            }
         }
 
-        // Pilih 3-4 warna di light mode, atau 2-3 warna di dark mode agar tetap tenang
-        val count = if (isLight) rng.nextInt(3, 5) else rng.nextInt(2, 4)
+        val count = rng.nextInt(3, 5)
         chosenColors = fullPalette.shuffled(rng).take(count)
 
-        // Sebar titik-titik bukit aurora secara abstrak dan asimetris (bukan garis lurus paralel)
-        // Di dark mode: alpha dipangkas menjadi ~56-70 agar menjadi kabut kosmik lembut
-        val baseAlpha = if (isLight) 140 else 62
         bloomList = chosenColors.map { color ->
             OrganicBloom(
                 relX = rng.nextFloat() * 0.76f + 0.12f,
                 relY = rng.nextFloat() * 0.76f + 0.12f,
-                relRadius = if (isLight) rng.nextFloat() * 0.32f + 0.48f else rng.nextFloat() * 0.35f + 0.50f,
+                relRadius = rng.nextFloat() * 0.32f + 0.48f,
                 color = color,
-                alpha = baseAlpha + rng.nextInt(-6, 8)
+                alpha = 140 + rng.nextInt(-12, 12)
             )
         }
     }
@@ -355,22 +340,37 @@ class AuroraGlassDrawable(
             Shader.TileMode.CLAMP
         )
 
-        // 2. Pre-compute Radial Shaders untuk awan-awan aurora abstrak
+        // 2. Pre-compute Radial Shaders untuk awan-awan aurora / micro-glow aksen
         bloomShaders = bloomList.map { b ->
             val cx = w * b.relX
             val cy = h * b.relY
             val radius = maxDim * b.relRadius
             val a = b.alpha
-            RadialGradient(
-                cx, cy, radius,
-                intArrayOf(
-                    ColorUtils.setAlphaComponent(b.color, a),
-                    ColorUtils.setAlphaComponent(b.color, (a * 0.45f).toInt()),
-                    0
-                ),
-                floatArrayOf(0f, 0.48f, 1f),
-                Shader.TileMode.CLAMP
-            )
+            if (!isLight) {
+                // Smooth 4-stop exponential fade untuk dark slate dev glass (lebih jreng di pusat, fade halus di pinggir)
+                RadialGradient(
+                    cx, cy, radius,
+                    intArrayOf(
+                        ColorUtils.setAlphaComponent(b.color, a),
+                        ColorUtils.setAlphaComponent(b.color, (a * 0.58f).toInt()),
+                        ColorUtils.setAlphaComponent(b.color, (a * 0.20f).toInt()),
+                        0
+                    ),
+                    floatArrayOf(0f, 0.35f, 0.70f, 1f),
+                    Shader.TileMode.CLAMP
+                )
+            } else {
+                RadialGradient(
+                    cx, cy, radius,
+                    intArrayOf(
+                        ColorUtils.setAlphaComponent(b.color, a),
+                        ColorUtils.setAlphaComponent(b.color, (a * 0.45f).toInt()),
+                        0
+                    ),
+                    floatArrayOf(0f, 0.48f, 1f),
+                    Shader.TileMode.CLAMP
+                )
+            }
         }
 
         // 3. Glaze pantulan kilap kaca diagonal 135 derajat
@@ -432,26 +432,15 @@ class AuroraGlassDrawable(
                 ColorUtils.setAlphaComponent(chromaticEdge, 140),
                 subtleFrost
             )
-        } else if (opt.value == ThemePref.GITHUB_DARK) {
-            val specularWhite = ColorUtils.setAlphaComponent(Color.WHITE, 140)
-            val ghOutline = outlineColor
-            val ghAccent = Color.parseColor("#58A6FF")
-            val subtleEdge = ColorUtils.blendARGB(ghOutline, ghAccent, 0.25f)
-            intArrayOf(
-                specularWhite,
-                subtleEdge,
-                ghOutline,
-                ColorUtils.setAlphaComponent(ghOutline, 180)
-            )
         } else {
-            val specularWhite = ColorUtils.setAlphaComponent(Color.WHITE, 160)
-            val chromaticEdge = ColorUtils.blendARGB(primaryColor, Color.WHITE, 0.35f)
-            val subtleFrost = ColorUtils.setAlphaComponent(Color.WHITE, 40)
+            // Dark Mode Universal Slate Dev Glass Border
+            val specularWhite = ColorUtils.setAlphaComponent(Color.WHITE, 150)
+            val strokeAccent = ColorUtils.blendARGB(outlineColor, primaryColor, 0.35f)
             intArrayOf(
                 specularWhite,
-                ColorUtils.setAlphaComponent(chromaticEdge, 140),
-                ColorUtils.setAlphaComponent(chromaticEdge, 90),
-                subtleFrost
+                strokeAccent,
+                outlineColor,
+                ColorUtils.setAlphaComponent(outlineColor, 180)
             )
         }
         strokePaint.shader = LinearGradient(

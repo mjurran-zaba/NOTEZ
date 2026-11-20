@@ -569,6 +569,13 @@ class MainActivity : AppCompatActivity() {
         val versionName = runCatching { getString(R.string.notez_version_name) }.getOrDefault("0.1.9")
         findViewById<TextView>(R.id.drawer_footer_version)?.text = "v$versionName"
 
+        loadDrawerHeaderGif()
+        drawer.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerOpened(drawerView: View) {
+                loadDrawerHeaderGif()
+            }
+        })
+
         findViewById<View>(R.id.menu_markdown_guide)?.setOnClickListener {
             Breadcrumb.add("HOME", "TAP_MENU_MARKDOWN_GUIDE")
             closeDrawerThen { startActivity(Intent(this, MarkdownGuideActivity::class.java)) }
@@ -584,6 +591,50 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.menu_recycle)?.setOnClickListener {
             Breadcrumb.add("HOME", "TAP_MENU_RECYCLE")
             closeDrawerThen { startActivity(Intent(this, RecycleActivity::class.java)) }
+        }
+    }
+
+    private fun loadDrawerHeaderGif() {
+        val gifView = findViewById<ImageView>(R.id.drawer_header_gif) ?: return
+        val currentTheme = ThemePref.get(this)
+        val resId = when (currentTheme) {
+            ThemePref.MATCHA_CREAM_PAPER,
+            ThemePref.PARCHMENT_AMBER,
+            ThemePref.ROSE_PINE_DAWN,
+            ThemePref.NORD_POLAR_MIST -> R.drawable.notez_drawer_light_paper
+
+            ThemePref.TOKYO_NIGHT,
+            ThemePref.COBALT2,
+            ThemePref.BLUE_MOON_CHEESE -> R.drawable.notez_drawer_dark_blue
+
+            ThemePref.GLOOMY_LAVENDER,
+            ThemePref.GLOOMY_SAKURA_NIGHT -> R.drawable.notez_drawer_dark_purple
+
+            ThemePref.DARK_FOREST,
+            ThemePref.AURORA_BOREALIS,
+            ThemePref.FADE_CHOCO_MATCHA -> R.drawable.notez_drawer_dark_green
+
+            ThemePref.RASPBERRY_NIGHT,
+            ThemePref.SUNSET_MIRAGE,
+            ThemePref.GLOOME_DARK_SUNSET -> R.drawable.notez_drawer_dark_berry
+
+            else -> R.drawable.notez_drawer_dark_slate
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            runCatching {
+                val source = android.graphics.ImageDecoder.createSource(resources, resId)
+                val drawable = android.graphics.ImageDecoder.decodeDrawable(source)
+                gifView.setImageDrawable(drawable)
+                if (drawable is android.graphics.drawable.AnimatedImageDrawable) {
+                    drawable.repeatCount = 0
+                    drawable.start()
+                }
+            }.onFailure {
+                gifView.setImageResource(resId)
+            }
+        } else {
+            gifView.setImageResource(resId)
         }
     }
 
