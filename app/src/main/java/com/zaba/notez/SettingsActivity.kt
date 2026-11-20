@@ -139,9 +139,6 @@ class SettingsActivity : AppCompatActivity() {
 
 
     private fun applyScreenPolish() {
-        findViewById<View>(R.id.settings_toolbar).background =
-            UiStyle.roundedBackground(this, fillAlpha = 78, strokeAlpha = 52, radiusDp = 18f)
-
         val headers = listOf(
             R.id.section_header_appearance,
             R.id.section_header_data,
@@ -149,10 +146,9 @@ class SettingsActivity : AppCompatActivity() {
         )
         headers.forEach { id ->
             val header = findViewById<View>(id)
-            header.background = UiStyle.roundedBackground(this, fillAlpha = 78, strokeAlpha = 58, radiusDp = 16f)
-            addRippleForeground(header)
+            header.background = selectableItemBackground()
             (header.layoutParams as? LinearLayout.LayoutParams)?.apply {
-                setMargins(dp(4), dp(8), dp(4), 0)
+                setMargins(0, dp(2), 0, dp(2))
             }
         }
 
@@ -165,15 +161,9 @@ class SettingsActivity : AppCompatActivity() {
             val content = findViewById<View>(id)
             content.background = UiStyle.roundedBackground(this, fillAlpha = 34, strokeAlpha = 34, radiusDp = 16f)
             (content.layoutParams as? LinearLayout.LayoutParams)?.apply {
-                setMargins(dp(4), dp(4), dp(4), 0)
+                setMargins(dp(2), dp(4), dp(2), dp(6))
             }
         }
-    }
-
-    private fun addRippleForeground(view: View) {
-        val attrs = obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground))
-        view.foreground = attrs.getDrawable(0)
-        attrs.recycle()
     }
 
     private fun setupExpandableSections() {
