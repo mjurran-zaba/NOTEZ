@@ -321,6 +321,15 @@
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="15sp"
                     android:visibility="gone" />
+
+                <View
+                    android:id="@+id/home_top_fade"
+                    android:layout_width="match_parent"
+                    android:layout_height="20dp"
+                    android:layout_gravity="top"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:importantForAccessibility="no" />
             </FrameLayout>
         </LinearLayout>
 
