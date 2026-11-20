@@ -12,7 +12,7 @@
     <string name="markdown_guide_title">Panduan Markdown</string>
     <string name="about_notez_title">Tentang NOTEZ</string>
     <string name="settings_title">Pengaturan</string>
-    <string name="notez_version_name">v0.1.9</string>
+    <string name="notez_version_name">v0.2.0</string>
     <string name="menu_file_open">Buka file...</string>
     <string name="open_file_done">File dibuka sebagai catatan baru</string>
     <string name="open_file_failed">Gagal membuka file</string>

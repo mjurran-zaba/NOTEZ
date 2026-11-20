@@ -1,6 +1,6 @@
 # ADR-004: NOTEZ v0.2.0 — APK Footprint Optimization, Immersive Glassmorphism Theme System, and ADB Logcat-Style Diagnostics Console
 
-- **Status:** PROPOSED (Menunggu review & persetujuan user)
+- **Status:** ACCEPTED (Diimplementasikan & diverifikasi)
 - **Tanggal:** 2026-11-19
 - **Penulis:** MUHAMMAD ZAQI PRASETYO & Agent Mode
 - **Target Versi:** NOTEZ v0.2.0

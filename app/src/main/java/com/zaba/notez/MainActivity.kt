@@ -605,7 +605,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDrawer() {
-        val versionName = runCatching { getString(R.string.notez_version_name) }.getOrDefault("0.1.9")
+        val versionName = runCatching { getString(R.string.notez_version_name) }.getOrDefault("0.2.0")
         findViewById<TextView>(R.id.drawer_footer_version)?.text = "v$versionName"
 
         loadDrawerHeaderGif()

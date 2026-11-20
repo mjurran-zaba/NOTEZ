@@ -4,8 +4,8 @@ plugins {
     id("kotlin-kapt")
 }
 
-val notezVersionName: String = (project.findProperty("notez.versionName") as String? ?: "0.1.9")
-val notezVersionCode: Int = (project.findProperty("notez.versionCode") as String? ?: "10").toInt()
+val notezVersionName: String = (project.findProperty("notez.versionName") as String? ?: "0.2.0")
+val notezVersionCode: Int = (project.findProperty("notez.versionCode") as String? ?: "11").toInt()
 
 android {
     namespace = "com.zaba.notez"
