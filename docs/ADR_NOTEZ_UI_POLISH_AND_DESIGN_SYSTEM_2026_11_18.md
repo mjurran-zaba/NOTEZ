@@ -157,3 +157,29 @@ Mengadopsi pola *Floating Island* dari `ArchiveTune` (`moe.rukamori.archivetune.
    - Vektor Lucide memiliki ukuran sangat kecil (~500 bytes per file) dan dirender hardware-accelerated.
 2. **Integritas Uji Regresi (Regression Guards):**
    - Struktur data catatan, format penyimpanan Room, dan optimasi shell HTML (ADR sebelumnya) tidak mengalami perubahan skema data, menjaga stabilitas performa catatan besar (100 KB).
+
+---
+
+## 5. Addendum: Visual Polish & Mellow Atmospheric Aurora (v0.3.2)
+
+1. **Eliminasi Siluet Hitam Topbar & Bottombar:**
+   - Menghapus atribut `android:requiresFadingEdge="vertical"` dan `android:fadingEdgeLength="36dp"` dari `activity_main.xml` dan `activity_recycle.xml`.
+   - Mengembalikan kejernihan scrolling daftar catatan tanpa bayangan hitam yang menghalangi konten di bawah header/footer.
+
+2. **Universal Cosmic Polar Aurora (Mellow / Anti-Kolintang):**
+   - Mengadopsi palet kosmik polar seragam yang tenang (`#00F5A0`, `#38BDF8`, `#8B5CF6`) dengan alpha diturunkan ke kisaran `56–70` dan radius difusi melebar (`0.50–0.85`).
+   - Meniadakan efek garis tajam atau blok warna-warni berlebih ("xylophone/glockenspiel") pada kartu bertumpuk di tema gelap.
+
+3. **Spesialisasi GitHub Dark (Monochromatic Slate Dev Glass):**
+   - Menghilangkan spektrum aurora warna-warni pada tema GitHub Dark.
+   - Menggunakan estetika developer slate monokromatik murni (`#161B22`, border `#30363D`) dengan titik micro-glow aksen biru `#58A6FF` tunggal pada sudut kanan atas kartu.
+
+4. **Keterbacaan Tipografi Kontras Tinggi (Dark Mode):**
+   - Judul Catatan: `#F0F6FC` (White Pearl crisp).
+   - Pratinjau Teks: `#DAE2EA` (Silver Crisp).
+   - Metadata / Tanggal: `#9EA7B0` (Soft Silver).
+
+5. **Drawer Header & FAB Polish:**
+   - Header drawer diperkaya dengan logo emblem kuda NOTEZ (`ic_notez_horse_splash_horse` 48dp), branding "Local-First Markdown", dan divider garis halus.
+   - Elevasi FAB disesuaikan ke `4dp` (pressed `6dp`) agar menyatu harmonis dengan kedalaman clay glass kartu.
+
