@@ -183,3 +183,29 @@ Mengadopsi pola *Floating Island* dari `ArchiveTune` (`moe.rukamori.archivetune.
    - Header drawer diperkaya dengan logo emblem kuda NOTEZ (`ic_notez_horse_splash_horse` 48dp), branding "Local-First Markdown", dan divider garis halus.
    - Elevasi FAB disesuaikan ke `4dp` (pressed `6dp`) agar menyatu harmonis dengan kedalaman clay glass kartu.
 
+---
+
+## 6. Addendum: Adaptive Chalkboard Header, 2.5x Horse Footer, Ultra-Compact Topbar, & Vibrant Slate Glass (v0.3.3)
+
+1. **Universal Slate Dev Glass (Lebih Jreng & Fade Smooth):**
+   - Mengadopsi arsitektur monokromatik slate dev glass GitHub Dark ke **seluruh 16 tema gelap**.
+   - Setiap tema gelap memakai satu *micro-glow* aksen khas tema (`relX = 0.86`, `relY = 0.16`) dengan opasitas dinaikkan ke `alpha = 100` (*lebih jreng/hidup*) dipadu gradasi eksponensial 4-stop (`0f, 0.35f, 0.70f, 1f`) untuk pembauran yang sangat halus (*fade smooth*, anti-kolintang/pelangi).
+   - Border kartu menggunakan `outlineColor` tema dipadu garis kilap *specular highlight* putih (`alpha 150`) dan campuran aksen primer di sisi atas.
+
+2. **Adaptive Chalkboard Drawer Header (.GIF - Opsi B):**
+   - Menggunakan animasi tulisan tangan spidol/kapur `notez_rough` yang disesuaikan secara dinamis dengan 6 kelompok tema (*Dark Slate, Dark Indigo, Dark Purple, Dark Green, Dark Berry, dan Light Paper*).
+   - Durasi tulis: **2,5 detik** (64 frame pada 34ms).
+   - Ujung kapur/pena aktif menyala dengan pendaran warna aksen khas tema saat menggores huruf.
+   - Perilaku Putar: **One-shot** (memutar sekali lalu menetap pada frame final NOTEZ); jika drawer ditutup dan dibuka kembali, animasi langsung dimulai ulang dari frame awal via `onDrawerOpened`.
+   - Tata Letak Header: Tanpa *corner radius* (*edge-to-edge*, `layout_width="match_parent"`, `layout_height="140dp"`), memenuhi lebar header drawer 280dp secara mulus.
+
+3. **Drawer Footer Emblem Kuda Diperbesar 2.5x:**
+   - Logo kuda kecil 48dp di header atas dihapus.
+   - Logo emblem kuda NOTEZ di footer bawah diperbesar **2,5 kali** (dari `64dp` menjadi **`160dp`**), lengkap dengan layer glow pendaran aksen dinamis (`drawer_footer_glow`, `drawer_footer_horse`, `drawer_footer_accent`).
+
+4. **Ultra-Compact Topbar Home (44dp):**
+   - Ketinggian topbar Home dipangkas menjadi **`44dp`** (menggantikan 52dp/48dp).
+   - Tombol drawer dan pencarian disesuaikan ke `40dp x 40dp` (padding `8dp`), judul "NOTEZ" `17sp` tebal, dan `search_pill` ramping `36dp` (corner radius `18dp`).
+   - Tanpa *bottombar* tambahan, memaksimalkan area tampilan daftar catatan.
+
+
