@@ -313,12 +313,51 @@ class MainActivity : AppCompatActivity() {
         listView.adapter = adapter
         setupDisplayModeDrawer()
         setupSwipeToDelete()
+        setupTopFadeOverlay()
 
         listView.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
             if (displayMode == NoteDisplayMode.GRID && right - left != oldRight - oldLeft) {
                 updateGridSpanCount()
             }
         }
+    }
+
+    private fun setupTopFadeOverlay() {
+        val fadeView = findViewById<View>(R.id.home_top_fade) ?: return
+        val currentTheme = ThemePref.get(this)
+        val themeOpt = ThemePref.optionOf(currentTheme)
+        val isLight = ThemePref.isLightTheme(currentTheme)
+
+        val baseColor = UiStyle.windowBackground(this)
+        val accentColor = runCatching {
+            getColor(themeOpt.accentColorRes)
+        }.getOrDefault(UiStyle.primary(this))
+
+        // Selaraskan dengan Bloom 1 AuroraBackdropView yang menyinari topbar
+        val bloomAlpha = if (isLight) 120 else 135
+        val topbarBloomColor = androidx.core.graphics.ColorUtils.compositeColors(
+            androidx.core.graphics.ColorUtils.setAlphaComponent(accentColor, bloomAlpha),
+            baseColor
+        )
+
+        val topColor = androidx.core.graphics.ColorUtils.setAlphaComponent(topbarBloomColor, if (isLight) 245 else 235)
+        val midColor = androidx.core.graphics.ColorUtils.setAlphaComponent(topbarBloomColor, if (isLight) 130 else 115)
+        val endColor = Color.TRANSPARENT
+
+        fadeView.background = android.graphics.drawable.GradientDrawable(
+            android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(topColor, midColor, endColor)
+        )
+        fadeView.alpha = 0f
+
+        val fadeThresholdPx = UiStyle.dp(this, 14f).toFloat().coerceAtLeast(1f)
+        listView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                val offset = recyclerView.computeVerticalScrollOffset().coerceAtLeast(0)
+                fadeView.alpha = (offset.toFloat() / fadeThresholdPx).coerceIn(0f, 1f)
+            }
+        })
     }
 
     private fun setupSwipeToDelete() {
