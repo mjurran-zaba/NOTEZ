@@ -326,6 +326,7 @@ class AuroraGlassDrawable(
         super.onBoundsChange(bounds)
         if (bounds.width() <= 0 || bounds.height() <= 0) return
 
+        val opt = ThemePref.optionOf(ThemePref.get(context))
         val w = bounds.width().toFloat()
         val h = bounds.height().toFloat()
         val maxDim = w.coerceAtLeast(h)
