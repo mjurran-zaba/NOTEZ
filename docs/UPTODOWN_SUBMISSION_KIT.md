@@ -19,7 +19,7 @@ Dokumen panduan dan teks siap pakai untuk pendaftaran aplikasi NOTEZ di Uptodown
 | Website / Repository | `https://github.com/mjurran-zaba/NOTEZ` |
 | Developer / Studio Name | `MJURRAN` |
 | Contact Email | `mjurran@gmail.com` |
-| Download APK URL | `https://github.com/mjurran-zaba/NOTEZ/releases/download/v0.2.0/app-release.apk` |
+| Download APK URL | `https://github.com/mjurran-zaba/NOTEZ/releases/download/v0.2.0/NOTEZ-v0.2.0-release.apk` |
 
 ---
 
