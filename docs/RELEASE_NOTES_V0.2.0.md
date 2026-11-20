@@ -2,14 +2,17 @@
 
 **Status:** Production release, published.
 **Version:** `versionName 0.2.0`, `versionCode 11`.
-**Tag:** `v0.2.0`
+**Tag:** `v0.2.0` → commit `d16d134`.
+**CI run:** [44683626255](https://github.com/mjurran-zaba/NOTEZ/actions/runs/44683626255) — `Build NOTEZ Production`, success (3m33s).
+**Artifact:** `notez-production-release`, 3.147.927 bytes (uncompressed APK).
+**SHA-256 APK:** `743a9d7a20dbf991f657d00069888e9e4cc027413ba9d73fa7c07cb656d4ac5f`.
 **GitHub Release:** <https://github.com/mjurran-zaba/NOTEZ/releases/tag/v0.2.0> — aset `NOTEZ-v0.2.0-release.apk`.
 
 ---
 
 ## Ringkasan Perubahan Utama (Highlights)
 
-Rilis v0.2.0 merupakan lompatan besar (*major milestone*) untuk estetika visual, performa APK footprint, dan pengalaman diagnostik di NOTEZ:
+Rilis v0.2.0 merupakan lompatan besar (*major milestone*) untuk estetika visual, efisiensi footprint, dan pengalaman diagnostik di NOTEZ:
 
 ### 1. Dedicated Theme Gallery Screen & Auroramorphism Grid
 - **Galeri Tema Layar Penuh:** Menggantikan dialog pop-up bertumpuk di pengaturan dengan layar Theme Gallery mandiri (2 kolom grid).
@@ -33,3 +36,14 @@ Rilis v0.2.0 merupakan lompatan besar (*major milestone*) untuk estetika visual,
 ### 5. Diagnostics Terminal Logcat Console
 - **Tampilan ADB Logcat Monospace:** Desain konsol modern berlatar belakang gelap `#050806` dengan pewarnaan syntax (Error=Merah, Info=Hijau, Pkg=Cyan).
 - **Filter Cepat & Jendela Anti-ANR:** Triage diagnostik performa dan breadcrumb secara instan tanpa lag.
+
+---
+
+## Verifikasi & Kualitas
+
+| Pengujian | Status | Catatan |
+|---|---|---|
+| **Unit Tests & Layout Guards** | **Lolos (100%)** | 76 dari 76 test suite lulus tanpa kegagalan (`ThemeAndDiagnosticsGuardTest` lolos penuh). |
+| **Android apksigner** | **Lolos** | APK production signed dengan keystore resmi v1/v2/v3 scheme. |
+| **Pemeriksaan Badging** | **Lolos** | `package: name='com.zaba.notez' versionCode='11' versionName='0.2.0'`. |
+| **Integrasi UI & UX** | **Divalidasi** | Smooth scroll snug fade, Theme Picker instant apply, dan visual auroramorphism terverifikasi. |
