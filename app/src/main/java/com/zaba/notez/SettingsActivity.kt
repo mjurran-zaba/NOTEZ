@@ -25,51 +25,9 @@ import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
 
-    private data class ThemeGroup(val title: String, val values: List<Int>)
-
     private lateinit var dao: NoteDao
     private var pendingExport: String? = null
-
-    private val themeGroups = listOf(
-        ThemeGroup(
-            title = "DAY & PAPER (MODE TERANG)",
-            values = listOf(
-                ThemePref.MATCHA_CREAM_PAPER,
-                ThemePref.PARCHMENT_AMBER,
-                ThemePref.ROSE_PINE_DAWN,
-                ThemePref.NORD_POLAR_MIST
-            )
-        ),
-        ThemeGroup(
-            title = "IMMERSIVE & GLASS",
-            values = listOf(
-                ThemePref.AURORA_BOREALIS,
-                ThemePref.CYBER_OBSIDIAN,
-                ThemePref.SUNSET_MIRAGE
-            )
-        ),
-        ThemeGroup(
-            title = "NOTEZ SIGNATURE",
-            values = listOf(ThemePref.OLED, ThemePref.NOTEZ_YOU_DARK, ThemePref.COBALT2, ThemePref.NOTEZ_YOU_WARM)
-        ),
-        ThemeGroup(
-            title = "GLOOMY SERIES",
-            values = listOf(
-                ThemePref.GLOOMY_SAKURA_NIGHT,
-                ThemePref.GLOOMY_LAVENDER,
-                ThemePref.GLOOME_DARK_SUNSET,
-                ThemePref.RASPBERRY_NIGHT
-            )
-        ),
-        ThemeGroup(
-            title = "COZY EARTH",
-            values = listOf(ThemePref.DARK_FOREST, ThemePref.FADE_CHOCO_MATCHA, ThemePref.KAWAII_CATPUCINN)
-        ),
-        ThemeGroup(
-            title = "CODER NIGHT",
-            values = listOf(ThemePref.GITHUB_DARK, ThemePref.TOKYO_NIGHT, ThemePref.BLUE_MOON_CHEESE)
-        )
-    )
+    private var appliedTheme: Int = ThemePref.GITHUB_DARK
 
     private val createDoc = registerForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
         val data = pendingExport ?: return@registerForActivityResult
@@ -106,14 +64,17 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(ThemePref.styleOf(ThemePref.get(this)))
+        appliedTheme = ThemePref.get(this)
+        setTheme(ThemePref.styleOf(appliedTheme))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
         dao = AppDatabase.get(this).noteDao()
         applyScreenPolish()
 
         findViewById<ImageButton>(R.id.settings_back).setOnClickListener { finish() }
-        findViewById<View>(R.id.settings_row_theme).setOnClickListener { showThemeDialog() }
+        findViewById<View>(R.id.settings_row_theme).setOnClickListener {
+            startActivity(Intent(this, ThemePickerActivity::class.java))
+        }
         findViewById<View>(R.id.settings_row_export_json).setOnClickListener { exportJson() }
         findViewById<View>(R.id.settings_row_import_json).setOnClickListener {
             openDoc.launch(arrayOf("application/json"))
@@ -134,6 +95,10 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (ThemePref.get(this) != appliedTheme) {
+            recreate()
+            return
+        }
         updateSummaries()
     }
 
@@ -202,155 +167,6 @@ class SettingsActivity : AppCompatActivity() {
     private fun updateSummaries() {
         findViewById<TextView>(R.id.settings_theme_value).text = ThemePref.nameOf(ThemePref.get(this))
         findViewById<TextView>(R.id.settings_version_value).text = versionName()
-    }
-
-    private fun showThemeDialog() {
-        val current = ThemePref.get(this)
-        val list = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(8), 0, dp(8))
-        }
-        themeGroups.forEachIndexed { index, group ->
-            list.addView(themeGroupHeader(group.title, first = index == 0))
-            group.values.map(ThemePref::optionOf).forEach { option ->
-                list.addView(themeOptionRow(option, current))
-            }
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("Tema")
-            .setView(
-                ScrollView(this).apply {
-                    addView(list)
-                }
-            )
-            .show()
-    }
-
-    private fun themeGroupHeader(title: String, first: Boolean): View = TextView(this).apply {
-        text = title
-        setTextColor(getColor(ThemePref.optionOf(ThemePref.get(this@SettingsActivity)).accentColorRes))
-        textSize = 11f
-        typeface = Typeface.DEFAULT_BOLD
-        letterSpacing = 0.08f
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(16), if (first) dp(6) else dp(16), dp(16), dp(6))
-        layoutParams = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-    }
-
-    private fun themeOptionRow(option: ThemePref.ThemeOption, current: Int): View {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = dp(62)
-            setPadding(dp(16), dp(6), dp(16), dp(6))
-            isClickable = true
-            isFocusable = true
-            background = selectableItemBackground()
-            setOnClickListener {
-                if (option.value != current) {
-                    ThemePref.set(this@SettingsActivity, option.value)
-                    recreate()
-                }
-            }
-
-            addView(themePreview(option))
-            addView(
-                LinearLayout(this@SettingsActivity).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(dp(12), 0, dp(8), 0)
-                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                    addView(
-                        TextView(this@SettingsActivity).apply {
-                            text = option.name
-                            setTextColor(UiStyle.resolveColor(this@SettingsActivity, com.google.android.material.R.attr.colorOnSurface, Color.BLACK))
-                            textSize = 14f
-                            typeface = Typeface.DEFAULT_BOLD
-                        }
-                    )
-                    addView(
-                        TextView(this@SettingsActivity).apply {
-                            text = option.description
-                            setTextColor(UiStyle.resolveColor(this@SettingsActivity, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.DKGRAY))
-                            textSize = 11f
-                        }
-                    )
-                }
-            )
-            addView(
-                ImageView(this@SettingsActivity).apply {
-                    setImageResource(R.drawable.ic_lucide_check)
-                    setColorFilter(getColor(option.accentColorRes))
-                    visibility = if (option.value == current) View.VISIBLE else View.INVISIBLE
-                    layoutParams = LinearLayout.LayoutParams(dp(22), dp(22)).apply {
-                        gravity = Gravity.CENTER_VERTICAL
-                    }
-                }
-            )
-        }
-    }
-
-    private fun themePreview(option: ThemePref.ThemeOption): View {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(5), dp(5), dp(5), dp(5))
-            background = roundedDrawable(
-                fillColor = getColor(option.backgroundColorRes),
-                strokeColor = getColor(option.outlineColorRes),
-                strokeWidth = dp(1),
-                radius = dp(14).toFloat()
-            )
-            layoutParams = LinearLayout.LayoutParams(dp(78), dp(54))
-
-            addView(
-                LinearLayout(this@SettingsActivity).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(dp(7), dp(6), dp(7), dp(6))
-                    background = roundedDrawable(
-                        fillColor = getColor(option.surfaceColorRes),
-                        strokeColor = getColor(option.outlineColorRes),
-                        strokeWidth = dp(1),
-                        radius = dp(10).toFloat()
-                    )
-                    layoutParams = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-
-                    addView(
-                        TextView(this@SettingsActivity).apply {
-                            text = "Aa"
-                            setTextColor(getColor(option.textColorRes))
-                            textSize = 13f
-                            typeface = Typeface.DEFAULT_BOLD
-                            includeFontPadding = false
-                        }
-                    )
-                    addView(
-                        View(this@SettingsActivity).apply {
-                            background = roundedDrawable(getColor(option.accentColorRes), getColor(option.accentColorRes), 0, dp(4).toFloat())
-                            layoutParams = LinearLayout.LayoutParams(dp(38), dp(5)).apply {
-                                topMargin = dp(7)
-                            }
-                        }
-                    )
-                }
-            )
-        }
-    }
-
-    private fun roundedDrawable(
-        fillColor: Int,
-        strokeColor: Int,
-        strokeWidth: Int,
-        radius: Float
-    ): GradientDrawable = GradientDrawable().apply {
-        setColor(fillColor)
-        cornerRadius = radius
-        if (strokeWidth > 0) setStroke(strokeWidth, strokeColor)
     }
 
     private fun selectableItemBackground() = android.util.TypedValue().let { outValue ->
