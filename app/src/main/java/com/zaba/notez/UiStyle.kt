@@ -232,161 +232,92 @@ class AuroraGlassDrawable(
         val opt = ThemePref.optionOf(ThemePref.get(context))
         val rng = kotlin.random.Random(seed)
 
-        // Opsi 2: Adaptive Harmonic 6-Color Aurora Palette untuk 21 tema (Light & Dark)
-        val fullPalette: List<Int> = when (opt.value) {
-            ThemePref.MATCHA_CREAM_PAPER -> listOf(
-                Color.parseColor("#9ED872"), // Lime Mint
-                Color.parseColor("#8EBEF5"), // Biru Awan Pudar
-                Color.parseColor("#FCD14D"), // Kuning Pudar
-                Color.parseColor("#FBAC7A"), // Warm Peach Amber
-                Color.parseColor("#4D8852"), // Matcha Leaf
-                Color.parseColor("#60A370")  // Soft Sage Moss
+        if (opt.value == ThemePref.GITHUB_DARK) {
+            // Khusus GitHub Dark: Monochromatic Slate Dev Glass (tanpa spektrum aurora warna-warni ramai)
+            val ghAccent = Color.parseColor("#58A6FF")
+            chosenColors = listOf(ghAccent)
+            bloomList = listOf(
+                OrganicBloom(
+                    relX = 0.85f,
+                    relY = 0.18f,
+                    relRadius = 0.45f,
+                    color = ghAccent,
+                    alpha = 60
+                )
             )
-            ThemePref.AURORA_BOREALIS -> listOf(
+            return
+        }
+
+        val fullPalette: List<Int> = if (isLight) {
+            when (opt.value) {
+                ThemePref.MATCHA_CREAM_PAPER -> listOf(
+                    Color.parseColor("#9ED872"), // Lime Mint
+                    Color.parseColor("#8EBEF5"), // Biru Awan Pudar
+                    Color.parseColor("#FCD14D"), // Kuning Pudar
+                    Color.parseColor("#FBAC7A"), // Warm Peach Amber
+                    Color.parseColor("#4D8852"), // Matcha Leaf
+                    Color.parseColor("#60A370")  // Soft Sage Moss
+                )
+                ThemePref.PARCHMENT_AMBER -> listOf(
+                    Color.parseColor("#D97706"), // Terracotta Amber
+                    Color.parseColor("#FBBF24"), // Warm Honey
+                    Color.parseColor("#A16207"), // Classic Leather
+                    Color.parseColor("#F59E0B"), // Golden Ink
+                    Color.parseColor("#78350F"), // Aged Oak
+                    Color.parseColor("#CA8A04")  // Parchment Sun
+                )
+                ThemePref.ROSE_PINE_DAWN -> listOf(
+                    Color.parseColor("#B4637A"), // Dusty Rose
+                    Color.parseColor("#EA9D34"), // Soft Gold
+                    Color.parseColor("#56949F"), // Pine Teal
+                    Color.parseColor("#907AA9"), // Iris Violet
+                    Color.parseColor("#D7827E"), // Blush Dawn
+                    Color.parseColor("#286983")  // Deep Pine
+                )
+                ThemePref.NORD_POLAR_MIST -> listOf(
+                    Color.parseColor("#38BDF8"), // Polar Cyan
+                    Color.parseColor("#81A1C1"), // Arctic Blue
+                    Color.parseColor("#88C0D0"), // Frost Teal
+                    Color.parseColor("#B48EAD"), // Aurora Purple
+                    Color.parseColor("#EBCB8B"), // Winter Sun
+                    Color.parseColor("#A3BE8C")  // Polar Aurora Green
+                )
+                else -> {
+                    val accent = UiStyle.accentTint(context)
+                    val secondary = UiStyle.secondaryTint(context)
+                    val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.40f)
+                    val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FBBF24"), 0.45f)
+                    val violetShift = ColorUtils.blendARGB(accent, Color.parseColor("#A855F7"), 0.35f)
+                    val deepShift = ColorUtils.blendARGB(accent, Color.BLACK, 0.25f)
+                    listOf(accent, coolShift, warmShift, violetShift, deepShift, secondary)
+                }
+            }
+        } else {
+            // Opsi 1: Universal Cosmic Polar Aurora (Mellow & Tenang, anti-kolintang) untuk semua tema gelap
+            listOf(
                 Color.parseColor("#00F5A0"), // Bioluminescent Emerald
                 Color.parseColor("#38BDF8"), // Arctic Celestial Cyan
                 Color.parseColor("#8B5CF6"), // Cosmic Amethyst
-                Color.parseColor("#F472B6"), // Solar Flare Berry
-                Color.parseColor("#FBBF24"), // Starlight Amber
-                Color.parseColor("#0D9488")  // Deep Abyssal Marine
+                Color.parseColor("#4F46E5"), // Deep Twilight Indigo
+                Color.parseColor("#F472B6"), // Subtle Solar Flare Pink
+                Color.parseColor("#FBBF24")  // Starlight Amber
             )
-            ThemePref.OLED -> listOf(
-                Color.parseColor("#39FF14"), // OLED Neon Lime
-                Color.parseColor("#00E5FF"), // Cyber Cyan
-                Color.parseColor("#A855F7"), // Electric Purple
-                Color.parseColor("#FFD600"), // Solar Gold
-                Color.parseColor("#00B359"), // Deep Emerald
-                Color.parseColor("#38BDF8")  // Ice Blue
-            )
-            ThemePref.GITHUB_DARK -> listOf(
-                Color.parseColor("#58A6FF"), // GitHub Accent Blue
-                Color.parseColor("#F85149"), // Coral Red
-                Color.parseColor("#BC8CFF"), // Neon Violet
-                Color.parseColor("#3FB950"), // Mint Green
-                Color.parseColor("#D29922"), // Golden Ochre
-                Color.parseColor("#79C0FF")  // Cyan Light
-            )
-            ThemePref.TOKYO_NIGHT -> listOf(
-                Color.parseColor("#7AA2F7"), // Tokyo Neon Blue
-                Color.parseColor("#F7768E"), // Tokyo Magenta
-                Color.parseColor("#7DCFFF"), // Cyber Cyan
-                Color.parseColor("#BB9AF7"), // Neon Violet
-                Color.parseColor("#FF9E64"), // Tokyo Amber Glow
-                Color.parseColor("#3D59A1")  // Deep Indigo
-            )
-            ThemePref.RASPBERRY_NIGHT -> listOf(
-                Color.parseColor("#FF5C8A"), // Ruby Accent
-                Color.parseColor("#F48FB1"), // Soft Rose
-                Color.parseColor("#FFB74D"), // Amber Sunset
-                Color.parseColor("#BA68C8"), // Velvet Violet
-                Color.parseColor("#9C27B0"), // Deep Wine
-                Color.parseColor("#E91E63")  // Berry Flare
-            )
-            ThemePref.DARK_FOREST -> listOf(
-                Color.parseColor("#66BB6A"), // Forest Green
-                Color.parseColor("#A8C66C"), // Fresh Lime
-                Color.parseColor("#E6C657"), // Amber Moss
-                Color.parseColor("#2E7D32"), // Deep Pine
-                Color.parseColor("#81C784"), // Sage Mist
-                Color.parseColor("#38BDF8")  // Celestial Frost
-            )
-            ThemePref.COBALT2 -> listOf(
-                Color.parseColor("#FFC600"), // Cobalt Yellow
-                Color.parseColor("#00E5FF"), // Turquoise Cyan
-                Color.parseColor("#FF5147"), // Bubblegum Red
-                Color.parseColor("#15B8EC"), // Electric Blue
-                Color.parseColor("#38DEB3"), // Fresh Mint
-                Color.parseColor("#FFA000")  // Warm Orange
-            )
-            ThemePref.BLUE_MOON_CHEESE -> listOf(
-                Color.parseColor("#FFD166"), // Cheese Glow
-                Color.parseColor("#4A90E2"), // Moon Blue
-                Color.parseColor("#70B8FF"), // Sky Azure
-                Color.parseColor("#FFA726"), // Warm Cheddar
-                Color.parseColor("#9575CD"), // Mystic Lavender
-                Color.parseColor("#38BDF8")  // Ice Cyan
-            )
-            ThemePref.KAWAII_CATPUCINN -> listOf(
-                Color.parseColor("#F5A3D7"), // Pastel Pink
-                Color.parseColor("#BDAED1"), // Mocha Foam
-                Color.parseColor("#FFE0B2"), // Cream Amber
-                Color.parseColor("#A5D6A7"), // Soft Mint
-                Color.parseColor("#CE93D8"), // Lilac Dream
-                Color.parseColor("#FF80AB")  // Berry Milk
-            )
-            ThemePref.GLOOME_DARK_SUNSET -> listOf(
-                Color.parseColor("#FF8A65"), // Sunset Coral
-                Color.parseColor("#FFCA28"), // Golden Sun
-                Color.parseColor("#7E57C2"), // Twilight Violet
-                Color.parseColor("#EC407A"), // Rose Dusk
-                Color.parseColor("#D32F2F"), // Deep Crimson
-                Color.parseColor("#FFA726")  // Warm Orange
-            )
-            ThemePref.CYBER_OBSIDIAN -> listOf(
-                Color.parseColor("#8B5CF6"), // Neon Violet
-                Color.parseColor("#06B6D4"), // Cyber Cyan
-                Color.parseColor("#D946EF"), // Fuchsia Pink
-                Color.parseColor("#10B981"), // Matrix Green
-                Color.parseColor("#3B82F6"), // Electric Blue
-                Color.parseColor("#F59E0B")  // Amber Pulse
-            )
-            ThemePref.SUNSET_MIRAGE -> listOf(
-                Color.parseColor("#FF7E5F"), // Terracotta Sunset
-                Color.parseColor("#8A2387"), // Dusk Purple
-                Color.parseColor("#FEB47B"), // Golden Mirage
-                Color.parseColor("#E94057"), // Crimson Rose
-                Color.parseColor("#7028E4"), // Velvet Violet
-                Color.parseColor("#FFA07A")  // Peach Glow
-            )
-            ThemePref.PARCHMENT_AMBER -> listOf(
-                Color.parseColor("#D97706"), // Terracotta Amber
-                Color.parseColor("#FBBF24"), // Warm Honey
-                Color.parseColor("#A16207"), // Classic Leather
-                Color.parseColor("#F59E0B"), // Golden Ink
-                Color.parseColor("#78350F"), // Aged Oak
-                Color.parseColor("#CA8A04")  // Parchment Sun
-            )
-            ThemePref.ROSE_PINE_DAWN -> listOf(
-                Color.parseColor("#B4637A"), // Dusty Rose
-                Color.parseColor("#EA9D34"), // Soft Gold
-                Color.parseColor("#56949F"), // Pine Teal
-                Color.parseColor("#907AA9"), // Iris Violet
-                Color.parseColor("#D7827E"), // Blush Dawn
-                Color.parseColor("#286983")  // Deep Pine
-            )
-            ThemePref.NORD_POLAR_MIST -> listOf(
-                Color.parseColor("#38BDF8"), // Polar Cyan
-                Color.parseColor("#81A1C1"), // Arctic Blue
-                Color.parseColor("#88C0D0"), // Frost Teal
-                Color.parseColor("#B48EAD"), // Aurora Purple
-                Color.parseColor("#EBCB8B"), // Winter Sun
-                Color.parseColor("#A3BE8C")  // Polar Aurora Green
-            )
-            else -> {
-                // Adaptive Harmonic fallback via HSL transformation of theme's accent & secondary
-                val accent = UiStyle.accentTint(context)
-                val secondary = UiStyle.secondaryTint(context)
-                val coolShift = ColorUtils.blendARGB(accent, Color.parseColor("#38BDF8"), 0.40f)
-                val warmShift = ColorUtils.blendARGB(secondary, Color.parseColor("#FBBF24"), 0.45f)
-                val violetShift = ColorUtils.blendARGB(accent, Color.parseColor("#A855F7"), 0.35f)
-                val deepShift = ColorUtils.blendARGB(accent, Color.BLACK, 0.25f)
-                listOf(accent, coolShift, warmShift, violetShift, deepShift, secondary)
-            }
         }
 
-        // Pilih 3 sampai 4 warna secara acak deterministik per kartu agar tidak menumpuk jadi becek
-        val count = rng.nextInt(3, 5)
+        // Pilih 3-4 warna di light mode, atau 2-3 warna di dark mode agar tetap tenang
+        val count = if (isLight) rng.nextInt(3, 5) else rng.nextInt(2, 4)
         chosenColors = fullPalette.shuffled(rng).take(count)
 
         // Sebar titik-titik bukit aurora secara abstrak dan asimetris (bukan garis lurus paralel)
-        val baseAlpha = if (isLight) 140 else 125
+        // Di dark mode: alpha dipangkas menjadi ~56-70 agar menjadi kabut kosmik lembut
+        val baseAlpha = if (isLight) 140 else 62
         bloomList = chosenColors.map { color ->
             OrganicBloom(
-                relX = rng.nextFloat() * 0.82f + 0.09f,
-                relY = rng.nextFloat() * 0.82f + 0.09f,
-                relRadius = rng.nextFloat() * 0.32f + 0.48f,
+                relX = rng.nextFloat() * 0.76f + 0.12f,
+                relY = rng.nextFloat() * 0.76f + 0.12f,
+                relRadius = if (isLight) rng.nextFloat() * 0.32f + 0.48f else rng.nextFloat() * 0.35f + 0.50f,
                 color = color,
-                alpha = baseAlpha + rng.nextInt(-15, 18)
+                alpha = baseAlpha + rng.nextInt(-6, 8)
             )
         }
     }
@@ -411,8 +342,8 @@ class AuroraGlassDrawable(
 
         // 1. Dasar Frosted Glass Transparan (menjaga keterbacaan teks tanpa memblokir warna)
         val baseColor = if (isLight) Color.WHITE else surfaceColor
-        val topBaseAlpha = if (isLight) (if (isClay) 150 else 130) else (if (isClay) 210 else 195)
-        val bottomBaseAlpha = if (isLight) (if (isClay) 100 else 80) else (if (isClay) 130 else 115)
+        val topBaseAlpha = if (isLight) (if (isClay) 150 else 130) else (if (isClay) 230 else 220)
+        val bottomBaseAlpha = if (isLight) (if (isClay) 100 else 80) else (if (isClay) 160 else 140)
         basePaint.shader = LinearGradient(
             0f, 0f, w, h,
             intArrayOf(
@@ -500,14 +431,25 @@ class AuroraGlassDrawable(
                 ColorUtils.setAlphaComponent(chromaticEdge, 140),
                 subtleFrost
             )
-        } else {
-            val specularWhite = ColorUtils.setAlphaComponent(Color.WHITE, 180)
-            val chromaticEdge = ColorUtils.blendARGB(primaryColor, Color.WHITE, 0.40f)
-            val subtleFrost = ColorUtils.setAlphaComponent(Color.WHITE, 45)
+        } else if (opt.value == ThemePref.GITHUB_DARK) {
+            val specularWhite = ColorUtils.setAlphaComponent(Color.WHITE, 140)
+            val ghOutline = outlineColor
+            val ghAccent = Color.parseColor("#58A6FF")
+            val subtleEdge = ColorUtils.blendARGB(ghOutline, ghAccent, 0.25f)
             intArrayOf(
                 specularWhite,
-                ColorUtils.setAlphaComponent(chromaticEdge, 170),
-                ColorUtils.setAlphaComponent(chromaticEdge, 110),
+                subtleEdge,
+                ghOutline,
+                ColorUtils.setAlphaComponent(ghOutline, 180)
+            )
+        } else {
+            val specularWhite = ColorUtils.setAlphaComponent(Color.WHITE, 160)
+            val chromaticEdge = ColorUtils.blendARGB(primaryColor, Color.WHITE, 0.35f)
+            val subtleFrost = ColorUtils.setAlphaComponent(Color.WHITE, 40)
+            intArrayOf(
+                specularWhite,
+                ColorUtils.setAlphaComponent(chromaticEdge, 140),
+                ColorUtils.setAlphaComponent(chromaticEdge, 90),
                 subtleFrost
             )
         }

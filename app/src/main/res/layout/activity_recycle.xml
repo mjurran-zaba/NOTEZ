@@ -101,9 +101,7 @@
             android:clipToPadding="false"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
-            android:paddingBottom="16dp"
-            android:requiresFadingEdge="vertical"
-            android:fadingEdgeLength="36dp" />
+            android:paddingBottom="16dp" />
 
         <TextView
             android:id="@+id/recycle_empty"

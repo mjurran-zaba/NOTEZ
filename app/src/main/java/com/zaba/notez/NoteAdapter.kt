@@ -103,9 +103,9 @@ class NoteAdapter(
             h.preview.setTextColor(Color.parseColor("#2E3A31"))
             h.meta.setTextColor(Color.parseColor("#4A5568"))
         } else {
-            h.title.setTextColor(UiStyle.resolveColor(context, com.google.android.material.R.attr.colorOnSurface, Color.WHITE))
-            h.preview.setTextColor(UiStyle.resolveColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.LTGRAY))
-            h.meta.setTextColor(UiStyle.resolveColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.GRAY))
+            h.title.setTextColor(Color.parseColor("#F0F6FC"))
+            h.preview.setTextColor(Color.parseColor("#DAE2EA"))
+            h.meta.setTextColor(Color.parseColor("#9EA7B0"))
         }
 
         h.title.text = n.title.ifBlank { "(tanpa judul)" }

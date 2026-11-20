@@ -126,8 +126,8 @@ class RecycleActivity : AppCompatActivity() {
                 h.title.setTextColor(Color.parseColor("#1C241E"))
                 h.date.setTextColor(Color.parseColor("#4A5568"))
             } else {
-                h.title.setTextColor(UiStyle.resolveColor(h.itemView.context, com.google.android.material.R.attr.colorOnSurface, Color.WHITE))
-                h.date.setTextColor(UiStyle.resolveColor(h.itemView.context, com.google.android.material.R.attr.colorOnSurfaceVariant, Color.LTGRAY))
+                h.title.setTextColor(Color.parseColor("#F0F6FC"))
+                h.date.setTextColor(Color.parseColor("#9EA7B0"))
             }
 
             h.title.text = note.title.ifBlank { "(tanpa judul)" }

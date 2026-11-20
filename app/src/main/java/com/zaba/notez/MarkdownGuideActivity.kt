@@ -94,8 +94,8 @@ class MarkdownGuideActivity : AppCompatActivity() {
                     titleView.setTextColor(android.graphics.Color.parseColor("#1C241E"))
                     summaryView.setTextColor(android.graphics.Color.parseColor("#2E3A31"))
                 } else {
-                    titleView.setTextColor(UiStyle.resolveColor(this@MarkdownGuideActivity, com.google.android.material.R.attr.colorOnSurface, android.graphics.Color.WHITE))
-                    summaryView.setTextColor(UiStyle.resolveColor(this@MarkdownGuideActivity, com.google.android.material.R.attr.colorOnSurfaceVariant, android.graphics.Color.LTGRAY))
+                    titleView.setTextColor(android.graphics.Color.parseColor("#F0F6FC"))
+                    summaryView.setTextColor(android.graphics.Color.parseColor("#DAE2EA"))
                 }
 
                 cardView.setOnClickListener {
