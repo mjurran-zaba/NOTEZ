@@ -1802,6 +1802,129 @@
     }
 
     /*
+      BAGIAN BAWAH ABOUT ME: STORY CARD
+    */
+    .about-bottom-zone {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      position: relative;
+    }
+
+    /* CARD BIOGRAFI RPG: LEBAR SETENGAH LAYAR & TINGGI SAMPAI BAWAH (FADED WHITE CLOUD GLASSMORPHISM 30%) */
+    .about-story-card {
+      flex: 0 0 calc(50% - 6px);
+      width: calc(50% - 6px);
+      height: calc(100vh - 340px);
+      min-height: 250px;
+      max-height: calc(100vh - 310px);
+      border-radius: 20px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow-y: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+
+      /* Faded White Cloud Glassmorphism 30% */
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 100%),
+        rgba(16, 22, 32, 0.30);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+
+      box-shadow:
+        0 14px 32px -8px rgba(0, 0, 0, 0.65),
+        inset 1.5px 1.5px 2px rgba(255, 255, 255, 0.25),
+        inset -1.5px -1.5px 4px rgba(0, 0, 0, 0.35);
+
+      /* Spawn Logic: Slide to Left */
+      opacity: 0;
+      transform: translateX(48px);
+      transition:
+        opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .about-story-card::-webkit-scrollbar {
+      display: none;
+    }
+
+    .about-story-card.revealed {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .about-story-card.exiting {
+      opacity: 0 !important;
+      transform: translateX(48px) !important;
+      transition:
+        opacity 0.58s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.58s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      pointer-events: none;
+    }
+
+    .about-story-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+
+    .story-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--c-accent-amber);
+      box-shadow: 0 0 8px rgba(229, 179, 66, 0.85);
+      flex-shrink: 0;
+    }
+
+    .story-badge-label {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--c-accent-amber);
+    }
+
+    .about-story-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .story-para {
+      margin: 0;
+      font-size: 0.80rem;
+      font-weight: 400;
+      color: var(--c-text-primary);
+      line-height: 1.54;
+      letter-spacing: 0.01em;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .story-quote {
+      margin: 4px 0 0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-style: italic;
+      color: #ffffff;
+      line-height: 1.48;
+      letter-spacing: 0.015em;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+      padding-top: 8px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.15);
+    }
+
+    /*
       ======================================================
       THEME GALLERY OVERLAY: FADED WHITE MILK GLASSMORPHISM 45%
       ======================================================
@@ -2224,6 +2347,28 @@
       #about-divider-top {
         margin-top: 30px;
         margin-bottom: 20px;
+      }
+      .about-bottom-zone {
+        gap: 10px;
+      }
+      .about-story-card {
+        flex: 0 0 calc(50% - 5px);
+        width: calc(50% - 5px);
+        height: calc(100vh - 290px);
+        min-height: 220px;
+        padding: 12px 13px;
+        border-radius: 17px;
+      }
+      .story-badge-label {
+        font-size: 0.56rem;
+      }
+      .story-para {
+        font-size: 0.72rem;
+        line-height: 1.44;
+      }
+      .story-quote {
+        font-size: 0.74rem;
+        line-height: 1.40;
       }
     }
   </style>
@@ -2765,6 +2910,37 @@
       <!-- 3. GARIS HORIZONTAL PEMBATAS BAWAH -->
       <hr class="divider-sep" id="about-divider-top">
 
+      <!-- BAGIAN BAWAH: ZONA KONTEN ABOUT ME -->
+      <div class="about-bottom-zone" id="about-bottom-zone">
+
+        <!-- CARD BIOGRAFI RPG: LEBAR SETENGAH LAYAR & TINGGI SAMPAI BAWAH (FADED WHITE CLOUD GLASSMORPHISM 30%) -->
+        <article class="about-story-card" id="about-story-card" aria-label="Biografi dan Perjalanan Muhammad Zaqi Prasetyo">
+          <div class="about-story-header">
+            <span class="story-badge-dot"></span>
+            <span class="story-badge-label">LOG ENTRY &bull; ORIGIN</span>
+          </div>
+
+          <div class="about-story-body">
+            <p class="story-para">
+              I spawned on January 22, 2001, on the Indonesia server.
+            </p>
+
+            <p class="story-para">
+              I finished the tutorial at 18 in an Islamic Senior High School, and along the way, I unlocked two more languages: English and Arabic. So now I speak three languages in total, with Indonesian as my first language.
+            </p>
+
+            <p class="story-para">
+              Right now, I'm still grinding and hunting for money to get better items, and grinding my skills in tech, Artificial Intelligence, coding fundamentals, and more.
+            </p>
+
+            <p class="story-quote">
+              My advice? &ldquo;If they can, why must us?&rdquo;.
+            </p>
+          </div>
+        </article>
+
+      </div>
+
     </div>
 
   </div>
@@ -3032,6 +3208,7 @@
     const aboutPhotoCard = document.getElementById("about-photo-card");
     const aboutHeroCard = document.getElementById("about-hero-card");
     const aboutDividerTop = document.getElementById("about-divider-top");
+    const aboutStoryCard = document.getElementById("about-story-card");
 
     let activeStage = "cover"; // "cover" | "notez" | "about"
 
@@ -3282,6 +3459,7 @@
         aboutPhotoCard.classList.remove("exiting");
         aboutHeroCard.classList.remove("exiting");
         aboutDividerTop.classList.remove("exiting");
+        aboutStoryCard.classList.remove("exiting");
 
         // 1. KARTU FOTO (TOP-LEFT): MUNCUL DENGAN FADED ZOOM OUT
         setTimeout(() => {
@@ -3294,7 +3472,13 @@
             // 3. GARIS HORIZONTAL PEMBATAS MEKAR DI BAWAHNYA
             setTimeout(() => {
               aboutDividerTop.classList.add("revealed");
-              isTransitioning = false;
+
+              // 4. JEDA 0.5S: STORY CARD MUNCUL (SLIDE TO LEFT)
+              setTimeout(() => {
+                aboutStoryCard.classList.add("revealed");
+                isTransitioning = false;
+              }, 500);
+
             }, 300);
 
           }, 700);
@@ -3314,29 +3498,35 @@
       btnBackEl.classList.remove("revealed");
 
       if (activeStage === "about") {
-        // 1. Garis pembatas bawah menguncup
-        aboutDividerTop.classList.add("exiting");
+        // 1. Story Card meluncur keluar ke kanan
+        aboutStoryCard.classList.add("exiting");
 
-        // 2. Hero Card meluncur keluar ke kanan
+        // 2. Garis pembatas bawah menguncup
+        setTimeout(() => {
+          aboutDividerTop.classList.add("exiting");
+        }, 160);
+
+        // 3. Hero Card meluncur keluar ke kanan
         setTimeout(() => {
           aboutHeroCard.classList.add("exiting");
-        }, 140);
+        }, 320);
 
-        // 3. Kartu Foto zoom out / fade out keluar
+        // 4. Kartu Foto zoom out / fade out keluar
         setTimeout(() => {
           aboutPhotoCard.classList.add("exiting");
-        }, 280);
+        }, 460);
 
-        // 4. Setelah tuntas pulang, kembali ke sampul utama (FIFO)
+        // 5. Setelah tuntas pulang, kembali ke sampul utama (FIFO)
         setTimeout(() => {
           aboutPhotoCard.classList.remove("revealed");
           aboutHeroCard.classList.remove("revealed");
           aboutDividerTop.classList.remove("revealed");
+          aboutStoryCard.classList.remove("revealed");
           aboutStageZone.classList.remove("is-active");
           activeStage = "cover";
 
           runSpawnSequence();
-        }, 280 + 550 + 180);
+        }, 460 + 550 + 180);
 
       } else {
         // 1. Bagian Bawah NOTEZ meluncur turun keluar
