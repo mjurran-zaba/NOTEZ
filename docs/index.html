@@ -1810,25 +1810,28 @@
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      align-items: stretch;
+      align-items: flex-start;
       position: relative;
     }
 
-    /* Kolom Kiri: 6 Card 1 Baris */
+    /* Kolom Kiri: 6 Card 1 Baris (Murni Tinggi 1 Baris, Tidak Melar) */
     .about-quick-cards {
       flex: 0 0 calc(50% - 6px);
       width: calc(50% - 6px);
       display: flex;
       flex-direction: column;
       gap: 7px;
-      justify-content: space-between;
+      justify-content: flex-start;
+      align-self: flex-start;
     }
 
     .about-quick-card {
       width: 100%;
-      flex: 1;
-      min-height: 38px;
-      border-radius: 12px;
+      height: 36px;
+      min-height: 36px;
+      max-height: 36px;
+      flex: 0 0 auto;
+      border-radius: 11px;
       padding: 0 14px;
       display: flex;
       align-items: center;
@@ -2492,13 +2495,15 @@
       .about-quick-cards {
         flex: 0 0 calc(50% - 4px);
         width: calc(50% - 4px);
-        gap: 6px;
+        gap: 5px;
       }
       .about-quick-card {
-        min-height: 34px;
+        height: 32px;
+        min-height: 32px;
+        max-height: 32px;
         padding: 0 10px;
         font-size: 0.72rem;
-        border-radius: 10px;
+        border-radius: 9px;
       }
       .about-story-card {
         flex: 0 0 calc(50% - 4px);
