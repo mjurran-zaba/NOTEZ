@@ -41,8 +41,8 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Video Background */
-    .bg-video-layer {
+    /* Image Background Layer (Anti Frame Drop) */
+    .bg-image-layer {
       position: fixed;
       top: 0;
       left: 0;
@@ -53,12 +53,13 @@
       pointer-events: none;
     }
 
-    .bg-video {
+    .bg-image {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center 20%;
       display: block;
-      filter: brightness(0.96) contrast(1.04);
+      filter: brightness(0.92) contrast(1.06);
     }
 
     /* Ambient Scrim */
@@ -1797,31 +1798,118 @@
     }
 
     #about-divider-top {
-      margin-top: 36px;
-      margin-bottom: 24px;
+      margin-top: 20px;
+      margin-bottom: 16px;
     }
 
     /*
-      BAGIAN BAWAH ABOUT ME: STORY CARD
+      BAGIAN BAWAH ABOUT ME: QUICK CARDS (KIRI) + STORY CARD (KANAN)
     */
     .about-bottom-zone {
       width: 100%;
       display: flex;
-      justify-content: flex-end; /* POSISI DI KANAN LAYAR, SISA KIRI 50% */
+      justify-content: space-between;
       gap: 12px;
       align-items: stretch;
       position: relative;
     }
 
-    /* CARD BIOGRAFI RPG: LEBAR SETENGAH LAYAR & TINGGI SAMPAI BAWAH (FADED WHITE CLOUD GLASSMORPHISM 30%) */
+    /* Kolom Kiri: 6 Card 1 Baris */
+    .about-quick-cards {
+      flex: 0 0 calc(50% - 6px);
+      width: calc(50% - 6px);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      justify-content: space-between;
+      min-height: 252px;
+      max-height: 272px;
+    }
+
+    .about-quick-card {
+      width: 100%;
+      flex: 1;
+      min-height: 36px;
+      max-height: 39px;
+      border-radius: 12px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      user-select: none;
+      -webkit-user-select: none;
+
+      /* Faded White Cloud Glassmorphism 30% */
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.06) 100%),
+        rgba(16, 22, 32, 0.32);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.20);
+      box-shadow:
+        0 8px 18px -4px rgba(0, 0, 0, 0.50),
+        inset 1px 1px 1.5px rgba(255, 255, 255, 0.26),
+        inset -1px -1px 2px rgba(0, 0, 0, 0.28);
+
+      color: #f1f5f9;
+      font-family: var(--font-sans);
+      font-size: 0.80rem;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      /* Spawn Logic: Smooth Slide to Right */
+      opacity: 0;
+      transform: translateX(-40px);
+      transition:
+        opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+        background 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+
+    .about-quick-card.revealed {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .about-quick-card.exiting {
+      opacity: 0 !important;
+      transform: translateX(-48px) !important;
+      transition:
+        opacity 0.42s ease,
+        transform 0.42s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    .about-quick-card:hover {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.10) 100%),
+        rgba(22, 30, 44, 0.42);
+      border-color: rgba(255, 255, 255, 0.36);
+      transform: translateX(3px);
+      box-shadow:
+        0 10px 22px -4px rgba(0, 0, 0, 0.62),
+        0 0 12px rgba(255, 255, 255, 0.12);
+    }
+
+    .about-quick-card:active {
+      transform: scale(0.98);
+    }
+
+    /* CARD BIOGRAFI RPG: LEBAR SETENGAH LAYAR & TINGGI SEIMBANG (FADED WHITE CLOUD GLASSMORPHISM 30%) */
     .about-story-card {
       flex: 0 0 calc(50% - 6px);
       width: calc(50% - 6px);
-      height: calc(100vh - 340px);
-      min-height: 250px;
-      max-height: calc(100vh - 310px);
-      border-radius: 20px;
-      padding: 16px 18px;
+      height: 270px;
+      min-height: 252px;
+      max-height: 280px;
+      border-radius: 18px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
@@ -2403,58 +2491,71 @@
         line-height: 1.38;
       }
       #about-divider-top {
-        margin-top: 30px;
-        margin-bottom: 20px;
+        margin-top: 16px;
+        margin-bottom: 12px;
       }
       .about-bottom-zone {
-        gap: 10px;
+        gap: 8px;
+      }
+      .about-quick-cards {
+        flex: 0 0 calc(50% - 4px);
+        width: calc(50% - 4px);
+        gap: 5px;
+        min-height: 228px;
+        max-height: 245px;
+      }
+      .about-quick-card {
+        min-height: 32px;
+        max-height: 35px;
+        padding: 0 10px;
+        font-size: 0.72rem;
+        border-radius: 10px;
       }
       .about-story-card {
-        flex: 0 0 calc(50% - 5px);
-        width: calc(50% - 5px);
-        height: calc(100vh - 290px);
-        min-height: 220px;
-        padding: 12px 13px;
-        border-radius: 17px;
+        flex: 0 0 calc(50% - 4px);
+        width: calc(50% - 4px);
+        height: 245px;
+        min-height: 228px;
+        max-height: 255px;
+        padding: 10px 12px;
+        border-radius: 15px;
       }
       .story-pill-badge {
-        font-size: 0.54rem;
+        font-size: 0.52rem;
         padding: 2px 7px;
       }
       .story-para {
-        font-size: 0.72rem;
-        line-height: 1.44;
-      }
-      .story-quote {
-        font-size: 0.74rem;
+        font-size: 0.70rem;
         line-height: 1.40;
       }
+      .story-quote {
+        font-size: 0.72rem;
+        line-height: 1.38;
+      }
       .about-story-links {
-        margin-top: 10px;
-        padding-top: 10px;
-        gap: 6px;
+        margin-top: 8px;
+        padding-top: 8px;
+        gap: 5px;
       }
       .story-link-item {
-        padding: 6px 9px;
-        gap: 6px;
+        padding: 4px 7px;
+        gap: 5px;
       }
       .story-link-icon {
-        width: 13px;
-        height: 13px;
+        width: 11px;
+        height: 11px;
       }
       .story-link-text {
-        font-size: 0.65rem;
+        font-size: 0.62rem;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Background Looping MP4 Layer -->
-  <div class="bg-video-layer">
-    <video id="bg-video" autoplay loop muted playsinline disablepictureinpicture class="bg-video">
-      <source src="assets/jadikan_loop_BACKGROUNDLAYOUT.mp4" type="video/mp4">
-    </video>
+  <!-- Background Layout Layer (Static Image - Anti Frame Drop) -->
+  <div class="bg-image-layer">
+    <img src="assets/bg_layout.jpg" alt="Background Layout" id="bg-image" class="bg-image">
   </div>
 
   <!-- Ambient Scrim -->
@@ -2988,7 +3089,17 @@
       <!-- BAGIAN BAWAH: ZONA KONTEN ABOUT ME -->
       <div class="about-bottom-zone" id="about-bottom-zone">
 
-        <!-- CARD BIOGRAFI RPG: LEBAR SETENGAH LAYAR & TINGGI SAMPAI BAWAH (FADED WHITE CLOUD GLASSMORPHISM 30%) -->
+        <!-- KIRI: 6 CARD 1 BARIS (SLIDE TO RIGHT SECARA BERGANTIAN SETELAH JEDA 0.8S) -->
+        <div class="about-quick-cards" id="about-quick-cards" aria-label="Quick Category Cards">
+          <div class="about-quick-card" id="quick-card-education">education</div>
+          <div class="about-quick-card" id="quick-card-workexp">Work exp</div>
+          <div class="about-quick-card" id="quick-card-hobby">Hobby</div>
+          <div class="about-quick-card" id="quick-card-project">Project</div>
+          <div class="about-quick-card" id="quick-card-skills">Skills</div>
+          <div class="about-quick-card" id="quick-card-achevment">Achevment</div>
+        </div>
+
+        <!-- KANAN: CARD BIOGRAFI RPG (LEBAR SETENGAH LAYAR) -->
         <article class="about-story-card" id="about-story-card" aria-label="Biografi dan Perjalanan Muhammad Zaqi Prasetyo">
           <div class="about-story-header">
             <span class="story-pill-badge">LOG ENTRY</span>
@@ -3280,7 +3391,6 @@
   </div>
 
   <script>
-    const videoEl = document.getElementById("bg-video");
     const topbarEl = document.getElementById("topbar-44");
     const btnBackEl = document.getElementById("btn-topbar-back");
 
@@ -3395,14 +3505,8 @@
       }, 400);
     }
 
-    videoEl.addEventListener("playing", startChoreography);
-
     window.addEventListener("DOMContentLoaded", () => {
-      videoEl.play().catch(() => {});
-      setTimeout(() => {
-        if (!sequenceTriggered) startChoreography();
-      }, 1200);
-
+      startChoreography();
       setupTactileFeedback();
       setupCarouselDots();
     });
@@ -3562,6 +3666,11 @@
         aboutHeroCard.classList.remove("exiting");
         aboutDividerTop.classList.remove("exiting");
         aboutStoryCard.classList.remove("exiting");
+        const quickCards = document.querySelectorAll(".about-quick-card");
+        quickCards.forEach(c => {
+          c.classList.remove("exiting");
+          c.classList.remove("revealed");
+        });
 
         // 1. KARTU FOTO (TOP-LEFT): MUNCUL DENGAN FADED ZOOM OUT
         setTimeout(() => {
@@ -3578,7 +3687,19 @@
               // 4. JEDA 0.5S: STORY CARD MUNCUL (SLIDE TO LEFT)
               setTimeout(() => {
                 aboutStoryCard.classList.add("revealed");
-                isTransitioning = false;
+
+                // 5. SETELAH SEMUA MUNCUL, JEDA 0.8S: 6 QUICK CARDS (1 BARIS) MUNCUL (SLIDE TO RIGHT BERGANTIAN)
+                setTimeout(() => {
+                  quickCards.forEach((card, idx) => {
+                    setTimeout(() => {
+                      card.classList.add("revealed");
+                      if (idx === quickCards.length - 1) {
+                        isTransitioning = false;
+                      }
+                    }, idx * 110);
+                  });
+                }, 800);
+
               }, 500);
 
             }, 300);
@@ -3600,18 +3721,28 @@
       btnBackEl.classList.remove("revealed");
 
       if (activeStage === "about") {
+        // 0. Quick cards meluncur keluar ke kiri
+        const quickCards = Array.from(document.querySelectorAll(".about-quick-card")).reverse();
+        quickCards.forEach((card, idx) => {
+          setTimeout(() => {
+            card.classList.add("exiting");
+          }, idx * 45);
+        });
+
         // 1. Story Card meluncur keluar ke kanan
-        aboutStoryCard.classList.add("exiting");
+        setTimeout(() => {
+          aboutStoryCard.classList.add("exiting");
+        }, 120);
 
         // 2. Garis pembatas bawah menguncup
         setTimeout(() => {
           aboutDividerTop.classList.add("exiting");
-        }, 160);
+        }, 220);
 
         // 3. Hero Card meluncur keluar ke kanan
         setTimeout(() => {
           aboutHeroCard.classList.add("exiting");
-        }, 320);
+        }, 340);
 
         // 4. Kartu Foto zoom out / fade out keluar
         setTimeout(() => {
@@ -3624,6 +3755,10 @@
           aboutHeroCard.classList.remove("revealed");
           aboutDividerTop.classList.remove("revealed");
           aboutStoryCard.classList.remove("revealed");
+          document.querySelectorAll(".about-quick-card").forEach(c => {
+            c.classList.remove("revealed");
+            c.classList.remove("exiting");
+          });
           aboutStageZone.classList.remove("is-active");
           activeStage = "cover";
 
