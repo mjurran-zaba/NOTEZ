@@ -80,119 +80,99 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
       }, 60);
     }
 
-    // INTERAKSI ACCORDION QUICK CARDS + HOLD & SLIDE STICKY GESTURE
+    // INTERAKSI ACCORDION QUICK CARDS + CONTINUOUS STICKY SLIDE GESTURE
     function setupQuickCardsAccordion() {
-      quickCards.forEach(card => {
-        let holdTimer = null;
-        let isHolding = false;
-        let isDragging = false;
-        let startX = 0;
-        let startY = 0;
-        let deltaY = 0;
-        let wasDragged = false;
-        let activePointerId = null;
+      const container = document.getElementById("about-quick-cards");
+      let holdTimer = null;
+      let isStickySession = false;
+      let activeCard = null;
+      let activeCardStartY = 0;
+      let currentDeltaY = 0;
+      let wasDragged = false;
+      let activePointerId = null;
+      let startX = 0;
+      let startY = 0;
 
-        // Pointer down: Catat koordinat sentuhan jari & pasang timer hold
+      // Helper: Menentukan kartu mana yang sedang berada di bawah koordinat jempol/kursor
+      function getCardAtPoint(clientX, clientY) {
+        if (!container) return null;
+        const containerRect = container.getBoundingClientRect();
+
+        // Toleransi horizontal yang nyaman (+/- 45px) agar gesekan alami jempol tidak putus
+        if (clientX < containerRect.left - 45 || clientX > containerRect.right + 45) {
+          return null;
+        }
+
+        // Cari slot kartu berdasarkan bounding rect un-transformed
+        for (let i = 0; i < quickCards.length; i++) {
+          const card = quickCards[i];
+          const rect = card.getBoundingClientRect();
+
+          let top = rect.top;
+          let bottom = rect.bottom;
+          if (card === activeCard && currentDeltaY) {
+            top -= currentDeltaY;
+            bottom -= currentDeltaY;
+          }
+
+          // Toleransi margin vertikal (+/- 5px) menutupi celah antar card
+          if (clientY >= top - 5 && clientY <= bottom + 5) {
+            return card;
+          }
+        }
+
+        // Fallback batas atas & bawah jika jempol sedikit di atas kartu ke-1 atau di bawah kartu ke-6
+        if (quickCards.length > 0) {
+          const firstCard = quickCards[0];
+          const firstRect = firstCard.getBoundingClientRect();
+          let fTop = firstRect.top - (firstCard === activeCard ? currentDeltaY : 0);
+          if (clientY < fTop && clientY >= fTop - 35) {
+            return firstCard;
+          }
+
+          const lastCard = quickCards[quickCards.length - 1];
+          const lastRect = lastCard.getBoundingClientRect();
+          let lBottom = lastRect.bottom - (lastCard === activeCard ? currentDeltaY : 0);
+          if (clientY > lBottom && clientY <= lBottom + 35) {
+            return lastCard;
+          }
+        }
+
+        return null;
+      }
+
+      // Pasang listener pada masing-masing kartu
+      quickCards.forEach(card => {
         card.addEventListener("pointerdown", (e) => {
           if (e.button !== 0 && e.pointerType === "mouse") return;
 
+          activePointerId = e.pointerId;
           startX = e.clientX;
           startY = e.clientY;
-          deltaY = 0;
-          isHolding = false;
-          isDragging = false;
-          activePointerId = e.pointerId;
+          currentDeltaY = 0;
+          const touchedCard = card;
 
-          // Timer hold: 190ms untuk membedakan sentuhan jari hold dari tap biasa
+          // Timer hold: 190ms membedakan tap biasa dari hold
           holdTimer = setTimeout(() => {
-            isHolding = true;
-            isDragging = true;
+            isStickySession = true;
             wasDragged = true;
-            card.classList.add("is-sticky-dragging");
+            activeCard = touchedCard;
+            activeCardStartY = startY;
+            currentDeltaY = 0;
+
+            activeCard.classList.add("is-sticky-dragging");
+            activeCard.style.transition = "none";
+            activeCard.style.transform = "translate3d(0, 0, 0) scale(1.035)";
 
             try {
-              card.setPointerCapture(activePointerId);
+              if (container) container.setPointerCapture(activePointerId);
             } catch (_) {}
 
             if (navigator.vibrate) navigator.vibrate(14);
-            card.style.transform = "translate3d(0, 0, 0) scale(1.035)";
           }, 190);
         });
 
-        // Pointer move: geser ke atas dan ke bawah saat sentuhan jari hold terdeteksi
-        card.addEventListener("pointermove", (e) => {
-          if (activePointerId !== e.pointerId) return;
-
-          const moveX = e.clientX - startX;
-          const moveY = e.clientY - startY;
-
-          // Jika belum terpicu hold tapi jari sudah bergerak > 8px (scrolling wajar): batalkan timer hold
-          if (!isHolding) {
-            if (Math.hypot(moveX, moveY) > 8) {
-              if (holdTimer) {
-                clearTimeout(holdTimer);
-                holdTimer = null;
-              }
-            }
-            return;
-          }
-
-          // Jika hold sudah aktif: lakukan animasi sticky dan slide vertikal dengan resistensi elastis
-          if (isDragging) {
-            deltaY = moveY;
-            const maxTravel = 68;
-            const clampedDeltaY = Math.sign(deltaY) * Math.min(Math.abs(deltaY) * 0.72, maxTravel);
-            const intensity = Math.min(Math.abs(clampedDeltaY) / maxTravel, 1);
-
-            card.style.transform = `translate3d(0, ${clampedDeltaY}px, 0) scale(${1.035 + intensity * 0.015})`;
-            card.style.boxShadow = `0 ${18 + intensity * 8}px 42px -6px rgba(0, 0, 0, 0.92), 0 0 ${20 + intensity * 14}px rgba(229, 179, 66, ${0.30 + intensity * 0.25}), inset 1px 1px 2px rgba(255, 255, 255, 0.38)`;
-
-            if (e.cancelable) e.preventDefault();
-          }
-        });
-
-        // Pointer up / cancel: Snap-back pegas elastis ke posisi semula
-        const endGesture = (e) => {
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-          }
-
-          if (activePointerId !== null && activePointerId === e.pointerId) {
-            try {
-              card.releasePointerCapture(activePointerId);
-            } catch (_) {}
-            activePointerId = null;
-          }
-
-          if (isDragging || isHolding) {
-            isDragging = false;
-            isHolding = false;
-
-            // Animasi spring snap-back yang memantul anggun & presisi
-            card.style.transition = "transform 0.44s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.35s ease, border-color 0.35s ease";
-            card.style.transform = "translate3d(0, 0, 0) scale(1)";
-            card.style.boxShadow = "";
-
-            if (navigator.vibrate) navigator.vibrate(8);
-
-            setTimeout(() => {
-              card.classList.remove("is-sticky-dragging");
-              card.style.transition = "";
-              card.style.transform = "";
-            }, 450);
-
-            // Blokir trigger click accordion jika baru saja selesai di-drag
-            setTimeout(() => {
-              wasDragged = false;
-            }, 140);
-          }
-        };
-
-        card.addEventListener("pointerup", endGesture);
-        card.addEventListener("pointercancel", endGesture);
-
-        // Click handler: Expand / Collapse accordion (hanya saat tap biasa, bukan hold & slide)
+        // Click handler biasa (Accordion expand/collapse hanya saat tap kilat)
         card.addEventListener("click", (e) => {
           if (wasDragged) {
             e.preventDefault();
@@ -227,6 +207,120 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
           }
         });
       });
+
+      // Pointer move global/window: Memungkinkan geser kontinu ke card setelahnya (Card 2, Card 3, dst.) tanpa perlu hold ulang!
+      const handlePointerMove = (e) => {
+        if (activePointerId === null || e.pointerId !== activePointerId) return;
+
+        // Jendela hold awal (sebelum 190ms)
+        if (!isStickySession) {
+          const moveX = e.clientX - startX;
+          const moveY = e.clientY - startY;
+          // Jika sudah bergerak > 8px, pengguna sedang scroll halaman biasa: batalkan hold
+          if (Math.hypot(moveX, moveY) > 8) {
+            if (holdTimer) {
+              clearTimeout(holdTimer);
+              holdTimer = null;
+            }
+          }
+          return;
+        }
+
+        // Sesi sticky aktif: cegah scroll bawaan browser
+        if (e.cancelable) e.preventDefault();
+
+        // Deteksi apakah jempol sekarang bergeser ke kartu setelahnya atau sebelumnya
+        const targetCard = getCardAtPoint(e.clientX, e.clientY);
+
+        // Jika terdeteksi pindah ke kartu setelahnya (misal Card 1 -> Card 2 atau Card 3):
+        if (targetCard && targetCard !== activeCard) {
+          // 1. Kartu lama memantul kembali ke tempatnya (spring bounce)
+          if (activeCard) {
+            const prevCard = activeCard;
+            prevCard.classList.remove("is-sticky-dragging");
+            prevCard.style.transition = "transform 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.30s ease, border-color 0.30s ease";
+            prevCard.style.transform = "translate3d(0, 0, 0) scale(1)";
+            prevCard.style.boxShadow = "";
+            setTimeout(() => {
+              if (!prevCard.classList.contains("is-sticky-dragging")) {
+                prevCard.style.transition = "";
+                prevCard.style.transform = "";
+              }
+            }, 400);
+          }
+
+          // 2. Kartu baru seketika aktif sticky & slide tanpa perlu bolak-balik hold!
+          activeCard = targetCard;
+          activeCardStartY = e.clientY;
+          currentDeltaY = 0;
+          activeCard.classList.add("is-sticky-dragging");
+          activeCard.style.transition = "none";
+          activeCard.style.transform = "translate3d(0, 0, 0) scale(1.035)";
+
+          // Feedback getaran haptik saat transisi mulus ke kartu berikutnya
+          if (navigator.vibrate) navigator.vibrate(10);
+        }
+
+        // Animasi geser vertikal elastis pada kartu yang sedang aktif
+        if (activeCard) {
+          const moveY = e.clientY - activeCardStartY;
+          const maxTravel = 62;
+          currentDeltaY = Math.sign(moveY) * Math.min(Math.abs(moveY) * 0.72, maxTravel);
+          const intensity = Math.min(Math.abs(currentDeltaY) / maxTravel, 1);
+
+          activeCard.style.transform = `translate3d(0, ${currentDeltaY}px, 0) scale(${1.035 + intensity * 0.015})`;
+          activeCard.style.boxShadow = `0 ${18 + intensity * 8}px 42px -6px rgba(0, 0, 0, 0.92), 0 0 ${20 + intensity * 14}px rgba(229, 179, 66, ${0.30 + intensity * 0.25}), inset 1px 1px 2px rgba(255, 255, 255, 0.38)`;
+        }
+      };
+
+      // Pointer up / cancel: Selesaikan sesi sticky, kartu aktif memantul pulang
+      const handlePointerUp = (e) => {
+        if (activePointerId === null || e.pointerId !== activePointerId) return;
+
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+
+        if (container) {
+          try {
+            container.releasePointerCapture(activePointerId);
+          } catch (_) {}
+        }
+
+        if (isStickySession) {
+          isStickySession = false;
+
+          if (activeCard) {
+            const cardToReset = activeCard;
+            cardToReset.style.transition = "transform 0.44s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.35s ease, border-color 0.35s ease";
+            cardToReset.style.transform = "translate3d(0, 0, 0) scale(1)";
+            cardToReset.style.boxShadow = "";
+
+            if (navigator.vibrate) navigator.vibrate(8);
+
+            setTimeout(() => {
+              cardToReset.classList.remove("is-sticky-dragging");
+              cardToReset.style.transition = "";
+              cardToReset.style.transform = "";
+            }, 450);
+
+            activeCard = null;
+          }
+
+          // Cegah trigger click accordion saat jari baru selesai menggeser kartu
+          wasDragged = true;
+          setTimeout(() => {
+            wasDragged = false;
+          }, 150);
+        }
+
+        activePointerId = null;
+      };
+
+      window.addEventListener("pointermove", handlePointerMove, { passive: false });
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
     }
 
     // LIGHTBOX PREVIEW HANDLERS
