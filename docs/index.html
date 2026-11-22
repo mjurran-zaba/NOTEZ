@@ -1814,7 +1814,7 @@
       position: relative;
     }
 
-    /* Kolom Kiri: 6 Card 1 Baris (Murni Tinggi 1 Baris, Tidak Melar) */
+    /* Kolom Kiri: 5 Card 1 Baris (Expand to Down saat di-tap) */
     .about-quick-cards {
       flex: 0 0 calc(50% - 6px);
       width: calc(50% - 6px);
@@ -1827,17 +1827,14 @@
 
     .about-quick-card {
       width: 100%;
-      height: 36px;
-      min-height: 36px;
-      max-height: 36px;
-      flex: 0 0 auto;
-      border-radius: 11px;
-      padding: 0 14px;
+      height: auto;
+      border-radius: 12px;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       justify-content: flex-start;
       user-select: none;
       -webkit-user-select: none;
+      flex: 0 0 auto;
 
       /* Faded White Cloud Glassmorphism 30% */
       background:
@@ -1851,26 +1848,17 @@
         inset 1px 1px 1.5px rgba(255, 255, 255, 0.26),
         inset -1px -1px 2px rgba(0, 0, 0, 0.28);
 
-      color: #f1f5f9;
-      font-family: var(--font-sans);
-      font-size: 0.80rem;
-      font-weight: 600;
-      letter-spacing: 0.025em;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-
       /* Spawn Logic: Smooth Slide to Right */
       opacity: 0;
       transform: translateX(-40px);
       transition:
         opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
         transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-        background 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
       cursor: pointer;
+      overflow: hidden;
     }
 
     .about-quick-card.revealed {
@@ -1891,14 +1879,164 @@
         linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.10) 100%),
         rgba(22, 30, 44, 0.42);
       border-color: rgba(255, 255, 255, 0.36);
-      transform: translateX(3px);
       box-shadow:
         0 10px 22px -4px rgba(0, 0, 0, 0.62),
         0 0 12px rgba(255, 255, 255, 0.12);
     }
 
-    .about-quick-card:active {
-      transform: scale(0.98);
+    .about-quick-card.is-expanded {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.08) 100%),
+        rgba(20, 26, 38, 0.48);
+      border-color: rgba(245, 158, 11, 0.38);
+      box-shadow:
+        0 12px 28px -4px rgba(0, 0, 0, 0.70),
+        0 0 14px rgba(245, 158, 11, 0.16);
+    }
+
+    /* Baris 1: Header Selalu 1 Baris */
+    .quick-card-header {
+      width: 100%;
+      height: 36px;
+      min-height: 36px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .quick-card-title {
+      color: #f1f5f9;
+      font-family: var(--font-sans);
+      font-size: 0.80rem;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quick-card-chevron {
+      width: 13px;
+      height: 13px;
+      color: rgba(255, 255, 255, 0.60);
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .about-quick-card.is-expanded .quick-card-chevron {
+      transform: rotate(180deg);
+      color: var(--c-accent-amber);
+    }
+
+    /* Drawer Expand to Down */
+    .quick-card-body {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .about-quick-card.is-expanded .quick-card-body {
+      grid-template-rows: 1fr;
+    }
+
+    .quick-card-body-inner {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 4px 14px 12px 14px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.14);
+    }
+
+    /* Format Item Dalam Card */
+    .quick-pipe-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 3px 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+
+    .quick-pipe-item:last-child {
+      border-bottom: none;
+    }
+
+    .pipe-left {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #f1f5f9;
+      line-height: 1.35;
+      flex: 1;
+    }
+
+    .pipe-sep {
+      color: rgba(255, 255, 255, 0.25);
+      font-size: 0.65rem;
+      flex-shrink: 0;
+    }
+
+    .pipe-right {
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--c-accent-amber);
+      line-height: 1.35;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .quick-edu-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+
+    .quick-edu-item:last-child {
+      border-bottom: none;
+    }
+
+    .edu-school {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.32;
+    }
+
+    .edu-meta {
+      font-size: 0.64rem;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .meta-sep {
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    .edu-status {
+      color: var(--c-accent-amber);
+      font-weight: 500;
+    }
+
+    .quick-achievement-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 0 4px 0;
+    }
+
+    .achievement-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: #fbbf24;
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
     }
 
     /* CARD BIOGRAFI RPG: TINGGI PAS SAMPAI LINK PALING BAWAH + SEDIKIT SPACE (FADED WHITE CLOUD GLASSMORPHISM 30%) */
@@ -2498,12 +2636,41 @@
         gap: 5px;
       }
       .about-quick-card {
+        border-radius: 10px;
+      }
+      .quick-card-header {
         height: 32px;
         min-height: 32px;
-        max-height: 32px;
         padding: 0 10px;
+      }
+      .quick-card-title {
         font-size: 0.72rem;
-        border-radius: 9px;
+      }
+      .quick-card-chevron {
+        width: 11px;
+        height: 11px;
+      }
+      .quick-card-body-inner {
+        padding: 3px 10px 10px 10px;
+        gap: 5px;
+      }
+      .pipe-left {
+        font-size: 0.66rem;
+      }
+      .pipe-sep {
+        font-size: 0.60rem;
+      }
+      .pipe-right {
+        font-size: 0.62rem;
+      }
+      .edu-school {
+        font-size: 0.66rem;
+      }
+      .edu-meta {
+        font-size: 0.60rem;
+      }
+      .achievement-tag {
+        font-size: 0.66rem;
       }
       .about-story-card {
         flex: 0 0 calc(50% - 4px);
@@ -3081,14 +3248,148 @@
       <!-- BAGIAN BAWAH: ZONA KONTEN ABOUT ME -->
       <div class="about-bottom-zone" id="about-bottom-zone">
 
-        <!-- KIRI: 6 CARD 1 BARIS (SLIDE TO RIGHT SECARA BERGANTIAN SETELAH JEDA 0.8S) -->
+        <!-- KIRI: 5 CARD 1 BARIS (EXPAND TO DOWN JIKA DI-TAP) -->
         <div class="about-quick-cards" id="about-quick-cards" aria-label="Quick Category Cards">
-          <div class="about-quick-card" id="quick-card-education">education</div>
-          <div class="about-quick-card" id="quick-card-workexp">Work exp</div>
-          <div class="about-quick-card" id="quick-card-hobby">Hobby</div>
-          <div class="about-quick-card" id="quick-card-project">Project</div>
-          <div class="about-quick-card" id="quick-card-skills">Skills</div>
-          <div class="about-quick-card" id="quick-card-achevment">Achevment</div>
+
+          <!-- 1. Education -->
+          <div class="about-quick-card" id="quick-card-education" role="button" tabindex="0" aria-expanded="false" aria-label="Education Details">
+            <div class="quick-card-header">
+              <span class="quick-card-title">Education</span>
+              <svg class="quick-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            <div class="quick-card-body">
+              <div class="quick-card-body-inner">
+                <div class="quick-edu-item">
+                  <div class="edu-school">Karangasem Elementary School</div>
+                  <div class="edu-meta">2006 - 2012 <span class="meta-sep">|</span> <span class="edu-status">Graduated</span></div>
+                </div>
+                <div class="quick-edu-item">
+                  <div class="edu-school">Ibnul Qayyim Islamic Boarding Junior High School for Boys</div>
+                  <div class="edu-meta">2013 - 2015 <span class="meta-sep">|</span> <span class="edu-status">Graduated</span></div>
+                </div>
+                <div class="quick-edu-item">
+                  <div class="edu-school">Ibnul Qayyim Islamic Boarding Senior High School - Science Major (IPA)</div>
+                  <div class="edu-meta">2015 - 2018 <span class="meta-sep">|</span> <span class="edu-status">Graduated</span></div>
+                </div>
+                <div class="quick-edu-item">
+                  <div class="edu-school">Sunan Kalijaga State Islamic University</div>
+                  <div class="edu-meta">2019 - 2021 <span class="meta-sep">|</span> <span class="edu-status">Discontinued</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Role exp -->
+          <div class="about-quick-card" id="quick-card-roleexp" role="button" tabindex="0" aria-expanded="false" aria-label="Role exp Details">
+            <div class="quick-card-header">
+              <span class="quick-card-title">Role exp</span>
+              <svg class="quick-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            <div class="quick-card-body">
+              <div class="quick-card-body-inner">
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Kitchen Helper</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">6 months</span>
+                </div>
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Hotel Receptionist</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">4 months</span>
+                </div>
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Crew Deck Longline Ship</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">2 years</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Hobby -->
+          <div class="about-quick-card" id="quick-card-hobby" role="button" tabindex="0" aria-expanded="false" aria-label="Hobby Details">
+            <div class="quick-card-header">
+              <span class="quick-card-title">Hobby</span>
+              <svg class="quick-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            <div class="quick-card-body">
+              <div class="quick-card-body-inner">
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Gaming</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">Mobile &amp; Desktop</span>
+                </div>
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Watching Movie</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">Anime Series</span>
+                </div>
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Adventure</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">mountain hiking, traveling</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Skills -->
+          <div class="about-quick-card" id="quick-card-skills" role="button" tabindex="0" aria-expanded="false" aria-label="Skills Details">
+            <div class="quick-card-header">
+              <span class="quick-card-title">Skills</span>
+              <svg class="quick-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            <div class="quick-card-body">
+              <div class="quick-card-body-inner">
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">English Native Convertation</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">American</span>
+                </div>
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Arabic Native Convertation</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">Fus&#39;ha</span>
+                </div>
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Cooking Local Dishes</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">chef de partie</span>
+                </div>
+                <div class="quick-pipe-item">
+                  <span class="pipe-left">Prompt Engineer</span>
+                  <span class="pipe-sep">|</span>
+                  <span class="pipe-right">intermediate</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Achievement -->
+          <div class="about-quick-card" id="quick-card-achievement" role="button" tabindex="0" aria-expanded="false" aria-label="Achievement Details">
+            <div class="quick-card-header">
+              <span class="quick-card-title">Achievement</span>
+              <svg class="quick-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            <div class="quick-card-body">
+              <div class="quick-card-body-inner">
+                <div class="quick-achievement-box">
+                  <span class="achievement-tag">&sim; NOT FOR SHOWING &sim;</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- KANAN: CARD BIOGRAFI RPG (LEBAR SETENGAH LAYAR) -->
@@ -3111,7 +3412,7 @@
             </p>
 
             <p class="story-quote">
-              My advice? &ldquo;If they can, why must us?&rdquo;.
+              My advice? &ldquo;If they can, why must it be us?&rdquo;.
             </p>
           </div>
 
@@ -3497,10 +3798,45 @@
       }, 400);
     }
 
+    function setupQuickCardsAccordion() {
+      const cards = document.querySelectorAll(".about-quick-card");
+      cards.forEach(card => {
+        card.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isExpanded = card.classList.contains("is-expanded");
+          
+          cards.forEach(c => {
+            if (c !== card) {
+              c.classList.remove("is-expanded");
+              c.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          if (isExpanded) {
+            card.classList.remove("is-expanded");
+            card.setAttribute("aria-expanded", "false");
+          } else {
+            card.classList.add("is-expanded");
+            card.setAttribute("aria-expanded", "true");
+          }
+
+          if (navigator.vibrate) navigator.vibrate(8);
+        });
+
+        card.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            card.click();
+          }
+        });
+      });
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
       startChoreography();
       setupTactileFeedback();
       setupCarouselDots();
+      setupQuickCardsAccordion();
     });
 
     // KOREOGRAFI PULANG SAMPUL & MEMBUKA PANGGUNG NOTEZ
