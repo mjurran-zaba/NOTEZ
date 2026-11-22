@@ -1,14 +1,20 @@
 {
-  "name": "MJURRAN - Ruang Karya",
-  "short_name": "MJURRAN",
-  "description": "Portofolio & Showcase Produk ZAQI (NOTEZ & ZCODE)",
+  "name": "MOEZAQ – For Honor",
+  "short_name": "MOEZAQ",
+  "description": "For Honor, Villain doesn't born, he made",
   "start_url": "/MOEZAQ/",
   "display": "standalone",
   "background_color": "#05070a",
   "theme_color": "#05070a",
   "icons": [
     {
-      "src": "/MOEZAQ/assets/icon_512.png",
+      "src": "/MOEZAQ/assets/shield_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/MOEZAQ/assets/shield_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
