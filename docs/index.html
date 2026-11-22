@@ -80,7 +80,7 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
       }, 60);
     }
 
-    // INTERAKSI ACCORDION QUICK CARDS + CONTINUOUS STICKY SLIDE GESTURE (TOUCH + POINTER)
+    // INTERAKSI ACCORDION QUICK CARDS + ULTRA-RESPONSIVE CONTINUOUS STICKY SLIDE GESTURE
     function setupQuickCardsAccordion() {
       const container = document.getElementById("about-quick-cards");
       const scrollZone = document.getElementById("about-bottom-zone");
@@ -88,74 +88,89 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
       let holdTimer = null;
       let isStickySession = false;
       let activeCard = null;
+      let cardTouchStartY = 0;
       let currentDeltaY = 0;
       let wasDragged = false;
       let isTracking = false;
       let startX = 0;
       let startY = 0;
       let lastY = 0;
+      let cardsCache = [];
 
-      // Helper: Menentukan kartu mana yang paling dekat dengan koordinat Y jempol/kursor
+      // Perbarui cache geometri kartu sekali saat gesture dimulai (mencegah layout thrashing 60/120fps)
+      function updateCardsCache() {
+        if (!quickCards || quickCards.length === 0) return;
+        cardsCache = Array.from(quickCards).map(card => {
+          const rect = card.getBoundingClientRect();
+          return {
+            card,
+            centerY: (rect.top + rect.bottom) / 2,
+            top: rect.top,
+            bottom: rect.bottom
+          };
+        });
+      }
+
+      // Deteksi kartu terdekat dari posisi Y jari (perhitungan instan < 0.001ms tanpa reflow)
       function getBestCardForY(clientY) {
-        if (!quickCards || quickCards.length === 0) return null;
+        if (!cardsCache || cardsCache.length === 0) return null;
 
-        let bestCard = quickCards[0];
+        let bestCard = cardsCache[0].card;
         let minDistance = Infinity;
 
-        for (let i = 0; i < quickCards.length; i++) {
-          const card = quickCards[i];
-          const rect = card.getBoundingClientRect();
-          let cardCenterY = (rect.top + rect.bottom) / 2;
-          if (card === activeCard && currentDeltaY) {
-            cardCenterY -= currentDeltaY;
-          }
-
-          const dist = Math.abs(clientY - cardCenterY);
+        for (let i = 0; i < cardsCache.length; i++) {
+          const dist = Math.abs(clientY - cardsCache[i].centerY);
           if (dist < minDistance) {
             minDistance = dist;
-            bestCard = card;
+            bestCard = cardsCache[i].card;
           }
         }
 
         return bestCard;
       }
 
-      // Mulai gesture (baik dari touchstart maupun pointerdown)
+      // Mulai gesture sentuhan (sensitivitas ultra tinggi: 90ms hold)
       function startGesture(card, clientX, clientY) {
         isTracking = true;
         startX = clientX;
         startY = clientY;
         lastY = clientY;
+        cardTouchStartY = clientY;
         currentDeltaY = 0;
 
+        // Ambil posisi kartu di awal (hanya 1x, tidak membebani touchmove)
+        updateCardsCache();
+
         if (holdTimer) clearTimeout(holdTimer);
+        // Sensitivitas dipercepat dari 180ms menjadi 90ms (respons seketika)
         holdTimer = setTimeout(() => {
           if (!isTracking) return;
 
           isStickySession = true;
           wasDragged = true;
           activeCard = card;
+          cardTouchStartY = lastY;
           currentDeltaY = 0;
 
           activeCard.classList.add("is-sticky-dragging");
           activeCard.style.transition = "none";
-          activeCard.style.transform = "translate3d(0, 0, 0) scale(1.035)";
+          activeCard.style.transform = "translate3d(0, 0, 0) scale(1.038)";
 
-          if (navigator.vibrate) navigator.vibrate(14);
-        }, 180);
+          if (navigator.vibrate) navigator.vibrate(12);
+        }, 90);
       }
 
-      // Pergerakan gesture saat digeser
+      // Pergerakan gesture: 1:1 direct tracking instan tanpa jeda
       function moveGesture(clientX, clientY, e) {
         if (!isTracking) return;
 
-        // 1. Sebelum masuk sticky mode (dalam durasi 180ms hold):
+        // 1. Sebelum masuk sticky mode (selama 90ms):
         if (!isStickySession) {
           const diffX = clientX - startX;
           const diffY = clientY - startY;
 
-          // Jika jari bergerak > 7px sebelum timer hold selesai: batalkan hold & forward scroll
-          if (Math.hypot(diffX, diffY) > 7) {
+          // Hanya batalkan jika pengguna sengaja fling/swipe scroll cepat (> 14px)
+          if (Math.hypot(diffX, diffY) > 14) {
             if (holdTimer) {
               clearTimeout(holdTimer);
               holdTimer = null;
@@ -169,7 +184,7 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
           return;
         }
 
-        // 2. Saat mode sticky sudah aktif: cegah scroll bawaan browser 100%
+        // 2. Mode sticky aktif: cegah scroll default browser
         if (e && e.cancelable) {
           e.preventDefault();
         }
@@ -177,13 +192,13 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
         // Cari kartu yang paling dekat dengan posisi Y jempol saat ini
         const targetCard = getBestCardForY(clientY);
 
-        // Jika jempol bergeser ke kartu setelahnya (misal Card 1 -> Card 2, Card 3, dst.):
+        // Transisi mulus ke kartu berikutnya (Card 1 -> Card 2, Card 3, dst.)
         if (targetCard && targetCard !== activeCard) {
-          // Kartu lama memantul pulang
+          // Kartu lama memantul pulang dengan cepat & taktil (0.22s)
           if (activeCard) {
             const prevCard = activeCard;
             prevCard.classList.remove("is-sticky-dragging");
-            prevCard.style.transition = "transform 0.36s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.30s ease, border-color 0.30s ease";
+            prevCard.style.transition = "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.20s ease, border-color 0.20s ease";
             prevCard.style.transform = "translate3d(0, 0, 0) scale(1)";
             prevCard.style.boxShadow = "";
             setTimeout(() => {
@@ -191,37 +206,42 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
                 prevCard.style.transition = "";
                 prevCard.style.transform = "";
               }
-            }, 380);
+            }, 240);
           }
 
-          // Kartu baru langsung aktif sticky tanpa perlu hold ulang!
+          // Kartu baru langsung aktif seketika: set anchor start ke clientY saat ini
           activeCard = targetCard;
+          cardTouchStartY = clientY;
+          currentDeltaY = 0;
           activeCard.classList.add("is-sticky-dragging");
           activeCard.style.transition = "none";
+          activeCard.style.transform = "translate3d(0, 0, 0) scale(1.038)";
 
           if (navigator.vibrate) navigator.vibrate(10);
         }
 
-        // Hitung perpindahan slide elastis untuk kartu yang sedang aktif
+        // Hitung perpindahan slide 1:1 yang langsung merespons gerakan jari
         if (activeCard) {
-          const rect = activeCard.getBoundingClientRect();
-          let rawCenterY = (rect.top + rect.bottom) / 2;
-          if (currentDeltaY) {
-            rawCenterY -= currentDeltaY;
-          }
-          const offset = clientY - rawCenterY;
-          const maxTravel = 58;
-          currentDeltaY = Math.sign(offset) * Math.min(Math.abs(offset) * 0.70, maxTravel);
-          const intensity = Math.min(Math.abs(currentDeltaY) / maxTravel, 1);
+          const rawDelta = clientY - cardTouchStartY;
+          const maxTravel = 62;
+          let dampedDelta = rawDelta;
 
-          activeCard.style.transform = `translate3d(0, ${currentDeltaY}px, 0) scale(${1.035 + intensity * 0.015})`;
+          // 1:1 direct tracking responsif sampai 28px, lalu rubber-band halus sampai 62px
+          if (Math.abs(rawDelta) > 28) {
+            const over = Math.abs(rawDelta) - 28;
+            dampedDelta = Math.sign(rawDelta) * (28 + Math.min(over * 0.55, maxTravel - 28));
+          }
+          currentDeltaY = dampedDelta;
+
+          const intensity = Math.min(Math.abs(currentDeltaY) / maxTravel, 1);
+          activeCard.style.transform = `translate3d(0, ${currentDeltaY}px, 0) scale(${1.038 + intensity * 0.015})`;
           activeCard.style.boxShadow = `0 ${18 + intensity * 8}px 42px -6px rgba(0, 0, 0, 0.92), 0 0 ${20 + intensity * 14}px rgba(229, 179, 66, ${0.30 + intensity * 0.25}), inset 1px 1px 2px rgba(255, 255, 255, 0.38)`;
         }
 
         lastY = clientY;
       }
 
-      // Selesai gesture (saat jari diangkat atau touch cancel)
+      // Selesai gesture
       function endGesture() {
         if (!isTracking) return;
         isTracking = false;
@@ -236,7 +256,7 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
 
           if (activeCard) {
             const cardToReset = activeCard;
-            cardToReset.style.transition = "transform 0.44s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.35s ease, border-color 0.35s ease";
+            cardToReset.style.transition = "transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease";
             cardToReset.style.transform = "translate3d(0, 0, 0) scale(1)";
             cardToReset.style.boxShadow = "";
 
@@ -246,22 +266,21 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
               cardToReset.classList.remove("is-sticky-dragging");
               cardToReset.style.transition = "";
               cardToReset.style.transform = "";
-            }, 450);
+            }, 280);
 
             activeCard = null;
           }
 
-          // Kunci event click agar tidak memicu accordion toggle
           wasDragged = true;
           setTimeout(() => {
             wasDragged = false;
-          }, 180);
+          }, 160);
         }
       }
 
       // Pasang listener pada masing-masing kartu
       quickCards.forEach(card => {
-        // Touch events khusus mobile (100% kebal pointercancel)
+        // Touch events langsung (mobile native)
         card.addEventListener("touchstart", (e) => {
           if (!e.touches || e.touches.length === 0) return;
           const t = e.touches[0];
@@ -270,12 +289,12 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
 
         // Pointer down untuk mouse desktop
         card.addEventListener("pointerdown", (e) => {
-          if (e.pointerType === "touch") return; // Touch sudah dihandle oleh touchstart
+          if (e.pointerType === "touch") return;
           if (e.button !== 0) return;
           startGesture(card, e.clientX, e.clientY);
         });
 
-        // Click handler biasa: Expand/Collapse accordion saat tap biasa
+        // Click handler biasa (Accordion expand/collapse saat tap biasa)
         card.addEventListener("click", (e) => {
           if (wasDragged) {
             e.preventDefault();
@@ -311,7 +330,7 @@ My advice? &ldquo;If they can, why must it be us?&rdquo;.
         });
       });
 
-      // Window touch listeners (dengan { passive: false } untuk e.preventDefault saat sticky aktif)
+      // Window touch listeners
       window.addEventListener("touchmove", (e) => {
         if (!isTracking || !e.touches || e.touches.length === 0) return;
         const t = e.touches[0];
