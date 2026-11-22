@@ -1,0 +1,17 @@
+{
+  "name": "MJURRAN - Ruang Karya",
+  "short_name": "MJURRAN",
+  "description": "Portofolio & Showcase Produk ZAQI (NOTEZ & ZCODE)",
+  "start_url": "/MOEZAQ/",
+  "display": "standalone",
+  "background_color": "#05070a",
+  "theme_color": "#05070a",
+  "icons": [
+    {
+      "src": "/MOEZAQ/assets/icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
