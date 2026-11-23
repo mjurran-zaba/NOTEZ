@@ -562,6 +562,47 @@ Before marking any deliverable complete:
 - [ ] No dead controls, fake statistics, or invented claims.
 - [ ] Code reads like clean, senior human-crafted engineering.
 
+---
+
+## 22. Ephemeral Workbench & Cloud Storage Vault (Google Drive 400GB)
+
+### 22.1 Dual-Tier Workspace Architecture
+To maintain maximum system stability, rapid build performance, and prevent workspace snapshot bloat (platform snapshot limits are ~128 MB / 10,000 files), all agents must adhere to the **Two-Tier Storage Architecture**:
+
+1. **Tier 1: Ephemeral Workbench (Local POSIX Workspace `/home/user`)**
+   - **Role**: Active execution, compilation, testing, and git operations.
+   - **What stays here**:
+     - Active Git repositories (`/home/user/MOEZAQ`, `/home/user/NOTEZ`).
+     - Universal instructions and design ADRs (`AGENTS.md`, `antislop.md`, `ADR_*.md`).
+     - Stable tooling and generator scripts (`render_card_final.py`).
+     - Active local development configurations (`.gitconfig`).
+   - **What must NEVER accumulate here**:
+     - Large binary packages (APK files, ZIP dumps, heavy release archives).
+     - Scratch/one-off migration scripts (`apply_*.py`, test snippets, throwaway scripts).
+     - Heavy raw video/audio media that is not directly required for the current active build.
+
+2. **Tier 2: Cloud Storage Vault (Google Drive 400 GB `PROJECTS/`)**
+   - **Role**: Central permanent Source of Truth, cold archive, artifact distribution, and Obsidian-style Knowledge Base.
+   - **Standard Layout**:
+     - `PROJECTS/NOTEZ/`: Release APKs (`APK_RELEASE/`), debug APKs (`APK_DEBUG/`), raw UI test captures, background loop videos, environment secrets.
+     - `PROJECTS/MOEZAQ/`: Unzipped repository mirror, core assets (`public/assets/`), source pages, configuration.
+     - `PROJECTS/WORKSPACE_DOCS_AND_SCRIPTS/`: Architectural decisions (`ADR_*.md`), universal agent rules (`AGENTS.md`), antislop guidelines (`antislop.md`), finalized generators (`render_card_final.py`).
+   - **Zero-Friction Rule**: Always store files **uncompressed (unzipped)** mirroring the directory tree so any AI agent can inspect, read (`read_file_text`), or update them via API without archive extraction overhead.
+
+### 22.2 Agent Operational SOP: Clean As You Go
+- **Task Lifecycle**:
+  1. **Fetch On-Demand**: When an asset or historical document is needed from Google Drive, query and retrieve it via Google Drive connector tools (`search_files`, `get_file_content`, `read_file_text`).
+  2. **Compile & Verify Locally**: Build, test, and verify using local workspace POSIX filesystem speed (`npm run build`, `scripts/audit_landing_page.py`).
+  3. **Sync Upstream**:
+     - Push code commits to GitHub (`git push`).
+     - Upload/update corresponding docs, final assets, or release binaries to Google Drive (`PROJECTS/`).
+  4. **Prune Scratch Files Immediately**:
+     - After verifying changes, delete temporary Python scripts (`apply_*.py`), test scrapers, intermediate build dumps, and `.apk` files from `/home/user`.
+     - Keep `/home/user` lean and clean (consistently under 50 MB persisted footprint).
+- **System Health Checks**:
+  - Run `free -h` and `df -h` when monitoring memory or storage.
+  - Never allow `/home/user` root to become cluttered with throwaway one-off scripts.
+
 <!-- antislop:start -->
 ## antislop
 For UI, copy, people, mobile layout, or code comments work, read `antislop.md` (core) and then the skill for the task:
